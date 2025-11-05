@@ -161,7 +161,7 @@ export default function DVIForm() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+      <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
         <div className="bg-white p-6 border-b-4 border-black">
           <h1 className="text-2xl font-bold text-center">VEHICLE INSPECTION</h1>
         </div>
@@ -236,15 +236,15 @@ export default function DVIForm() {
                   />
                 </div>
               </div>
-              <div className="w-32">
+              <div className="w-40 shrink-0">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">Miles Driven:</span>
+                  <span className="text-sm font-bold whitespace-nowrap">Miles:</span>
                   <input
                     type="number"
                     name="milesDriver"
                     value={formData.milesDriver}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 w-20"
                   />
                 </div>
               </div>
@@ -324,7 +324,28 @@ export default function DVIForm() {
           </div>
         </div>
 
-        <div className="p-6 border-b">
+        <div className="p-6 border-b bg-white">
+          <div className="mb-6 relative flex items-center justify-center gap-4">
+            {/* Left side labels */}
+            <div className="flex flex-col justify-around h-64 text-black font-bold text-sm w-20 shrink-0">
+              <div className="text-slate-500 font-bold text-right whitespace-nowrap">Left Side</div>
+              <div className="text-slate-500 font-bold text-right whitespace-nowrap">Right Side</div>
+            </div>
+
+            {/* Bus diagram image */}
+            <img
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/bus-Photoroom-H5pRn97ebqG7E97wjuDrr263lGqybn.png"
+              alt="Bus inspection diagram"
+              className="w-auto h-64 object-contain max-w-2xl"
+            />
+
+            {/* Right side labels */}
+            <div className="flex flex-col justify-around h-64 text-black font-bold text-sm w-20 shrink-0">
+              <div className="text-slate-500 font-bold text-left whitespace-nowrap">Rear End</div>
+              <div className="text-slate-500 font-bold text-left whitespace-nowrap">Front End</div>
+            </div>
+          </div>
+
           <h2 className="text-lg font-bold mb-4 text-center underline">VEHICLE EXTERIOR CHECKS</h2>
           <div className="grid grid-cols-5 gap-1 text-xs font-bold mb-2 border-b pb-2">
             <div className="col-span-3"></div>

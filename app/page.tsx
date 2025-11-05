@@ -1,14 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Menu, Search, Delete } from "lucide-react"
+import { Search, Delete, Home } from "lucide-react"
 import DVIForm from "@/components/dvi-form"
+import TimesheetForm from "@/components/timesheet-form"
 
-type ViewState = "login" | "employeeIdEntry" | "dvi" | "clockout" | "complete"
+type ViewState = "login" | "employeeIdEntry" | "dvi" | "timesheet" | "clockout"
+type FormType = "dvi" | "timesheet"
 
 export default function TimeClockKiosk() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [view, setView] = useState<ViewState>("login")
+  const [activeForm, setActiveForm] = useState<FormType>("dvi")
   const [enteredId, setEnteredId] = useState("")
   const [employeeData, setEmployeeData] = useState({
     name: "",
@@ -44,21 +47,24 @@ export default function TimeClockKiosk() {
     })
   }
 
-  const handleIdCardLogin = () => {
-    const mockEmployee = {
-      name: "John Driver",
-      id: "EMP12345",
+  const handleDashboard = () => {
+    setView("login")
+    setEmployeeData({
+      name: "",
+      id: "",
       clockedIn: false,
       dviCompleted: false,
       clockInTime: "",
-    }
+    })
+  }
 
-    authenticateEmployee(mockEmployee)
+  const handleIdCardLogin = () => {
+    setView("employeeIdEntry")
+    setEnteredId("")
   }
 
   const handleEmployeeIdLogin = () => {
-    setView("employeeIdEntry")
-    setEnteredId("")
+    // Placeholder for future functionality
   }
 
   const handleKeypadPress = (digit: string) => {
@@ -103,9 +109,9 @@ export default function TimeClockKiosk() {
         clockedIn: true,
         clockInTime,
       }))
-      setView("dvi")
+      setView(activeForm)
     } else if (!employee.dviCompleted) {
-      setView("dvi")
+      setView(activeForm)
     } else {
       setView("clockout")
     }
@@ -113,41 +119,25 @@ export default function TimeClockKiosk() {
 
   const handleDviComplete = () => {
     setEmployeeData((prev) => ({ ...prev, dviCompleted: true }))
-    setView("complete")
-
-    setTimeout(() => {
-      setView("login")
-      setEmployeeData({
-        name: "",
-        id: "",
-        clockedIn: false,
-        dviCompleted: false,
-        clockInTime: "",
-      })
-    }, 3000)
+    handleDashboard()
   }
 
   const handleClockOut = () => {
-    setView("complete")
-
-    setTimeout(() => {
-      setView("login")
-      setEmployeeData({
-        name: "",
-        id: "",
-        clockedIn: false,
-        dviCompleted: false,
-        clockInTime: "",
-      })
-    }, 3000)
+    handleDashboard()
   }
 
-  if (view === "dvi") {
+  const isLoggedIn = view === "dvi" || view === "timesheet" || view === "clockout"
+
+  if (view === "dvi" || view === "timesheet") {
     return (
       <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
         <header className="bg-[#E31E24] px-6 py-4 flex items-center gap-4">
-          <button className="text-white">
-            <Menu size={32} />
+          <button
+            onClick={handleDashboard}
+            className="bg-white text-[#E31E24] px-6 py-2 rounded font-bold text-lg hover:bg-gray-100 flex items-center gap-2"
+          >
+            <Home size={20} />
+            Dashboard
           </button>
           <div className="flex-1 flex items-center gap-4">
             <div className="flex-1 bg-white rounded px-4 py-2 flex items-center gap-2">
@@ -169,14 +159,42 @@ export default function TimeClockKiosk() {
           </div>
         </header>
 
-        <div className="bg-[#E31E24] text-white px-6 py-3 text-center">
+        <div className="bg-[#E31E24] text-white px-6 py-3 flex items-center justify-between">
           <div className="text-xl font-bold">
             {employeeData.name} - {employeeData.id} - Clocked In: {employeeData.clockInTime}
+          </div>
+          <div className="flex gap-4">
+            <button
+              onClick={() => {
+                setActiveForm("dvi")
+                setView("dvi")
+              }}
+              className={`px-6 py-2 rounded font-bold text-lg transition-colors ${
+                activeForm === "dvi"
+                  ? "bg-[#FFE500] text-black"
+                  : "bg-white/20 text-white hover:bg-white/30 border-2 border-white/50"
+              }`}
+            >
+              DVI FORM
+            </button>
+            <button
+              onClick={() => {
+                setActiveForm("timesheet")
+                setView("timesheet")
+              }}
+              className={`px-6 py-2 rounded font-bold text-lg transition-colors ${
+                activeForm === "timesheet"
+                  ? "bg-[#FFE500] text-black"
+                  : "bg-white/20 text-white hover:bg-white/30 border-2 border-white/50"
+              }`}
+            >
+              TIMESHEET
+            </button>
           </div>
         </div>
 
         <div className="flex-1 overflow-auto">
-          <DVIFormWrapper onComplete={handleDviComplete} />
+          {view === "dvi" ? <DVIFormWrapper onComplete={handleDviComplete} /> : <TimesheetForm />}
         </div>
 
         <footer className="bg-[#1A1A1A] text-white py-4 text-center">
@@ -190,8 +208,12 @@ export default function TimeClockKiosk() {
     <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
       {/* Header */}
       <header className="bg-[#E31E24] px-6 py-4 flex items-center gap-4">
-        <button className="text-white">
-          <Menu size={32} />
+        <button
+          disabled
+          className="bg-white/50 text-white px-6 py-2 rounded font-bold text-lg flex items-center gap-2 cursor-not-allowed"
+        >
+          <Home size={20} />
+          Dashboard
         </button>
         <div className="flex-1 flex items-center gap-4">
           <div className="flex-1 bg-white rounded px-4 py-2 flex items-center gap-2">
@@ -306,16 +328,6 @@ export default function TimeClockKiosk() {
             >
               CLOCK OUT
             </button>
-          </div>
-        )}
-
-        {view === "complete" && (
-          <div className="w-full max-w-4xl text-center">
-            <div className="bg-[#1A1A1A] rounded-3xl p-16 shadow-2xl">
-              <div className="text-green-400 text-6xl font-bold mb-6">✓ SUCCESS</div>
-              <div className="text-white text-3xl">Thank you, {employeeData.name}!</div>
-              <div className="text-gray-400 text-xl mt-4">Returning to login screen...</div>
-            </div>
           </div>
         )}
       </main>
