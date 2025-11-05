@@ -160,48 +160,48 @@ export default function DVIForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
       <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-        <div className="bg-white p-6 border-b-4 border-black">
-          <h1 className="text-2xl font-bold text-center">VEHICLE INSPECTION</h1>
+        <div className="bg-white p-4 sm:p-6 border-b-4 border-black">
+          <h1 className="text-xl sm:text-2xl font-bold text-center">VEHICLE INSPECTION</h1>
         </div>
 
-        <div className="p-6 border-b">
+        <div className="p-3 sm:p-6 border-b">
           <div className="space-y-3">
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">BUS #</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">BUS #</span>
                   <input
                     type="text"
                     name="busNumber"
                     value={formData.busNumber}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">DATE:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">DATE:</span>
                   <input
                     type="date"
                     name="date"
                     value={formData.date}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">10-8 TIME:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">10-8 TIME:</span>
                   <input
                     type="time"
                     name="tenEightTime"
                     value={formData.tenEightTime}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
@@ -211,107 +211,107 @@ export default function DVIForm() {
               I indicate by my signature that I have reviewed the previous operator&apos;s vehicle inspection report.
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">Operator Name (print):</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Operator Name:</span>
                   <input
                     type="text"
                     name="operatorName"
                     value={formData.operatorName}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">Operator Signature:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Signature:</span>
                   <input
                     type="text"
                     name="operatorSignature"
                     value={formData.operatorSignature}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
-              <div className="w-40 shrink-0">
+              <div className="w-full sm:w-32 shrink-0">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">Miles:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Miles:</span>
                   <input
                     type="number"
                     name="milesDriver"
                     value={formData.milesDriver}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 w-20"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">End Miles:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">End Miles:</span>
                   <input
                     type="number"
                     name="endMiles"
                     value={formData.endMiles}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">Beginning Time:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Beginning Time:</span>
                   <input
                     type="time"
                     name="beginningTime"
                     value={formData.beginningTime}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">Time Worked:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Time Worked:</span>
                   <input
                     type="text"
                     name="timeWorked"
                     value={formData.timeWorked}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                     placeholder="HH:MM"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">End Time:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">End Time:</span>
                   <input
                     type="time"
                     name="endTime"
                     value={formData.endTime}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold whitespace-nowrap">Beginning Miles:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Beginning Miles:</span>
                   <input
                     type="number"
                     name="beginningMiles"
                     value={formData.beginningMiles}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
                 </div>
               </div>
@@ -324,59 +324,71 @@ export default function DVIForm() {
           </div>
         </div>
 
-        <div className="p-6 border-b bg-white">
-          <div className="mb-6 relative flex items-center justify-center gap-4">
+        <div className="p-3 sm:p-6 border-b bg-white">
+          <div className="mb-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
             {/* Left side labels */}
-            <div className="flex flex-col justify-around h-64 text-black font-bold text-sm w-20 shrink-0">
-              <div className="text-slate-500 font-bold text-right whitespace-nowrap">Left Side</div>
-              <div className="text-slate-500 font-bold text-right whitespace-nowrap">Right Side</div>
+            <div className="hidden sm:flex flex-col justify-around h-48 sm:h-64 text-black font-bold text-xs sm:text-sm w-16 sm:w-20 shrink-0">
+              <div className="text-slate-500 font-bold text-right whitespace-nowrap text-xs sm:text-sm">Left Side</div>
+              <div className="text-slate-500 font-bold text-right whitespace-nowrap text-xs sm:text-sm">Right Side</div>
             </div>
 
             {/* Bus diagram image */}
             <img
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/bus-Photoroom-H5pRn97ebqG7E97wjuDrr263lGqybn.png"
               alt="Bus inspection diagram"
-              className="w-auto h-64 object-contain max-w-2xl"
+              className="w-full sm:w-auto h-48 sm:h-64 object-contain max-w-full sm:max-w-2xl"
             />
 
             {/* Right side labels */}
-            <div className="flex flex-col justify-around h-64 text-black font-bold text-sm w-20 shrink-0">
-              <div className="text-slate-500 font-bold text-left whitespace-nowrap">Rear End</div>
-              <div className="text-slate-500 font-bold text-left whitespace-nowrap">Front End</div>
+            <div className="hidden sm:flex flex-col justify-around h-48 sm:h-64 text-black font-bold text-xs sm:text-sm w-16 sm:w-20 shrink-0">
+              <div className="text-slate-500 font-bold text-left whitespace-nowrap text-xs sm:text-sm">Rear End</div>
+              <div className="text-slate-500 font-bold text-left whitespace-nowrap text-xs sm:text-sm">Front End</div>
             </div>
           </div>
 
-          <h2 className="text-lg font-bold mb-4 text-center underline">VEHICLE EXTERIOR CHECKS</h2>
-          <div className="grid grid-cols-5 gap-1 text-xs font-bold mb-2 border-b pb-2">
-            <div className="col-span-3"></div>
-            <div className="text-center">Pre-Trip</div>
-            <div className="text-center">Post-Trip</div>
+          {/* Mobile labels */}
+          <div className="sm:hidden grid grid-cols-2 gap-2 mb-4 text-xs font-bold text-slate-500 text-center">
+            <div>Left Side</div>
+            <div>Right Side</div>
+            <div>Rear End</div>
+            <div>Front End</div>
           </div>
-          {Object.keys(exteriorChecks).map((item) => (
-            <div key={item} className="grid grid-cols-5 gap-1 items-center py-1.5 border-b">
-              <div className="col-span-3 text-sm">{exteriorLabels[item]}</div>
-              <div className="flex justify-center">
-                <div className="w-6 h-6 border border-black flex items-center justify-center">
-                  <input
-                    type="checkbox"
-                    checked={exteriorChecks[item as keyof typeof exteriorChecks].preTrip}
-                    onChange={() => handleCheckboxChange("exterior", item, "preTrip")}
-                    className="w-4 h-4"
-                  />
-                </div>
+
+          <h2 className="text-base sm:text-lg font-bold mb-4 text-center underline">VEHICLE EXTERIOR CHECKS</h2>
+          <div className="overflow-x-auto">
+            <div className="min-w-[400px]">
+              <div className="grid grid-cols-5 gap-1 text-xs font-bold mb-2 border-b pb-2">
+                <div className="col-span-3"></div>
+                <div className="text-center">Pre-Trip</div>
+                <div className="text-center">Post-Trip</div>
               </div>
-              <div className="flex justify-center">
-                <div className="w-6 h-6 border border-black flex items-center justify-center">
-                  <input
-                    type="checkbox"
-                    checked={exteriorChecks[item as keyof typeof exteriorChecks].postTrip}
-                    onChange={() => handleCheckboxChange("exterior", item, "postTrip")}
-                    className="w-4 h-4"
-                  />
+              {Object.keys(exteriorChecks).map((item) => (
+                <div key={item} className="grid grid-cols-5 gap-1 items-center py-1.5 border-b">
+                  <div className="col-span-3 text-xs sm:text-sm">{exteriorLabels[item]}</div>
+                  <div className="flex justify-center">
+                    <div className="w-6 h-6 border border-black flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={exteriorChecks[item as keyof typeof exteriorChecks].preTrip}
+                        onChange={() => handleCheckboxChange("exterior", item, "preTrip")}
+                        className="w-4 h-4"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-center">
+                    <div className="w-6 h-6 border border-black flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={exteriorChecks[item as keyof typeof exteriorChecks].postTrip}
+                        onChange={() => handleCheckboxChange("exterior", item, "postTrip")}
+                        className="w-4 h-4"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
 
         <div className="p-6 border-b">
@@ -528,22 +540,22 @@ export default function DVIForm() {
           </div>
         </div>
 
-        <div className="p-6 bg-gray-50">
-          <div className="flex gap-4">
+        <div className="p-4 sm:p-6 bg-gray-50">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button
               type="button"
               onClick={() => alert("Photo upload feature - integrate with device camera")}
-              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-blue-700"
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 text-sm sm:text-base"
             >
-              <Camera size={20} />
+              <Camera size={18} className="sm:w-5 sm:h-5" />
               Add Photos
             </button>
             <button
               type="button"
               onClick={handleSubmit}
-              className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-green-700"
+              className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-green-700 text-sm sm:text-base"
             >
-              <Save size={20} />
+              <Save size={18} className="sm:w-5 sm:h-5" />
               Submit Inspection
             </button>
           </div>

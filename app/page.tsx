@@ -131,58 +131,61 @@ export default function TimeClockKiosk() {
   if (view === "dvi" || view === "timesheet") {
     return (
       <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
-        <header className="bg-[#E31E24] px-6 py-4 flex items-center gap-4">
+        <header className="bg-[#E31E24] px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
           <button
             onClick={handleDashboard}
-            className="bg-white text-[#E31E24] px-6 py-2 rounded font-bold text-lg hover:bg-gray-100 flex items-center gap-2"
+            className="bg-white text-[#E31E24] px-4 sm:px-6 py-2 rounded font-bold text-base sm:text-lg hover:bg-gray-100 flex items-center justify-center gap-2"
           >
-            <Home size={20} />
-            Dashboard
+            <Home size={18} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Dashboard</span>
+            <span className="sm:hidden">Home</span>
           </button>
-          <div className="flex-1 flex items-center gap-4">
-            <div className="flex-1 bg-white rounded px-4 py-2 flex items-center gap-2">
-              <Search size={20} className="text-gray-400" />
-              <input type="text" placeholder="Search..." className="flex-1 outline-none text-lg" />
+          <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+            <div className="flex-1 bg-white rounded px-3 sm:px-4 py-2 flex items-center gap-2">
+              <Search size={18} className="text-gray-400 sm:w-5 sm:h-5" />
+              <input type="text" placeholder="Search..." className="flex-1 outline-none text-sm sm:text-lg" />
             </div>
-            <button
-              onClick={handleIdCardLogin}
-              className="bg-[#FFE500] text-black px-8 py-2 rounded font-bold text-lg hover:bg-yellow-400 whitespace-nowrap"
-            >
-              ID CARD LOGIN
-            </button>
-            <button
-              onClick={handleEmployeeIdLogin}
-              className="bg-[#FFE500] text-black px-8 py-2 rounded font-bold text-lg hover:bg-yellow-400 whitespace-nowrap"
-            >
-              EMPLOYEE ID
-            </button>
+            <div className="flex gap-2 sm:gap-4">
+              <button
+                onClick={handleIdCardLogin}
+                className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
+              >
+                ID CARD
+              </button>
+              <button
+                onClick={handleEmployeeIdLogin}
+                className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
+              >
+                EMPLOYEE ID
+              </button>
+            </div>
           </div>
         </header>
 
-        <div className="bg-[#E31E24] text-white px-6 py-3 flex items-center justify-between">
-          <div className="text-xl font-bold">
+        <div className="bg-[#E31E24] text-white px-3 sm:px-6 py-2 sm:py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="text-sm sm:text-xl font-bold break-words w-full sm:w-auto">
             {employeeData.name} - {employeeData.id} - Clocked In: {employeeData.clockInTime}
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
             <button
               onClick={() => {
                 setActiveForm("dvi")
                 setView("dvi")
               }}
-              className={`px-6 py-2 rounded font-bold text-lg transition-colors ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded font-bold text-sm sm:text-lg transition-colors ${
                 activeForm === "dvi"
                   ? "bg-[#FFE500] text-black"
                   : "bg-white/20 text-white hover:bg-white/30 border-2 border-white/50"
               }`}
             >
-              DVI FORM
+              DVI
             </button>
             <button
               onClick={() => {
                 setActiveForm("timesheet")
                 setView("timesheet")
               }}
-              className={`px-6 py-2 rounded font-bold text-lg transition-colors ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded font-bold text-sm sm:text-lg transition-colors ${
                 activeForm === "timesheet"
                   ? "bg-[#FFE500] text-black"
                   : "bg-white/20 text-white hover:bg-white/30 border-2 border-white/50"
@@ -197,8 +200,8 @@ export default function TimeClockKiosk() {
           {view === "dvi" ? <DVIFormWrapper onComplete={handleDviComplete} /> : <TimesheetForm />}
         </div>
 
-        <footer className="bg-[#1A1A1A] text-white py-4 text-center">
-          <div className="text-xl font-bold">VISI2N by Transdev</div>
+        <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
+          <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
         </footer>
       </div>
     )
@@ -206,107 +209,109 @@ export default function TimeClockKiosk() {
 
   return (
     <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
-      {/* Header */}
-      <header className="bg-[#E31E24] px-6 py-4 flex items-center gap-4">
+      <header className="bg-[#E31E24] px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
         <button
           disabled
-          className="bg-white/50 text-white px-6 py-2 rounded font-bold text-lg flex items-center gap-2 cursor-not-allowed"
+          className="bg-white/50 text-white px-4 sm:px-6 py-2 rounded font-bold text-base sm:text-lg flex items-center justify-center gap-2 cursor-not-allowed"
         >
-          <Home size={20} />
-          Dashboard
+          <Home size={18} className="sm:w-5 sm:h-5" />
+          <span className="hidden sm:inline">Dashboard</span>
+          <span className="sm:hidden">Home</span>
         </button>
-        <div className="flex-1 flex items-center gap-4">
-          <div className="flex-1 bg-white rounded px-4 py-2 flex items-center gap-2">
-            <Search size={20} className="text-gray-400" />
-            <input type="text" placeholder="Search..." className="flex-1 outline-none text-lg" />
+        <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+          <div className="flex-1 bg-white rounded px-3 sm:px-4 py-2 flex items-center gap-2">
+            <Search size={18} className="text-gray-400 sm:w-5 sm:h-5" />
+            <input type="text" placeholder="Search..." className="flex-1 outline-none text-sm sm:text-lg" />
           </div>
-          <button
-            onClick={handleIdCardLogin}
-            className="bg-[#FFE500] text-black px-8 py-2 rounded font-bold text-lg hover:bg-yellow-400 whitespace-nowrap"
-          >
-            ID CARD LOGIN
-          </button>
-          <button
-            onClick={handleEmployeeIdLogin}
-            className="bg-[#FFE500] text-black px-8 py-2 rounded font-bold text-lg hover:bg-yellow-400 whitespace-nowrap"
-          >
-            EMPLOYEE ID
-          </button>
+          <div className="flex gap-2 sm:gap-4">
+            <button
+              onClick={handleIdCardLogin}
+              className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
+            >
+              ID CARD
+            </button>
+            <button
+              onClick={handleEmployeeIdLogin}
+              className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
+            >
+              EMPLOYEE ID
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Station ID Banner */}
-      <div className="bg-[#E31E24] text-white px-6 py-3 text-center">
-        <div className="text-xl font-bold">STATION ID: KIOSK-001</div>
+      <div className="bg-[#E31E24] text-white px-3 sm:px-6 py-2 sm:py-3 text-center">
+        <div className="text-base sm:text-xl font-bold">STATION ID: KIOSK-001</div>
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center p-8">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
         {view === "login" && (
           <div className="w-full max-w-4xl">
-            <div className="bg-[#1A1A1A] rounded-3xl p-12 shadow-2xl">
+            <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 shadow-2xl">
               <div className="text-center">
-                <div className="text-white text-8xl font-bold font-mono tracking-wider mb-4">
+                <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold font-mono tracking-wider mb-2 sm:mb-4">
                   {formatTime(currentTime)}
                 </div>
-                <div className="text-gray-400 text-2xl font-semibold">{formatDate(currentTime)}</div>
+                <div className="text-gray-400 text-lg sm:text-2xl font-semibold">{formatDate(currentTime)}</div>
               </div>
             </div>
           </div>
         )}
 
         {view === "employeeIdEntry" && (
-          <div className="w-full max-w-4xl">
-            <div className="bg-[#1A1A1A] rounded-3xl p-12 mb-8 shadow-2xl">
-              <div className="text-center mb-6">
-                <div className="text-gray-400 text-2xl mb-4">Enter Employee ID</div>
-                <div className="bg-white rounded-xl p-6 min-h-[100px] flex items-center justify-center">
-                  <div className="text-6xl font-bold font-mono tracking-widest text-black">{enteredId || "—"}</div>
+          <div className="w-full max-w-4xl px-2">
+            <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 mb-6 sm:mb-8 shadow-2xl">
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="text-gray-400 text-lg sm:text-2xl mb-3 sm:mb-4">Enter Employee ID</div>
+                <div className="bg-white rounded-xl p-4 sm:p-6 min-h-[80px] sm:min-h-[100px] flex items-center justify-center">
+                  <div className="text-4xl sm:text-6xl font-bold font-mono tracking-widest text-black">
+                    {enteredId || "—"}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
                 <button
                   key={digit}
                   onClick={() => handleKeypadPress(digit.toString())}
-                  className="bg-white text-black rounded-2xl py-12 text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg"
+                  className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
                 >
                   {digit}
                 </button>
               ))}
               <button
                 onClick={handleClear}
-                className="bg-[#E31E24] text-white rounded-2xl py-12 text-3xl font-bold hover:bg-red-700 transition-colors shadow-lg"
+                className="bg-[#E31E24] text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-red-700 transition-colors shadow-lg active:scale-95"
               >
                 CLEAR
               </button>
               <button
                 onClick={() => handleKeypadPress("0")}
-                className="bg-white text-black rounded-2xl py-12 text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg"
+                className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
               >
                 0
               </button>
               <button
                 onClick={handleBackspace}
-                className="bg-gray-600 text-white rounded-2xl py-12 flex items-center justify-center hover:bg-gray-700 transition-colors shadow-lg"
+                className="bg-gray-600 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 flex items-center justify-center hover:bg-gray-700 transition-colors shadow-lg active:scale-95"
               >
-                <Delete size={48} />
+                <Delete size={32} className="sm:w-12 sm:h-12" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-4 sm:gap-6">
               <button
                 onClick={handleCancelIdEntry}
-                className="bg-gray-600 text-white rounded-2xl py-12 text-3xl font-bold hover:bg-gray-700 transition-colors shadow-lg"
+                className="bg-gray-600 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-gray-700 transition-colors shadow-lg active:scale-95"
               >
                 CANCEL
               </button>
               <button
                 onClick={handleSubmitEmployeeId}
                 disabled={enteredId.length === 0}
-                className="bg-[#FFE500] text-black rounded-2xl py-12 text-3xl font-bold hover:bg-yellow-400 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[#FFE500] text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-yellow-400 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
               >
                 SUBMIT
               </button>
@@ -315,16 +320,20 @@ export default function TimeClockKiosk() {
         )}
 
         {view === "clockout" && (
-          <div className="w-full max-w-4xl text-center">
-            <div className="bg-[#1A1A1A] rounded-3xl p-12 mb-8 shadow-2xl">
-              <div className="text-white text-5xl font-bold mb-6">Welcome Back, {employeeData.name}!</div>
-              <div className="text-gray-400 text-2xl mb-4">Clocked In: {employeeData.clockInTime}</div>
-              <div className="text-green-400 text-xl">✓ DVI Completed</div>
+          <div className="w-full max-w-4xl text-center px-4">
+            <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 mb-6 sm:mb-8 shadow-2xl">
+              <div className="text-white text-2xl sm:text-5xl font-bold mb-4 sm:mb-6">
+                Welcome Back, {employeeData.name}!
+              </div>
+              <div className="text-gray-400 text-lg sm:text-2xl mb-3 sm:mb-4">
+                Clocked In: {employeeData.clockInTime}
+              </div>
+              <div className="text-green-400 text-base sm:text-xl">✓ DVI Completed</div>
             </div>
 
             <button
               onClick={handleClockOut}
-              className="bg-[#E31E24] text-white rounded-2xl py-16 px-24 text-4xl font-bold hover:bg-red-700 transition-colors shadow-xl"
+              className="bg-[#E31E24] text-white rounded-xl sm:rounded-2xl py-10 sm:py-16 px-16 sm:px-24 text-2xl sm:text-4xl font-bold hover:bg-red-700 transition-colors shadow-xl active:scale-95"
             >
               CLOCK OUT
             </button>
@@ -332,9 +341,8 @@ export default function TimeClockKiosk() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#1A1A1A] text-white py-4 text-center">
-        <div className="text-xl font-bold">VISI2N by Transdev</div>
+      <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
+        <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
       </footer>
     </div>
   )
