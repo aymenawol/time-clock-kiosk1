@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface TimesheetEntry {
   timeDepart: string
@@ -20,7 +20,7 @@ export default function TimesheetForm() {
   const [checkOut, setCheckOut] = useState("")
 
   const [entries, setEntries] = useState<TimesheetEntry[]>(
-    Array(24)
+    Array(5)
       .fill(null)
       .map(() => ({
         timeDepart: "",
@@ -33,19 +33,56 @@ export default function TimesheetForm() {
       })),
   )
 
-  const [subtotals, setSubtotals] = useState({
-    rac: "",
-    t1: "",
-    t3: "",
-    term1: "",
-    term3West: "",
-    term3East: "",
+  const [totals, setTotals] = useState({
+    rac: 0,
+    t1: 0,
+    t3: 0,
+    term1: 0,
+    term3West: 0,
+    term3East: 0,
   })
+
+  useEffect(() => {
+    const newTotals = {
+      rac: 0,
+      t1: 0,
+      t3: 0,
+      term1: 0,
+      term3West: 0,
+      term3East: 0,
+    }
+
+    entries.forEach((entry) => {
+      newTotals.rac += Number.parseFloat(entry.rac) || 0
+      newTotals.t1 += Number.parseFloat(entry.t1) || 0
+      newTotals.t3 += Number.parseFloat(entry.t3) || 0
+      newTotals.term1 += Number.parseFloat(entry.term1) || 0
+      newTotals.term3West += Number.parseFloat(entry.term3West) || 0
+      newTotals.term3East += Number.parseFloat(entry.term3East) || 0
+    })
+
+    setTotals(newTotals)
+  }, [entries])
 
   const handleEntryChange = (index: number, field: keyof TimesheetEntry, value: string) => {
     const newEntries = [...entries]
     newEntries[index] = { ...newEntries[index], [field]: value }
     setEntries(newEntries)
+  }
+
+  const addRow = () => {
+    setEntries([
+      ...entries,
+      {
+        timeDepart: "",
+        rac: "",
+        t1: "",
+        t3: "",
+        term1: "",
+        term3West: "",
+        term3East: "",
+      },
+    ])
   }
 
   const handleSubmit = () => {
@@ -116,7 +153,6 @@ export default function TimesheetForm() {
 
         <div className="overflow-x-auto">
           <div className="min-w-[600px]">
-            {/* Table Header */}
             <div className="grid grid-cols-7 border-b-2 sm:border-b-4 border-black bg-black text-white text-xs sm:text-base">
               <div className="p-2 sm:p-3 border-r-2 border-white text-center font-bold">
                 Time
@@ -124,114 +160,114 @@ export default function TimesheetForm() {
                 <span className="sm:hidden">Dep </span>
                 <span className="hidden sm:inline">Departing </span>RAC
               </div>
-              <div className="col-span-2 grid grid-cols-2 border-r-2 border-white">
-                <div className="p-2 sm:p-3 col-span-2 text-center font-bold border-b-2 border-white">RAC</div>
-                <div className="p-1 sm:p-2 text-center border-r-2 border-white">T-1</div>
-                <div className="p-1 sm:p-2 text-center">T-3</div>
+              <div className="p-2 sm:p-3 border-r-2 border-white text-center font-bold">
+                RAC
+                <br className="hidden sm:block" />
+                T-1
               </div>
-              <div className="p-2 sm:p-3 border-r-2 border-white text-center font-bold">TERM 1</div>
-              <div className="col-span-2 grid grid-cols-2 border-r-2 border-white">
-                <div className="p-2 sm:p-3 col-span-2 text-center font-bold border-b-2 border-white">TERM 3</div>
-                <div className="p-1 sm:p-2 text-center border-r-2 border-white">West</div>
-                <div className="p-1 sm:p-2 text-center">East</div>
+              <div className="p-2 sm:p-3 border-r-2 border-white text-center font-bold">
+                RAC
+                <br className="hidden sm:block" />
+                T-3
               </div>
-              <div className="p-2 sm:p-3 text-center font-bold">Total</div>
+              <div className="p-2 sm:p-3 border-r-2 border-white font-bold flex items-center justify-center">
+                TERM 1
+              </div>
+              <div className="p-2 sm:p-3 border-r-2 border-white text-center font-bold">
+                TERM 3
+                <br className="hidden sm:block" />
+                West
+              </div>
+              <div className="p-2 sm:p-3 border-r-2 border-white text-center font-bold">
+                TERM 3
+                <br className="hidden sm:block" />
+                East
+              </div>
+              <div className="p-2 sm:p-3 flex items-center justify-center font-bold">Total</div>
             </div>
 
-            {/* Entry Rows */}
             <div className="max-h-96 overflow-y-auto">
               {entries.map((entry, index) => (
-                <div key={index}>
-                  {(index === 4 || index === 8 || index === 12 || index === 16 || index === 20) && (
-                    <div className="grid grid-cols-7 bg-gray-300 border-b-2 border-black text-xs sm:text-base">
-                      <div className="p-1 sm:p-2 border-r-2 border-black font-bold">Subtotal</div>
-                      <div className="col-span-6 grid grid-cols-6">
-                        <input
-                          type="text"
-                          className="p-1 sm:p-2 border-r-2 border-black text-center text-xs sm:text-base"
-                        />
-                        <input
-                          type="text"
-                          className="p-1 sm:p-2 border-r-2 border-black text-center text-xs sm:text-base"
-                        />
-                        <input
-                          type="text"
-                          className="p-1 sm:p-2 border-r-2 border-black text-center text-xs sm:text-base"
-                        />
-                        <input
-                          type="text"
-                          className="p-1 sm:p-2 border-r-2 border-black text-center text-xs sm:text-base"
-                        />
-                        <input
-                          type="text"
-                          className="p-1 sm:p-2 border-r-2 border-black text-center text-xs sm:text-base"
-                        />
-                        <input type="text" className="p-1 sm:p-2 text-center text-xs sm:text-base" />
-                      </div>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-7 border-b border-gray-300 text-xs sm:text-base">
-                    <input
-                      type="text"
-                      value={entry.timeDepart}
-                      onChange={(e) => handleEntryChange(index, "timeDepart", e.target.value)}
-                      className="p-1 sm:p-2 border-r-2 border-black text-center"
-                    />
-                    <input
-                      type="text"
-                      value={entry.rac}
-                      onChange={(e) => handleEntryChange(index, "rac", e.target.value)}
-                      className="p-1 sm:p-2 border-r-2 border-black text-center"
-                    />
-                    <input
-                      type="text"
-                      value={entry.t1}
-                      onChange={(e) => handleEntryChange(index, "t1", e.target.value)}
-                      className="p-1 sm:p-2 border-r-2 border-black text-center"
-                    />
-                    <input
-                      type="text"
-                      value={entry.term1}
-                      onChange={(e) => handleEntryChange(index, "term1", e.target.value)}
-                      className="p-1 sm:p-2 border-r-2 border-black text-center"
-                    />
-                    <input
-                      type="text"
-                      value={entry.t3}
-                      onChange={(e) => handleEntryChange(index, "t3", e.target.value)}
-                      className="p-1 sm:p-2 border-r-2 border-black text-center"
-                    />
-                    <input
-                      type="text"
-                      value={entry.term3West}
-                      onChange={(e) => handleEntryChange(index, "term3West", e.target.value)}
-                      className="p-1 sm:p-2 border-r-2 border-black text-center"
-                    />
-                    <input
-                      type="text"
-                      value={entry.term3East}
-                      onChange={(e) => handleEntryChange(index, "term3East", e.target.value)}
-                      className="p-1 sm:p-2 text-center"
-                    />
-                  </div>
+                <div key={index} className="grid grid-cols-7 border-b border-gray-300 text-xs sm:text-base">
+                  <input
+                    type="text"
+                    value={entry.timeDepart}
+                    onChange={(e) => handleEntryChange(index, "timeDepart", e.target.value)}
+                    className="p-1 sm:p-2 border-r-2 border-black text-center"
+                  />
+                  <input
+                    type="number"
+                    value={entry.rac}
+                    onChange={(e) => handleEntryChange(index, "rac", e.target.value)}
+                    className="p-1 sm:p-2 border-r-2 border-black text-center"
+                  />
+                  <input
+                    type="number"
+                    value={entry.t1}
+                    onChange={(e) => handleEntryChange(index, "t1", e.target.value)}
+                    className="p-1 sm:p-2 border-r-2 border-black text-center"
+                  />
+                  <input
+                    type="number"
+                    value={entry.term1}
+                    onChange={(e) => handleEntryChange(index, "term1", e.target.value)}
+                    className="p-1 sm:p-2 border-r-2 border-black text-center"
+                  />
+                  <input
+                    type="number"
+                    value={entry.t3}
+                    onChange={(e) => handleEntryChange(index, "t3", e.target.value)}
+                    className="p-1 sm:p-2 border-r-2 border-black text-center"
+                  />
+                  <input
+                    type="number"
+                    value={entry.term3West}
+                    onChange={(e) => handleEntryChange(index, "term3West", e.target.value)}
+                    className="p-1 sm:p-2 border-r-2 border-black text-center"
+                  />
+                  <input
+                    type="number"
+                    value={entry.term3East}
+                    onChange={(e) => handleEntryChange(index, "term3East", e.target.value)}
+                    className="p-1 sm:p-2 text-center"
+                  />
                 </div>
               ))}
+
+              <div className="grid grid-cols-7 border-b-2 border-gray-400">
+                <button
+                  onClick={addRow}
+                  className="col-span-7 p-2 sm:p-3 text-center font-bold text-blue-600 hover:bg-gray-100 transition-colors"
+                >
+                  + Add Row
+                </button>
+              </div>
             </div>
 
-            {/* Totals Row */}
             <div className="grid grid-cols-7 bg-black text-white border-t-2 sm:border-t-4 border-black text-xs sm:text-base">
-              <div className="p-2 sm:p-3 border-r-2 border-white text-center font-bold">TOTALS</div>
-              <input type="text" className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black" />
-              <input type="text" className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black" />
-              <input type="text" className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black" />
-              <input type="text" className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black" />
-              <input type="text" className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black" />
-              <input type="text" className="p-2 sm:p-3 text-center bg-white text-black" />
+              <div className="p-2 sm:p-3 border-r-2 border-white flex items-center justify-center font-bold">
+                TOTALS
+              </div>
+              <div className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black font-bold">
+                {totals.rac.toFixed(2)}
+              </div>
+              <div className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black font-bold">
+                {totals.t1.toFixed(2)}
+              </div>
+              <div className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black font-bold">
+                {totals.term1.toFixed(2)}
+              </div>
+              <div className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black font-bold">
+                {totals.t3.toFixed(2)}
+              </div>
+              <div className="p-2 sm:p-3 border-r-2 border-white text-center bg-white text-black font-bold">
+                {totals.term3West.toFixed(2)}
+              </div>
+              <div className="p-2 sm:p-3 text-center bg-white text-black font-bold">{totals.term3East.toFixed(2)}</div>
             </div>
           </div>
         </div>
 
-        {/* Footer Note */}
         <div className="p-2 sm:p-3 text-center border-t-2 border-black text-xs sm:text-base">
           <p className="font-bold">Total each column separately - DO NOT give a Grand Total.</p>
         </div>
