@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { Camera, Save } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { Camera, Save, Trash2 } from 'lucide-react'
 
 export default function DVIForm() {
   const [formData, setFormData] = useState({
@@ -157,6 +157,101 @@ export default function DVIForm() {
     "low-pressure-warning": "Low pressure warning*",
     "auto-pop-out": "Auto pop out (park brake)*",
     "park-brake-hold": "Park brake hold",
+  }
+
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [canvasInitialized, setCanvasInitialized] = useState(false)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || canvasInitialized) return
+
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.src="/images/design-mode/bus-Photoroom(1).png"
+    
+    img.onload = () => {
+      // Set canvas size to match image
+      canvas.width = img.width
+      canvas.height = img.height
+      ctx.drawImage(img, 0, 0)
+      setCanvasInitialized(true)
+    }
+  }, [canvasInitialized])
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    setIsDrawing(true)
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    let x, y
+    if ('touches' in e) {
+      x = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width)
+      y = (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
+    } else {
+      x = (e.clientX - rect.left) * (canvas.width / rect.width)
+      y = (e.clientY - rect.top) * (canvas.height / rect.height)
+    }
+
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+  }
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return
+    
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    let x, y
+    if ('touches' in e) {
+      e.preventDefault()
+      x = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width)
+      y = (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
+    } else {
+      x = (e.clientX - rect.left) * (canvas.width / rect.width)
+      y = (e.clientY - rect.top) * (canvas.height / rect.height)
+    }
+
+    ctx.strokeStyle = "#E31E24"
+    ctx.lineWidth = 3
+    ctx.lineCap = "round"
+    ctx.lineJoin = "round"
+    ctx.lineTo(x, y)
+    ctx.stroke()
+  }
+
+  const stopDrawing = () => {
+    setIsDrawing(false)
+  }
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.src="/images/design-mode/bus-Photoroom(1).png"
+    
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0)
+    }
   }
 
   return (
@@ -332,12 +427,28 @@ export default function DVIForm() {
               <div className="text-slate-500 font-bold text-right whitespace-nowrap text-xs sm:text-sm">Right Side</div>
             </div>
 
-            {/* Bus diagram image */}
-            <img
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/bus-Photoroom-H5pRn97ebqG7E97wjuDrr263lGqybn.png"
-              alt="Bus inspection diagram"
-              className="w-full sm:w-auto h-48 sm:h-64 object-contain max-w-full sm:max-w-2xl"
-            />
+            {/* Canvas with bus diagram */}
+            <div className="relative">
+              <canvas
+                ref={canvasRef}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+                className="w-full sm:w-auto h-48 sm:h-64 object-contain max-w-full sm:max-w-2xl border-gray-300 rounded cursor-crosshair touch-none border-0"
+                style={{ maxWidth: "100%", height: "auto" }}
+              />
+              <button
+                onClick={clearCanvas}
+                className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg"
+                title="Clear drawings"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
 
             {/* Right side labels */}
             <div className="hidden sm:flex flex-col justify-around h-48 sm:h-64 text-black font-bold text-xs sm:text-sm w-16 sm:w-20 shrink-0">

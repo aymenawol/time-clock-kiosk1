@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Delete, Home } from "lucide-react"
+import { Search, Delete, Home } from 'lucide-react'
 import DVIForm from "@/components/dvi-form"
 import TimesheetForm from "@/components/timesheet-form"
 
@@ -141,10 +141,7 @@ export default function TimeClockKiosk() {
             <span className="sm:hidden">Home</span>
           </button>
           <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-            <div className="flex-1 bg-white rounded px-3 sm:px-4 py-2 flex items-center gap-2">
-              <Search size={18} className="text-gray-400 sm:w-5 sm:h-5" />
-              <input type="text" placeholder="Search..." className="flex-1 outline-none text-sm sm:text-lg" />
-            </div>
+            <div className="flex-1"></div>
             <div className="flex gap-2 sm:gap-4">
               <button
                 onClick={handleIdCardLogin}
@@ -219,10 +216,7 @@ export default function TimeClockKiosk() {
           <span className="sm:hidden">Home</span>
         </button>
         <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-          <div className="flex-1 bg-white rounded px-3 sm:px-4 py-2 flex items-center gap-2">
-            <Search size={18} className="text-gray-400 sm:w-5 sm:h-5" />
-            <input type="text" placeholder="Search..." className="flex-1 outline-none text-sm sm:text-lg" />
-          </div>
+          <div className="flex-1"></div>
           <div className="flex gap-2 sm:gap-4">
             <button
               onClick={handleIdCardLogin}
