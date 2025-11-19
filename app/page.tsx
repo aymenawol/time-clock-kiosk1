@@ -194,7 +194,11 @@ export default function TimeClockKiosk() {
         </div>
 
         <div className="flex-1 overflow-auto">
-          {view === "dvi" ? <DVIFormWrapper onComplete={handleDviComplete} /> : <TimesheetForm />}
+          {view === "dvi" ? (
+            <DVIFormWrapper onComplete={handleDviComplete} />
+          ) : (
+            <TimesheetForm clockInTime={employeeData.clockInTime} />
+          )}
         </div>
 
         <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
