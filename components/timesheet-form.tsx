@@ -12,7 +12,7 @@ interface TimesheetEntry {
   term3East: string
 }
 
-export default function TimesheetForm() {
+export default function TimesheetForm({ clockInTime }: { clockInTime?: string }) {
   const [operator, setOperator] = useState("")
   const [busNumber, setBusNumber] = useState("")
   const [brkWindows, setBrkWindows] = useState("")
@@ -43,6 +43,30 @@ export default function TimesheetForm() {
   })
 
   useEffect(() => {
+    // Compute BRK Windows when a clock-in time is provided.
+    if (clockInTime) {
+      // Expecting clockInTime like "HH:MM:SS" or "HH:MM" in 24-hour time.
+      const parts = clockInTime.split(":").map((p) => Number.parseInt(p, 10) || 0)
+      const now = new Date()
+      now.setHours(parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0, 0)
+
+      const minutesToAdd = 2 * 60 + 15 // 2 hours 15 minutes
+      const end = new Date(now.getTime() + minutesToAdd * 60 * 1000)
+
+      const fmt = (d: Date) =>
+        d
+          .toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+          .replace(/\s/g, "")
+
+      setBrkWindows(`${fmt(now)}-${fmt(end)}`)
+    } else {
+      setBrkWindows("")
+    }
+
     const newTotals = {
       rac: 0,
       t1: 0,
@@ -116,6 +140,7 @@ export default function TimesheetForm() {
                 onChange={(e) => setBrkWindows(e.target.value)}
                 placeholder="14:05-14:20"
                 className="w-full border-2 border-black p-1 sm:p-2 mt-1 text-sm sm:text-base"
+                disabled={true}
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
