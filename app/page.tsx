@@ -147,13 +147,13 @@ export default function TimeClockKiosk() {
                 onClick={handleIdCardLogin}
                 className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
               >
-                ID CARD
+                DRIVER
               </button>
               <button
                 onClick={handleEmployeeIdLogin}
                 className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
               >
-                EMPLOYEE ID
+                ADMIN
               </button>
             </div>
           </div>
@@ -226,13 +226,13 @@ export default function TimeClockKiosk() {
               onClick={handleIdCardLogin}
               className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
             >
-              ID CARD
+              DRIVER
             </button>
             <button
               onClick={handleEmployeeIdLogin}
               className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
             >
-              EMPLOYEE ID
+              ADMIN
             </button>
           </div>
         </div>
