@@ -51,7 +51,9 @@ export default function TimesheetForm({ clockInTime }: { clockInTime?: string })
       now.setHours(parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0, 0)
 
       const minutesToAdd = 2 * 60 + 15 // 2 hours 15 minutes
+      const minutesToAdd2 = 6 * 60 // 2 hours 15 minutes
       const end = new Date(now.getTime() + minutesToAdd * 60 * 1000)
+      const end2 = new Date(now.getTime() + minutesToAdd2 * 60 * 1000)
 
       const fmt = (d: Date) =>
         d
@@ -62,7 +64,7 @@ export default function TimesheetForm({ clockInTime }: { clockInTime?: string })
           })
           .replace(/\s/g, "")
 
-      setBrkWindows(`${fmt(now)}-${fmt(end)}`)
+      setBrkWindows(`First: ${fmt(end)} ------------------------- Second: ${fmt(end2)}`)
     } else {
       setBrkWindows("")
     }
@@ -139,7 +141,7 @@ export default function TimesheetForm({ clockInTime }: { clockInTime?: string })
                 value={brkWindows}
                 onChange={(e) => setBrkWindows(e.target.value)}
                 placeholder="14:05-14:20"
-                className="w-full border-2 border-black p-1 sm:p-2 mt-1 text-sm sm:text-base"
+                className="w-full border-2 border-black p-1 sm:p-2 mt-1 text-sm sm:text-base font-bold"
                 disabled={true}
               />
             </div>
