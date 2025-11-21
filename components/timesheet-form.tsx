@@ -64,7 +64,7 @@ export default function TimesheetForm({ clockInTime }: { clockInTime?: string })
           })
           .replace(/\s/g, "")
 
-      setBrkWindows(`First: ${fmt(end)} ------------------------- Second: ${fmt(end2)}`)
+      setBrkWindows(`First: ${fmt(end)} ---------------------- Second: ${fmt(end2)}`)
     } else {
       setBrkWindows("")
     }
