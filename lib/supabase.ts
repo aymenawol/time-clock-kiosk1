@@ -1,26 +1,28 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-
-// Create a singleton instance, but only if we have the required environment variables
+// Create a singleton instance, lazily initialized
 let supabaseInstance: SupabaseClient | null = null
 
-export const supabase = (() => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    // Return a dummy client during build time - this prevents build errors
-    // The actual client will be created at runtime when env vars are available
-    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-      console.warn('Supabase credentials not available during build')
+export function getSupabase(): SupabaseClient {
+  if (!supabaseInstance) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase credentials are not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.')
     }
-  }
-  
-  if (!supabaseInstance && supabaseUrl && supabaseAnonKey) {
+    
     supabaseInstance = createClient(supabaseUrl, supabaseAnonKey)
   }
-  
-  return supabaseInstance || createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder')
-})()
+  return supabaseInstance
+}
+
+// For backward compatibility - lazy getter
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_, prop) {
+    return (getSupabase() as any)[prop]
+  }
+})
 
 // Types for our database tables
 export interface Employee {
