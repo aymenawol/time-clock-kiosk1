@@ -2,9 +2,20 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Camera, Save, Trash2 } from 'lucide-react'
+import { Camera, Save, Trash2, ChevronDown, Search } from 'lucide-react'
+import { getActiveVehicles } from "@/lib/api"
+import type { Vehicle } from "@/lib/supabase"
 
-export default function DVIForm() {
+interface DVIFormProps {
+  onSubmit?: (data: Record<string, any>) => void
+}
+
+export default function DVIForm({ onSubmit }: DVIFormProps) {
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false)
+  const [vehicleSearchTerm, setVehicleSearchTerm] = useState("")
+  const vehicleDropdownRef = useRef<HTMLDivElement>(null)
+
   const [formData, setFormData] = useState({
     busNumber: "",
     date: new Date().toISOString().split("T")[0],
@@ -97,6 +108,37 @@ export default function DVIForm() {
     })
   }
 
+  // Load vehicles from Supabase
+  useEffect(() => {
+    const loadVehicles = async () => {
+      const vehicleList = await getActiveVehicles()
+      setVehicles(vehicleList)
+    }
+    loadVehicles()
+  }, [])
+
+  // Close vehicle dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (vehicleDropdownRef.current && !vehicleDropdownRef.current.contains(event.target as Node)) {
+        setShowVehicleDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const filteredVehicles = vehicles.filter(v => 
+    v.vehicle_number.toLowerCase().includes(vehicleSearchTerm.toLowerCase()) ||
+    (v.vehicle_type && v.vehicle_type.toLowerCase().includes(vehicleSearchTerm.toLowerCase()))
+  )
+
+  const handleVehicleSelect = (vehicle: Vehicle) => {
+    setFormData({ ...formData, busNumber: vehicle.vehicle_number })
+    setShowVehicleDropdown(false)
+    setVehicleSearchTerm("")
+  }
+
   const handleSubmit = () => {
     const submissionData = {
       ...formData,
@@ -107,7 +149,12 @@ export default function DVIForm() {
     }
 
     console.log("DVI Form Submission:", submissionData)
-    alert("Form submitted! Check console for data structure.")
+    
+    if (onSubmit) {
+      onSubmit(submissionData)
+    } else {
+      alert("Form submitted! Check console for data structure.")
+    }
   }
 
   const exteriorLabels: Record<string, string> = {
@@ -267,13 +314,53 @@ export default function DVIForm() {
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-xs sm:text-sm font-bold whitespace-nowrap">BUS #</span>
-                  <input
-                    type="text"
-                    name="busNumber"
-                    value={formData.busNumber}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
-                  />
+                  <div className="relative flex-1" ref={vehicleDropdownRef}>
+                    <div 
+                      className="flex items-center border-b border-black px-2 py-1 cursor-pointer"
+                      onClick={() => setShowVehicleDropdown(!showVehicleDropdown)}
+                    >
+                      <span className={`flex-1 text-sm sm:text-base ${formData.busNumber ? "text-black" : "text-gray-400"}`}>
+                        {formData.busNumber || "Select vehicle..."}
+                      </span>
+                      <ChevronDown size={16} className={`transition-transform ${showVehicleDropdown ? "rotate-180" : ""}`} />
+                    </div>
+                    
+                    {showVehicleDropdown && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
+                        <div className="p-2 border-b border-gray-200">
+                          <div className="relative">
+                            <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Search vehicles..."
+                              value={vehicleSearchTerm}
+                              onChange={(e) => setVehicleSearchTerm(e.target.value)}
+                              className="w-full pl-7 pr-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-500"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-44 overflow-y-auto">
+                          {filteredVehicles.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">No vehicles found</div>
+                          ) : (
+                            filteredVehicles.map((vehicle) => (
+                              <div
+                                key={vehicle.id}
+                                onClick={() => handleVehicleSelect(vehicle)}
+                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
+                              >
+                                <span className="font-mono font-bold text-sm">{vehicle.vehicle_number}</span>
+                                {vehicle.vehicle_type && (
+                                  <span className="text-xs text-gray-500">{vehicle.vehicle_type}</span>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex-1">
@@ -443,7 +530,7 @@ export default function DVIForm() {
               />
               <button
                 onClick={clearCanvas}
-                className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg"
+                className="absolute top-2 -right-12 sm:-right-16 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg"
                 title="Clear drawings"
               >
                 <Trash2 size={16} />

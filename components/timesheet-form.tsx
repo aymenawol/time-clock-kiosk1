@@ -12,7 +12,12 @@ interface TimesheetEntry {
   term3East: string
 }
 
-export default function TimesheetForm({ clockInTime }: { clockInTime?: string }) {
+interface TimesheetFormProps {
+  clockInTime?: string
+  onSubmit?: (data: Record<string, any>) => void
+}
+
+export default function TimesheetForm({ clockInTime, onSubmit }: TimesheetFormProps) {
   const [operator, setOperator] = useState("")
   const [busNumber, setBusNumber] = useState("")
   const [brkWindows, setBrkWindows] = useState("")
@@ -112,8 +117,14 @@ export default function TimesheetForm({ clockInTime }: { clockInTime?: string })
   }
 
   const handleSubmit = () => {
-    console.log("Timesheet submitted", { operator, busNumber, entries })
-    alert("Timesheet submitted successfully!")
+    const submissionData = { operator, busNumber, entries, totals, timestamp: new Date().toISOString() }
+    console.log("Timesheet submitted", submissionData)
+    
+    if (onSubmit) {
+      onSubmit(submissionData)
+    } else {
+      alert("Timesheet submitted successfully!")
+    }
   }
 
   return (
