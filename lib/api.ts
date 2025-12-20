@@ -12,6 +12,10 @@ export async function getEmployeeByEmployeeId(employeeId: string): Promise<Emplo
 
   if (error) {
     console.error('Error fetching employee:', error)
+    // Only throw on actual errors, not "not found"
+    if (error.code !== 'PGRST116') {
+      throw new Error(`Database error: ${error.message}`)
+    }
     return null
   }
   return data

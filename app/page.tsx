@@ -247,7 +247,8 @@ export default function TimeClockKiosk() {
         setView("actionSelect")
       } catch (err) {
         console.error("Login error:", err)
-        setError("An error occurred. Please try again.")
+        const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again."
+        setError(errorMessage)
       } finally {
         setIsLoading(false)
       }
