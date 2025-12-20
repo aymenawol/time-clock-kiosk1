@@ -27,7 +27,8 @@ type FormType = "dvi" | "timesheet"
 type AdminTab = "dashboard" | "employees" | "timesheets" | "dvi"
 
 export default function TimeClockKiosk() {
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
+  const [mounted, setMounted] = useState(false)
   const [view, setView] = useState<ViewState>("login")
   const [activeForm, setActiveForm] = useState<FormType>("dvi")
   const [enteredId, setEnteredId] = useState("")
@@ -56,14 +57,21 @@ export default function TimeClockKiosk() {
   const [showEmployeeModal, setShowEmployeeModal] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState("")
-  const [adminStartDate, setAdminStartDate] = useState(() => {
-    const date = new Date()
-    date.setDate(date.getDate() - 7)
-    return date.toISOString().split('T')[0]
-  })
-  const [adminEndDate, setAdminEndDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [adminStartDate, setAdminStartDate] = useState('')
+  const [adminEndDate, setAdminEndDate] = useState('')
 
   useEffect(() => {
+    // Set initial values on client side to avoid hydration mismatch
+    setMounted(true)
+    setCurrentTime(new Date())
+    
+    // Initialize admin date range
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - 7)
+    setAdminStartDate(startDate.toISOString().split('T')[0])
+    setAdminEndDate(endDate.toISOString().split('T')[0])
+    
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
@@ -71,7 +79,8 @@ export default function TimeClockKiosk() {
     return () => clearInterval(timer)
   }, [])
 
-  const formatTime = (date: Date) => {
+  const formatTime = (date: Date | null) => {
+    if (!date) return '--:--:-- --'
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
@@ -80,7 +89,8 @@ export default function TimeClockKiosk() {
     })
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null) => {
+    if (!date) return 'Loading...'
     return date.toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
