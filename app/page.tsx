@@ -22,9 +22,12 @@ import {
 } from "@/lib/api"
 import type { Employee, TimeEntry, ActiveClockIn, Timesheet, DviRecord } from "@/lib/supabase"
 
-type ViewState = "login" | "employeeIdEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin"
+type ViewState = "login" | "employeeIdEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin" | "adminLogin"
 type FormType = "dvi" | "timesheet"
 type AdminTab = "dashboard" | "employees" | "timesheets" | "dvi"
+
+// Admin PIN - change this to your desired admin password
+const ADMIN_PIN = "9999"
 
 export default function TimeClockKiosk() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
@@ -59,6 +62,12 @@ export default function TimeClockKiosk() {
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState("")
   const [adminStartDate, setAdminStartDate] = useState('')
   const [adminEndDate, setAdminEndDate] = useState('')
+  const [adminPin, setAdminPin] = useState('')
+  const [adminPinError, setAdminPinError] = useState<string | null>(null)
+  const [selectedDviRecord, setSelectedDviRecord] = useState<DviRecord | null>(null)
+  const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
   useEffect(() => {
     // Set initial values on client side to avoid hydration mismatch
@@ -120,6 +129,25 @@ export default function TimeClockKiosk() {
     setEnteredId("")
   }
 
+  const handleAdminLoginClick = () => {
+    setView("adminLogin")
+    setAdminPin("")
+    setAdminPinError(null)
+  }
+
+  const handleAdminPinSubmit = () => {
+    if (adminPin === ADMIN_PIN) {
+      setView("admin")
+      setAdminTab("dashboard")
+      setAdminPin("")
+      setAdminPinError(null)
+      loadAdminData("dashboard")
+    } else {
+      setAdminPinError("Invalid PIN. Please try again.")
+      setAdminPin("")
+    }
+  }
+
   const handleEmployeeIdLogin = () => {
     setView("admin")
     setAdminTab("dashboard")
@@ -150,6 +178,7 @@ export default function TimeClockKiosk() {
 
   const handleAdminTabChange = (tab: AdminTab) => {
     setAdminTab(tab)
+    setCurrentPage(1) // Reset pagination when switching tabs
     loadAdminData(tab)
   }
 
@@ -712,22 +741,37 @@ export default function TimeClockKiosk() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {timesheets.map((sheet: any) => (
+                      {timesheets
+                        .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                        .map((sheet: any) => (
                         <div key={sheet.id} className="bg-white rounded-xl p-4 shadow">
                           <div className="flex justify-between items-start mb-3">
                             <div>
                               <div className="font-bold text-lg text-gray-800">
-                                {sheet.employees?.name}
+                                {sheet.employees?.name || sheet.operator_name || "Unknown"}
                               </div>
                               <div className="text-gray-500 text-sm">
-                                {new Date(sheet.date).toLocaleDateString()} • Bus #{sheet.bus_number}
+                                {new Date(sheet.date).toLocaleDateString()} • Bus #{sheet.bus_number || "-"}
                               </div>
+                              {sheet.check_in && sheet.check_out && (
+                                <div className="text-gray-500 text-sm">
+                                  Check-in: {sheet.check_in} • Check-out: {sheet.check_out}
+                                </div>
+                              )}
                             </div>
-                            <div className="text-right">
-                              <div className="text-sm text-gray-500">Total Hours</div>
-                              <div className="font-bold text-xl text-[#E31E24]">
-                                {sheet.totals?.totalHours || "0"}
+                            <div className="text-right flex flex-col items-end gap-2">
+                              <div>
+                                <div className="text-sm text-gray-500">Total Hours</div>
+                                <div className="font-bold text-xl text-[#E31E24]">
+                                  {sheet.totals?.totalHours || "0"}
+                                </div>
                               </div>
+                              <button
+                                onClick={() => setSelectedTimesheet(sheet)}
+                                className="text-[#E31E24] hover:underline text-sm font-semibold"
+                              >
+                                View Details
+                              </button>
                             </div>
                           </div>
                           
@@ -756,6 +800,29 @@ export default function TimeClockKiosk() {
                           )}
                         </div>
                       ))}
+                      
+                      {/* Pagination */}
+                      {timesheets.length > ITEMS_PER_PAGE && (
+                        <div className="flex justify-center items-center gap-4 mt-4">
+                          <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-gray-600">
+                            Page {currentPage} of {Math.ceil(timesheets.length / ITEMS_PER_PAGE)}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPage(p => Math.min(Math.ceil(timesheets.length / ITEMS_PER_PAGE), p + 1))}
+                            disabled={currentPage >= Math.ceil(timesheets.length / ITEMS_PER_PAGE)}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -798,44 +865,84 @@ export default function TimeClockKiosk() {
                       No DVI records found for this date range
                     </div>
                   ) : (
-                    <div className="bg-white rounded-xl shadow overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-gray-100">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Date</th>
-                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Employee</th>
-                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Vehicle</th>
-                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {dviRecords.map((record: any) => (
-                              <tr key={record.id} className="border-t border-gray-200">
-                                <td className="px-4 py-3 text-gray-800">
-                                  {new Date(record.inspection_date).toLocaleDateString()}
-                                </td>
-                                <td className="px-4 py-3 text-gray-800">
-                                  {record.employees?.name}
-                                </td>
-                                <td className="px-4 py-3 font-mono text-gray-800">
-                                  {record.vehicle_number || "-"}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                    record.is_passed 
-                                      ? "bg-green-100 text-green-700" 
-                                      : "bg-red-100 text-red-700"
-                                  }`}>
-                                    {record.is_passed ? "Passed" : "Failed"}
-                                  </span>
-                                </td>
+                    <>
+                      <div className="bg-white rounded-xl shadow overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Date</th>
+                                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Employee</th>
+                                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Vehicle</th>
+                                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Type</th>
+                                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Status</th>
+                                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Actions</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {dviRecords
+                                .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                                .map((record: any) => (
+                                <tr key={record.id} className="border-t border-gray-200 hover:bg-gray-50">
+                                  <td className="px-4 py-3 text-gray-800">
+                                    {new Date(record.inspection_date).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-800">
+                                    {record.employees?.name || "Unknown"}
+                                  </td>
+                                  <td className="px-4 py-3 font-mono text-gray-800">
+                                    {record.vehicle_number || "-"}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-800 capitalize">
+                                    {record.inspection_type || "-"}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                      record.is_passed 
+                                        ? "bg-green-100 text-green-700" 
+                                        : "bg-red-100 text-red-700"
+                                    }`}>
+                                      {record.is_passed ? "Passed" : "Failed"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <button
+                                      onClick={() => setSelectedDviRecord(record)}
+                                      className="text-[#E31E24] hover:underline text-sm font-semibold"
+                                    >
+                                      View Details
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
+                      
+                      {/* Pagination */}
+                      {dviRecords.length > ITEMS_PER_PAGE && (
+                        <div className="flex justify-center items-center gap-4 mt-4">
+                          <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-gray-600">
+                            Page {currentPage} of {Math.ceil(dviRecords.length / ITEMS_PER_PAGE)}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPage(p => Math.min(Math.ceil(dviRecords.length / ITEMS_PER_PAGE), p + 1))}
+                            disabled={currentPage >= Math.ceil(dviRecords.length / ITEMS_PER_PAGE)}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -862,6 +969,197 @@ export default function TimeClockKiosk() {
                   setEditingEmployee(null)
                 }}
               />
+            </div>
+          </div>
+        )}
+
+        {/* DVI Detail Modal */}
+        {selectedDviRecord && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-bold text-gray-800">DVI Inspection Details</h3>
+                <button
+                  onClick={() => setSelectedDviRecord(null)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Date</div>
+                    <div className="font-semibold">{new Date(selectedDviRecord.inspection_date).toLocaleDateString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Employee</div>
+                    <div className="font-semibold">{(selectedDviRecord as any).employees?.name || "Unknown"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Vehicle Number</div>
+                    <div className="font-semibold font-mono">{(selectedDviRecord as any).vehicle_number || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Inspection Type</div>
+                    <div className="font-semibold capitalize">{selectedDviRecord.inspection_type || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Status</div>
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      selectedDviRecord.is_passed 
+                        ? "bg-green-100 text-green-700" 
+                        : "bg-red-100 text-red-700"
+                    }`}>
+                      {selectedDviRecord.is_passed ? "Passed" : "Failed"}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedDviRecord.inspection_data && Object.keys(selectedDviRecord.inspection_data).length > 0 && (
+                  <div>
+                    <div className="text-sm text-gray-500 mb-2 font-semibold">Inspection Items</div>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                      {Object.entries(selectedDviRecord.inspection_data).map(([key, value]) => (
+                        <div key={key} className="flex justify-between items-center py-1 border-b border-gray-200 last:border-0">
+                          <span className="text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                          <span className={`font-semibold ${
+                            value === true || value === 'pass' || value === 'ok' 
+                              ? 'text-green-600' 
+                              : value === false || value === 'fail' 
+                                ? 'text-red-600' 
+                                : 'text-gray-800'
+                          }`}>
+                            {typeof value === 'boolean' ? (value ? '✓ Pass' : '✗ Fail') : String(value)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedDviRecord.notes && (
+                  <div>
+                    <div className="text-sm text-gray-500 mb-2 font-semibold">Notes</div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-gray-700 whitespace-pre-wrap">
+                      {selectedDviRecord.notes}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setSelectedDviRecord(null)}
+                className="mt-6 w-full bg-[#E31E24] text-white py-3 rounded-lg font-bold hover:bg-red-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Timesheet Detail Modal */}
+        {selectedTimesheet && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-xl p-6 w-full max-w-3xl shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-bold text-gray-800">Timesheet Details</h3>
+                <button
+                  onClick={() => setSelectedTimesheet(null)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Date</div>
+                    <div className="font-semibold">{new Date(selectedTimesheet.date).toLocaleDateString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Employee</div>
+                    <div className="font-semibold">{(selectedTimesheet as any).employees?.name || selectedTimesheet.operator_name || "Unknown"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Bus Number</div>
+                    <div className="font-semibold font-mono">{selectedTimesheet.bus_number || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Check-in</div>
+                    <div className="font-semibold">{selectedTimesheet.check_in || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Check-out</div>
+                    <div className="font-semibold">{selectedTimesheet.check_out || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Break Windows</div>
+                    <div className="font-semibold">{selectedTimesheet.brk_windows || "-"}</div>
+                  </div>
+                </div>
+
+                {selectedTimesheet.entries && selectedTimesheet.entries.length > 0 && (
+                  <div>
+                    <div className="text-sm text-gray-500 mb-2 font-semibold">Work Entries ({selectedTimesheet.entries.length} total)</div>
+                    <div className="bg-gray-50 rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-200">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Work Order</th>
+                            <th className="px-3 py-2 text-left">Description</th>
+                            <th className="px-3 py-2 text-center">ST</th>
+                            <th className="px-3 py-2 text-center">OT</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedTimesheet.entries.map((entry: any, idx: number) => (
+                            <tr key={idx} className="border-t border-gray-200">
+                              <td className="px-3 py-2 font-mono">{entry.workOrder || "-"}</td>
+                              <td className="px-3 py-2">{entry.description || "-"}</td>
+                              <td className="px-3 py-2 text-center">{entry.straightTime || "0"}</td>
+                              <td className="px-3 py-2 text-center">{entry.overTime || "0"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {selectedTimesheet.totals && (
+                  <div>
+                    <div className="text-sm text-gray-500 mb-2 font-semibold">Totals</div>
+                    <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-[#E31E24]">{selectedTimesheet.totals.totalHours || "0"}</div>
+                        <div className="text-xs text-gray-500">Total Hours</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-800">{selectedTimesheet.totals.straightTime || "0"}</div>
+                        <div className="text-xs text-gray-500">Straight Time</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-800">{selectedTimesheet.totals.overTime || "0"}</div>
+                        <div className="text-xs text-gray-500">Overtime</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-800">{selectedTimesheet.totals.breakHours || "0"}</div>
+                        <div className="text-xs text-gray-500">Break Hours</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setSelectedTimesheet(null)}
+                className="mt-6 w-full bg-[#E31E24] text-white py-3 rounded-lg font-bold hover:bg-red-700"
+              >
+                Close
+              </button>
             </div>
           </div>
         )}
@@ -895,7 +1193,7 @@ export default function TimeClockKiosk() {
               DRIVER
             </button>
             <button
-              onClick={handleEmployeeIdLogin}
+              onClick={handleAdminLoginClick}
               className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
             >
               ADMIN
@@ -989,6 +1287,72 @@ export default function TimeClockKiosk() {
                 className="bg-[#FFE500] text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-yellow-400 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
               >
                 {isLoading ? "..." : "SUBMIT"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === "adminLogin" && (
+          <div className="w-full max-w-4xl px-2">
+            <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 mb-6 sm:mb-8 shadow-2xl">
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="text-gray-400 text-lg sm:text-2xl mb-3 sm:mb-4">Enter Admin PIN</div>
+                <div className="bg-white rounded-xl p-4 sm:p-6 min-h-[80px] sm:min-h-[100px] flex items-center justify-center">
+                  <div className="text-4xl sm:text-6xl font-bold font-mono tracking-widest text-black">
+                    {adminPin ? "•".repeat(adminPin.length) : "—"}
+                  </div>
+                </div>
+                {adminPinError && (
+                  <div className="mt-4 text-red-500 text-lg font-semibold">
+                    {adminPinError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+                <button
+                  key={digit}
+                  onClick={() => adminPin.length < 10 && setAdminPin(adminPin + digit.toString())}
+                  className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
+                >
+                  {digit}
+                </button>
+              ))}
+              <button
+                onClick={() => setAdminPin("")}
+                className="bg-[#E31E24] text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-red-700 transition-colors shadow-lg active:scale-95"
+              >
+                CLEAR
+              </button>
+              <button
+                onClick={() => adminPin.length < 10 && setAdminPin(adminPin + "0")}
+                className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
+              >
+                0
+              </button>
+              <button
+                onClick={() => setAdminPin(adminPin.slice(0, -1))}
+                className="bg-gray-600 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 flex items-center justify-center hover:bg-gray-700 transition-colors shadow-lg active:scale-95"
+              >
+                <Delete size={32} className="sm:w-12 sm:h-12" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 sm:gap-6">
+              <button
+                onClick={handleDashboard}
+                className="bg-gray-600 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-gray-700 transition-colors shadow-lg active:scale-95"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={handleAdminPinSubmit}
+                disabled={adminPin.length === 0}
+                className="bg-[#FFE500] text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-yellow-400 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+              >
+                LOGIN
               </button>
             </div>
           </div>
