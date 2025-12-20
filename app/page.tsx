@@ -237,12 +237,26 @@ export default function TimeClockKiosk() {
       setIsLoading(true)
       setError(null)
       
+      // Prevent using admin PIN for driver login
+      if (enteredId === ADMIN_PIN) {
+        setError("This is an admin PIN. Please use the ADMIN button to login as admin.")
+        setIsLoading(false)
+        return
+      }
+      
       try {
         // Look up employee in Supabase
         const employee = await getEmployeeByEmployeeId(enteredId)
         
         if (!employee) {
           setError("Employee not found. Please check your ID.")
+          setIsLoading(false)
+          return
+        }
+        
+        // Check if this is an admin-only account
+        if ((employee as any).is_admin && !(employee as any).is_driver) {
+          setError("This is an admin account. Please use the ADMIN button.")
           setIsLoading(false)
           return
         }
@@ -1171,7 +1185,7 @@ export default function TimeClockKiosk() {
     <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
       <header className="bg-[#E31E24] px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
         <button
-          onClick={view === "employeeIdEntry" ? handleDashboard : undefined}
+          onClick={(view === "employeeIdEntry" || view === "adminLogin") ? handleDashboard : undefined}
           disabled={view === "login"}
           className={`px-4 sm:px-6 py-2 rounded font-bold text-base sm:text-lg flex items-center justify-center gap-2 ${
             view === "login"
