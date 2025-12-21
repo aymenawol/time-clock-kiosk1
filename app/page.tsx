@@ -237,13 +237,6 @@ export default function TimeClockKiosk() {
       setIsLoading(true)
       setError(null)
       
-      // Prevent using admin PIN for driver login
-      if (enteredId === ADMIN_PIN) {
-        setError("This is an admin PIN. Please use the ADMIN button to login as admin.")
-        setIsLoading(false)
-        return
-      }
-      
       try {
         // Look up employee in Supabase
         const employee = await getEmployeeByEmployeeId(enteredId)
@@ -254,9 +247,9 @@ export default function TimeClockKiosk() {
           return
         }
         
-        // Check if this is an admin-only account
+        // Admin-only accounts can't use the driver keypad
         if ((employee as any).is_admin && !(employee as any).is_driver) {
-          setError("This is an admin account. Please use the ADMIN button.")
+          setError("Employee not found. Please check your ID.")
           setIsLoading(false)
           return
         }
