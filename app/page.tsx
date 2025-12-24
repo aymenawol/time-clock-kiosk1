@@ -1,9 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Search, Delete, Home } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Search, Delete, Home, FileText, ChevronDown, ChevronUp, Bell, X } from 'lucide-react'
 import DVIForm from "@/components/dvi-form"
 import TimesheetForm from "@/components/timesheet-form"
+import IncidentReportForm from "@/components/incident-report-form"
+import TimeOffRequestForm from "@/components/time-off-request-form"
+import OvertimeRequestForm from "@/components/overtime-request-form"
+import FmlaConversionForm from "@/components/fmla-conversion-form"
+import { getSupabase } from "@/lib/supabase"
 import {
   getEmployeeByEmployeeId,
   getCurrentTimeEntry,
@@ -19,12 +24,34 @@ import {
   updateEmployee,
   getTimesheets,
   getDVIRecords,
+  submitIncidentReport,
+  getIncidentReports,
+  updateIncidentReportStatus,
+  submitTimeOffRequest,
+  getTimeOffRequests,
+  updateTimeOffRequestStatus,
+  submitOvertimeRequest,
+  getOvertimeRequests,
+  updateOvertimeRequestStatus,
+  submitFmlaConversion,
+  getFmlaConversions,
+  updateFmlaConversionStatus,
 } from "@/lib/api"
-import type { Employee, TimeEntry, ActiveClockIn, Timesheet, DviRecord } from "@/lib/supabase"
+import type { Employee, TimeEntry, ActiveClockIn, Timesheet, DviRecord, IncidentReport, TimeOffRequest, OvertimeRequest, FmlaConversionRequest } from "@/lib/supabase"
 
-type ViewState = "login" | "employeeIdEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin" | "adminLogin"
+type ViewState = "login" | "employeeIdEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin" | "adminLogin" | "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion"
 type FormType = "dvi" | "timesheet"
-type AdminTab = "dashboard" | "employees" | "timesheets" | "dvi"
+type OptionalFormType = "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion"
+type AdminTab = "dashboard" | "employees" | "timesheets" | "dvi" | "incidents" | "timeoff" | "overtime" | "fmla"
+
+// Notification type for real-time form submissions
+type FormNotification = {
+  id: string
+  type: 'dvi' | 'timesheet' | 'incident' | 'timeoff' | 'overtime' | 'fmla'
+  employeeName: string
+  timestamp: Date
+  recordId: string
+}
 
 // Admin PIN - change this to your desired admin password
 const ADMIN_PIN = "9999"
@@ -68,6 +95,24 @@ export default function TimeClockKiosk() {
   const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 10
+  const [showAdditionalForms, setShowAdditionalForms] = useState(false)
+
+  // Optional forms admin state
+  const [incidentReports, setIncidentReports] = useState<IncidentReport[]>([])
+  const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([])
+  const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>([])
+  const [fmlaConversions, setFmlaConversions] = useState<FmlaConversionRequest[]>([])
+  const [selectedIncidentReport, setSelectedIncidentReport] = useState<IncidentReport | null>(null)
+  const [selectedTimeOffRequest, setSelectedTimeOffRequest] = useState<TimeOffRequest | null>(null)
+  const [selectedOvertimeRequest, setSelectedOvertimeRequest] = useState<OvertimeRequest | null>(null)
+  const [selectedFmlaConversion, setSelectedFmlaConversion] = useState<FmlaConversionRequest | null>(null)
+  const [showFormsDropdown, setShowFormsDropdown] = useState(false)
+  const formsButtonRef = useRef<HTMLButtonElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+
+  // Real-time notifications state
+  const [notifications, setNotifications] = useState<FormNotification[]>([])
+  const notificationTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   useEffect(() => {
     // Set initial values on client side to avoid hydration mismatch
@@ -87,6 +132,188 @@ export default function TimeClockKiosk() {
 
     return () => clearInterval(timer)
   }, [])
+
+  // Function to add a notification
+  const addNotification = useCallback((notification: FormNotification) => {
+    setNotifications(prev => [notification, ...prev].slice(0, 10)) // Keep max 10 notifications
+    
+    // Auto-dismiss after 15 seconds
+    const timeout = setTimeout(() => {
+      dismissNotification(notification.id)
+    }, 15000)
+    
+    notificationTimeoutRef.current.set(notification.id, timeout)
+  }, [])
+
+  // Function to dismiss a notification
+  const dismissNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id))
+    const timeout = notificationTimeoutRef.current.get(id)
+    if (timeout) {
+      clearTimeout(timeout)
+      notificationTimeoutRef.current.delete(id)
+    }
+  }, [])
+
+  // Function to handle notification click - navigate to appropriate tab
+  const handleNotificationClick = useCallback((notification: FormNotification) => {
+    const tabMap: Record<FormNotification['type'], AdminTab> = {
+      'dvi': 'dvi',
+      'timesheet': 'timesheets',
+      'incident': 'incidents',
+      'timeoff': 'timeoff',
+      'overtime': 'overtime',
+      'fmla': 'fmla'
+    }
+    const tab = tabMap[notification.type]
+    handleAdminTabChange(tab)
+    dismissNotification(notification.id)
+  }, [])
+
+  // Set up Supabase realtime subscriptions when in admin view
+  useEffect(() => {
+    if (view !== "admin") return
+
+    const supabase = getSupabase()
+    console.log("Setting up realtime subscriptions...")
+    
+    // Subscribe to DVI records
+    const dviChannel = supabase
+      .channel('dvi-inserts')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'dvi_records' 
+      }, (payload) => {
+        console.log("DVI record inserted:", payload)
+        const record = payload.new as any
+        addNotification({
+          id: `dvi-${record.id}`,
+          type: 'dvi',
+          employeeName: record.vehicle_id || 'Driver',
+          timestamp: new Date(),
+          recordId: record.id
+        })
+        // Refresh DVI data if on that tab
+        if (adminTab === 'dvi') loadAdminData('dvi')
+      })
+      .subscribe((status) => {
+        console.log("DVI channel status:", status)
+      })
+
+    // Subscribe to Timesheets
+    const timesheetChannel = supabase
+      .channel('timesheet-inserts')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'timesheets' 
+      }, (payload) => {
+        console.log("Timesheet inserted:", payload)
+        const record = payload.new as any
+        addNotification({
+          id: `timesheet-${record.id}`,
+          type: 'timesheet',
+          employeeName: record.operator_name || 'Driver',
+          timestamp: new Date(),
+          recordId: record.id
+        })
+        if (adminTab === 'timesheets') loadAdminData('timesheets')
+      })
+      .subscribe((status) => {
+        console.log("Timesheet channel status:", status)
+      })
+
+    // Subscribe to Incident Reports
+    const incidentChannel = supabase
+      .channel('incident-inserts')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'incident_reports' 
+      }, (payload) => {
+        const record = payload.new as any
+        addNotification({
+          id: `incident-${record.id}`,
+          type: 'incident',
+          employeeName: record.employee_name || 'Driver',
+          timestamp: new Date(),
+          recordId: record.id
+        })
+        if (adminTab === 'incidents') loadAdminData('incidents')
+      })
+      .subscribe()
+
+    // Subscribe to Time Off Requests
+    const timeoffChannel = supabase
+      .channel('timeoff-inserts')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'time_off_requests' 
+      }, (payload) => {
+        const record = payload.new as any
+        addNotification({
+          id: `timeoff-${record.id}`,
+          type: 'timeoff',
+          employeeName: record.employee_name || 'Driver',
+          timestamp: new Date(),
+          recordId: record.id
+        })
+        if (adminTab === 'timeoff') loadAdminData('timeoff')
+      })
+      .subscribe()
+
+    // Subscribe to Overtime Requests
+    const overtimeChannel = supabase
+      .channel('overtime-inserts')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'overtime_requests' 
+      }, (payload) => {
+        const record = payload.new as any
+        addNotification({
+          id: `overtime-${record.id}`,
+          type: 'overtime',
+          employeeName: record.employee_name || 'Driver',
+          timestamp: new Date(),
+          recordId: record.id
+        })
+        if (adminTab === 'overtime') loadAdminData('overtime')
+      })
+      .subscribe()
+
+    // Subscribe to FMLA Conversions
+    const fmlaChannel = supabase
+      .channel('fmla-inserts')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'fmla_conversions' 
+      }, (payload) => {
+        const record = payload.new as any
+        addNotification({
+          id: `fmla-${record.id}`,
+          type: 'fmla',
+          employeeName: record.employee_name || 'Driver',
+          timestamp: new Date(),
+          recordId: record.id
+        })
+        if (adminTab === 'fmla') loadAdminData('fmla')
+      })
+      .subscribe()
+
+    // Cleanup subscriptions on unmount or view change
+    return () => {
+      supabase.removeChannel(dviChannel)
+      supabase.removeChannel(timesheetChannel)
+      supabase.removeChannel(incidentChannel)
+      supabase.removeChannel(timeoffChannel)
+      supabase.removeChannel(overtimeChannel)
+      supabase.removeChannel(fmlaChannel)
+    }
+  }, [view, adminTab, addNotification])
 
   const formatTime = (date: Date | null) => {
     if (!date) return '--:--:-- --'
@@ -169,6 +396,18 @@ export default function TimeClockKiosk() {
       } else if (tab === "dvi") {
         const records = await getDVIRecords(adminStartDate, adminEndDate)
         setDviRecords(records)
+      } else if (tab === "incidents") {
+        const reports = await getIncidentReports(adminStartDate, adminEndDate)
+        setIncidentReports(reports)
+      } else if (tab === "timeoff") {
+        const requests = await getTimeOffRequests(adminStartDate, adminEndDate)
+        setTimeOffRequests(requests)
+      } else if (tab === "overtime") {
+        const requests = await getOvertimeRequests(adminStartDate, adminEndDate)
+        setOvertimeRequests(requests)
+      } else if (tab === "fmla") {
+        const requests = await getFmlaConversions(adminStartDate, adminEndDate)
+        setFmlaConversions(requests)
       }
     } catch (err) {
       console.error("Error loading admin data:", err)
@@ -236,6 +475,13 @@ export default function TimeClockKiosk() {
     if (enteredId.length > 0) {
       setIsLoading(true)
       setError(null)
+      
+      // Block admin PIN on driver keypad (generic error)
+      if (enteredId === ADMIN_PIN) {
+        setError("Employee not found. Please check your ID.")
+        setIsLoading(false)
+        return
+      }
       
       try {
         // Look up employee in Supabase
@@ -322,6 +568,142 @@ export default function TimeClockKiosk() {
     setView("timesheet")
   }
 
+  // Optional form navigation handlers
+  const handleGoToIncidentReport = () => {
+    setView("incidentReport")
+  }
+
+  const handleGoToTimeOffRequest = () => {
+    setView("timeOffRequest")
+  }
+
+  const handleGoToOvertimeRequest = () => {
+    setView("overtimeRequest")
+  }
+
+  const handleGoToFmlaConversion = () => {
+    setView("fmlaConversion")
+  }
+
+  // Optional form submission handlers
+  const handleIncidentReportSubmit = async (data?: Record<string, any>) => {
+    if (!currentEmployee || !data) {
+      setView("actionSelect")
+      return
+    }
+    
+    try {
+      await submitIncidentReport(currentEmployee.id, {
+        employee_name: data.employeeName || employeeData.name,
+        incident_date: data.incidentDate,
+        incident_time: data.incidentTime,
+        incident_location: data.incidentLocation,
+        bus_number: data.busNumber,
+        supervisor_contacted: data.supervisorContacted,
+        details: data.detailsOfEvent || data.details,
+        witnesses: data.witnesses,
+        passenger_name: data.passengerName,
+        passenger_address: data.passengerAddress,
+        passenger_city_state_zip: data.passengerCityStateZip,
+        passenger_phone: data.passengerPhone,
+      })
+      alert("Incident report submitted successfully!")
+    } catch (err) {
+      console.error("Error submitting incident report:", err)
+      alert("Error submitting form. Please try again.")
+    }
+    setView("actionSelect")
+  }
+
+  const handleTimeOffRequestSubmit = async (data?: Record<string, any>) => {
+    if (!currentEmployee || !data) {
+      setView("actionSelect")
+      return
+    }
+    
+    try {
+      // Determine request type from form checkboxes
+      let requestType: 'vacation_pto' | 'bereavement' | 'birthday' | 'jury_duty' = 'vacation_pto'
+      if (data.juryDuty) requestType = 'jury_duty'
+      else if (data.bereavement) requestType = 'bereavement'
+      else if (data.birthday) requestType = 'birthday'
+      
+      // Get dates from requestedDates array
+      const datesRequested = (data.requestedDates || []).filter((d: string) => d !== "")
+      
+      await submitTimeOffRequest(currentEmployee.id, {
+        employee_name: data.employeeName || employeeData.name,
+        mailbox_number: data.mailboxNumber,
+        start_time: data.startTime,
+        dates_requested: datesRequested,
+        request_type: requestType,
+      })
+      alert("Time off request submitted successfully!")
+    } catch (err) {
+      console.error("Error submitting time off request:", err)
+      alert("Error submitting form. Please try again.")
+    }
+    setView("actionSelect")
+  }
+
+  const handleOvertimeRequestSubmit = async (data?: Record<string, any>) => {
+    if (!currentEmployee || !data) {
+      setView("actionSelect")
+      return
+    }
+    
+    try {
+      // Get the first shift entry from the shifts array
+      const firstShift = data.shifts?.[0] || {}
+      
+      await submitOvertimeRequest(currentEmployee.id, {
+        employee_name: data.employeeName || employeeData.name,
+        seniority_number: data.seniorityNumber,
+        shift_number: firstShift.shiftNumber || data.shiftNumber,
+        shift_date: firstShift.dateOfShift || data.shiftDate,
+        start_time: firstShift.startTime || data.startTime,
+        end_time: firstShift.endTime || data.endTime,
+        pay_hours: firstShift.payHours || data.payHours,
+        dispatcher_name: data.dispatcherName,
+      })
+      alert("Overtime request submitted successfully!")
+    } catch (err) {
+      console.error("Error submitting overtime request:", err)
+      alert("Error submitting form. Please try again.")
+    }
+    setView("actionSelect")
+  }
+
+  const handleFmlaConversionSubmit = async (data?: Record<string, any>) => {
+    if (!currentEmployee || !data) {
+      setView("actionSelect")
+      return
+    }
+    
+    try {
+      // Extract dates and vacation pay choices from fmlaDates array
+      const fmlaDates = data.fmlaDates || []
+      const datesToConvert = fmlaDates.map((d: any) => d.date).filter((d: string) => d !== "")
+      const useVacationPay = fmlaDates.map((d: any) => d.useVacationPay === true)
+      
+      await submitFmlaConversion(currentEmployee.id, {
+        employee_name: data.employeeName || employeeData.name,
+        mailbox_number: data.mailboxNumber,
+        dates_to_convert: datesToConvert,
+        use_vacation_pay: useVacationPay.slice(0, datesToConvert.length),
+      })
+      alert("FMLA conversion form submitted successfully!")
+    } catch (err) {
+      console.error("Error submitting FMLA conversion:", err)
+      alert("Error submitting form. Please try again.")
+    }
+    setView("actionSelect")
+  }
+
+  const handleOptionalFormCancel = () => {
+    setView("actionSelect")
+  }
+
   const handleCancelIdEntry = () => {
     setView("login")
     setEnteredId("")
@@ -383,7 +765,7 @@ export default function TimeClockKiosk() {
     setShowClockOutConfirm(false)
   }
 
-  const isLoggedIn = view === "actionSelect" || view === "dvi" || view === "timesheet" || view === "clockout"
+  const isLoggedIn = view === "actionSelect" || view === "dvi" || view === "timesheet" || view === "clockout" || view === "incidentReport" || view === "timeOffRequest" || view === "overtimeRequest" || view === "fmlaConversion"
 
   // Clock Out Confirmation Modal
   const ClockOutConfirmModal = () => (
@@ -530,6 +912,51 @@ export default function TimeClockKiosk() {
                       CLOCK OUT
                     </button>
                   </div>
+
+                  {/* Additional Forms Section */}
+                  <div className="mt-8 sm:mt-10 pt-6 border-t border-gray-600">
+                    <button
+                      onClick={() => setShowAdditionalForms(!showAdditionalForms)}
+                      className="w-full flex items-center justify-center gap-2 text-gray-400 hover:text-white transition-colors py-2"
+                    >
+                      <FileText size={20} />
+                      <span className="text-lg font-semibold">Additional Forms</span>
+                      {showAdditionalForms ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
+                    
+                    {showAdditionalForms && (
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          onClick={handleGoToIncidentReport}
+                          className="bg-gray-700 text-white py-4 px-4 rounded-xl font-semibold hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                        >
+                          <FileText size={18} />
+                          Incident Report
+                        </button>
+                        <button
+                          onClick={handleGoToTimeOffRequest}
+                          className="bg-gray-700 text-white py-4 px-4 rounded-xl font-semibold hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                        >
+                          <FileText size={18} />
+                          Time Off Request
+                        </button>
+                        <button
+                          onClick={handleGoToOvertimeRequest}
+                          className="bg-gray-700 text-white py-4 px-4 rounded-xl font-semibold hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                        >
+                          <FileText size={18} />
+                          Overtime Request
+                        </button>
+                        <button
+                          onClick={handleGoToFmlaConversion}
+                          className="bg-gray-700 text-white py-4 px-4 rounded-xl font-semibold hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                        >
+                          <FileText size={18} />
+                          FMLA Conversion
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -564,10 +991,124 @@ export default function TimeClockKiosk() {
     )
   }
 
-  // Admin Panel View
-  if (view === "admin") {
+  // Optional Forms Views
+  if (view === "incidentReport" || view === "timeOffRequest" || view === "overtimeRequest" || view === "fmlaConversion") {
     return (
       <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
+        {showClockOutConfirm && <ClockOutConfirmModal />}
+        
+        {/* Header for optional forms */}
+        <header className="bg-[#E31E24] px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setView("actionSelect")}
+              className="bg-white text-[#E31E24] px-4 sm:px-6 py-2 rounded font-bold text-base sm:text-lg hover:bg-gray-100 flex items-center justify-center gap-2"
+            >
+              <Home size={18} className="sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+            <div className="text-white text-lg sm:text-xl font-bold">
+              {view === "incidentReport" && "Employee Incident Report"}
+              {view === "timeOffRequest" && "Time Off Request"}
+              {view === "overtimeRequest" && "Overtime Request"}
+              {view === "fmlaConversion" && "FMLA Conversion Form"}
+            </div>
+            <div className="w-20"></div>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-auto py-4">
+          {view === "incidentReport" && (
+            <IncidentReportForm 
+              employeeName={employeeData.name}
+              onSubmit={handleIncidentReportSubmit}
+              onCancel={handleOptionalFormCancel}
+            />
+          )}
+          {view === "timeOffRequest" && (
+            <TimeOffRequestForm 
+              employeeName={employeeData.name}
+              onSubmit={handleTimeOffRequestSubmit}
+              onCancel={handleOptionalFormCancel}
+            />
+          )}
+          {view === "overtimeRequest" && (
+            <OvertimeRequestForm 
+              employeeName={employeeData.name}
+              onSubmit={handleOvertimeRequestSubmit}
+              onCancel={handleOptionalFormCancel}
+            />
+          )}
+          {view === "fmlaConversion" && (
+            <FmlaConversionForm 
+              employeeName={employeeData.name}
+              onSubmit={handleFmlaConversionSubmit}
+              onCancel={handleOptionalFormCancel}
+            />
+          )}
+        </div>
+
+        <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
+          <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
+        </footer>
+      </div>
+    )
+  }
+
+  // Admin Panel View
+  if (view === "admin") {
+    // Helper to get notification label
+    const getNotificationLabel = (type: FormNotification['type']) => {
+      const labels: Record<FormNotification['type'], string> = {
+        'dvi': 'DVI Inspection',
+        'timesheet': 'Timesheet',
+        'incident': 'Incident Report',
+        'timeoff': 'Time Off Request',
+        'overtime': 'Overtime Request',
+        'fmla': 'FMLA Conversion'
+      }
+      return labels[type]
+    }
+
+    return (
+      <div className="min-h-screen bg-[#D3D3D3] flex flex-col relative">
+        {/* Notification Toast Container - Fixed position in top right */}
+        {notifications.length > 0 && (
+          <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm">
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className="bg-white border-l-4 border-[#E31E24] rounded-lg shadow-xl p-4 cursor-pointer hover:bg-gray-50 transition-all animate-slide-in flex items-start gap-3"
+                onClick={() => handleNotificationClick(notification)}
+              >
+                <div className="bg-[#E31E24] rounded-full p-2 flex-shrink-0">
+                  <Bell size={16} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-gray-800 text-sm">
+                    New {getNotificationLabel(notification.type)}
+                  </div>
+                  <div className="text-gray-600 text-sm truncate">
+                    From: {notification.employeeName}
+                  </div>
+                  <div className="text-gray-400 text-xs mt-1">
+                    {notification.timestamp.toLocaleTimeString()}
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    dismissNotification(notification.id)
+                  }}
+                  className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <header className="bg-[#E31E24] px-3 sm:px-6 py-3 sm:py-4 flex items-center gap-4">
           <button
             onClick={handleDashboard}
@@ -581,11 +1122,14 @@ export default function TimeClockKiosk() {
         </header>
 
         {/* Admin Tabs */}
-        <div className="bg-[#1A1A1A] px-3 sm:px-6 py-2 flex gap-2 sm:gap-4 overflow-x-auto">
+        <div className="bg-[#1A1A1A] px-3 sm:px-6 py-2 flex gap-2 sm:gap-4 items-center">
           {(["dashboard", "employees", "timesheets", "dvi"] as AdminTab[]).map((tab) => (
             <button
               key={tab}
-              onClick={() => handleAdminTabChange(tab)}
+              onClick={() => {
+                handleAdminTabChange(tab)
+                setShowFormsDropdown(false)
+              }}
               className={`px-4 sm:px-6 py-2 rounded font-bold text-sm sm:text-base whitespace-nowrap transition-colors ${
                 adminTab === tab
                   ? "bg-[#E31E24] text-white"
@@ -598,7 +1142,96 @@ export default function TimeClockKiosk() {
               {tab === "dvi" && "DVI Records"}
             </button>
           ))}
+          
+          {/* Forms Dropdown */}
+          <div className="relative">
+            <button
+              ref={formsButtonRef}
+              onClick={() => {
+                if (formsButtonRef.current) {
+                  const rect = formsButtonRef.current.getBoundingClientRect()
+                  setDropdownPosition({ top: rect.bottom + 4, left: rect.left })
+                }
+                setShowFormsDropdown(!showFormsDropdown)
+              }}
+              className={`px-4 sm:px-6 py-2 rounded font-bold text-sm sm:text-base whitespace-nowrap transition-colors flex items-center gap-2 ${
+                ["incidents", "timeoff", "overtime", "fmla"].includes(adminTab)
+                  ? "bg-[#E31E24] text-white"
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              }`}
+            >
+              Forms
+              <ChevronDown size={16} className={`transition-transform ${showFormsDropdown ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
         </div>
+        
+        {/* Forms Dropdown Menu - Fixed position based on button location */}
+        {showFormsDropdown && (
+          <>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setShowFormsDropdown(false)}
+            />
+            <div 
+              className="fixed bg-gray-800 rounded-lg shadow-xl z-50 overflow-hidden"
+              style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+            >
+              <button
+                onClick={() => {
+                  handleAdminTabChange("incidents")
+                  setShowFormsDropdown(false)
+                }}
+                className={`block w-full px-4 py-3 text-left text-sm font-semibold transition-colors whitespace-nowrap ${
+                  adminTab === "incidents"
+                    ? "bg-[#E31E24] text-white"
+                    : "text-gray-300 hover:bg-gray-700"
+                }`}
+              >
+                Incident Reports
+              </button>
+              <button
+                onClick={() => {
+                  handleAdminTabChange("timeoff")
+                  setShowFormsDropdown(false)
+                }}
+                className={`block w-full px-4 py-3 text-left text-sm font-semibold transition-colors whitespace-nowrap ${
+                  adminTab === "timeoff"
+                    ? "bg-[#E31E24] text-white"
+                    : "text-gray-300 hover:bg-gray-700"
+                }`}
+              >
+                Time Off Requests
+              </button>
+              <button
+                onClick={() => {
+                  handleAdminTabChange("overtime")
+                  setShowFormsDropdown(false)
+                }}
+                className={`block w-full px-4 py-3 text-left text-sm font-semibold transition-colors whitespace-nowrap ${
+                  adminTab === "overtime"
+                    ? "bg-[#E31E24] text-white"
+                    : "text-gray-300 hover:bg-gray-700"
+                }`}
+              >
+                Overtime Requests
+              </button>
+              <button
+                onClick={() => {
+                  handleAdminTabChange("fmla")
+                  setShowFormsDropdown(false)
+                }}
+                className={`block w-full px-4 py-3 text-left text-sm font-semibold transition-colors whitespace-nowrap ${
+                  adminTab === "fmla"
+                    ? "bg-[#E31E24] text-white"
+                    : "text-gray-300 hover:bg-gray-700"
+                }`}
+              >
+                FMLA Conversions
+              </button>
+            </div>
+          </>
+        )}
 
         <main className="flex-1 p-4 sm:p-6 overflow-auto">
           {adminLoading ? (
@@ -953,6 +1586,515 @@ export default function TimeClockKiosk() {
                   )}
                 </div>
               )}
+
+              {/* Incident Reports Tab */}
+              {adminTab === "incidents" && (
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Incident Reports</h2>
+                  
+                  <div className="flex flex-wrap gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={adminStartDate}
+                        onChange={(e) => {
+                          setAdminStartDate(e.target.value)
+                          loadAdminData("incidents")
+                        }}
+                        className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#E31E24] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={adminEndDate}
+                        onChange={(e) => {
+                          setAdminEndDate(e.target.value)
+                          loadAdminData("incidents")
+                        }}
+                        className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#E31E24] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {incidentReports.length === 0 ? (
+                    <div className="bg-white rounded-xl p-8 text-center text-gray-500 shadow">
+                      No incident reports found for this date range
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {incidentReports
+                        .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                        .map((report) => (
+                        <div key={report.id} className="bg-white rounded-xl p-4 shadow border-l-4 border-orange-500">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <div className="font-bold text-lg text-gray-800">
+                                {report.employee_name}
+                              </div>
+                              <div className="text-gray-500 text-sm">
+                                {new Date(report.incident_date).toLocaleDateString()} at {report.incident_time}
+                              </div>
+                              <div className="text-gray-600 text-sm mt-1">
+                                Location: {report.incident_location}
+                                {report.bus_number && ` • Bus #${report.bus_number}`}
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                report.status === 'resolved' 
+                                  ? "bg-green-100 text-green-700"
+                                  : report.status === 'reviewed'
+                                  ? "bg-blue-100 text-blue-700" 
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}>
+                                {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+                              </span>
+                              <select
+                                value={report.status}
+                                onChange={async (e) => {
+                                  await updateIncidentReportStatus(report.id, e.target.value as any)
+                                  loadAdminData("incidents")
+                                }}
+                                className="text-sm border rounded px-2 py-1"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="reviewed">Reviewed</option>
+                                <option value="resolved">Resolved</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="text-gray-700 text-sm mt-2">
+                            <strong>Details:</strong> {report.details.slice(0, 200)}{report.details.length > 200 && '...'}
+                          </div>
+                          {report.supervisor_contacted && (
+                            <div className="text-gray-600 text-sm mt-1">
+                              <strong>Supervisor:</strong> {report.supervisor_contacted}
+                            </div>
+                          )}
+                          {report.witnesses && (
+                            <div className="text-gray-600 text-sm mt-1">
+                              <strong>Witnesses:</strong> {report.witnesses}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => setSelectedIncidentReport(report)}
+                            className="mt-3 text-[#E31E24] hover:underline text-sm font-semibold"
+                          >
+                            View Full Details
+                          </button>
+                        </div>
+                      ))}
+                      
+                      {incidentReports.length > ITEMS_PER_PAGE && (
+                        <div className="flex justify-center items-center gap-4 mt-4">
+                          <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-gray-600">
+                            Page {currentPage} of {Math.ceil(incidentReports.length / ITEMS_PER_PAGE)}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPage(p => Math.min(Math.ceil(incidentReports.length / ITEMS_PER_PAGE), p + 1))}
+                            disabled={currentPage >= Math.ceil(incidentReports.length / ITEMS_PER_PAGE)}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Time Off Requests Tab */}
+              {adminTab === "timeoff" && (
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Time Off Requests</h2>
+                  
+                  <div className="flex flex-wrap gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={adminStartDate}
+                        onChange={(e) => {
+                          setAdminStartDate(e.target.value)
+                          loadAdminData("timeoff")
+                        }}
+                        className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#E31E24] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={adminEndDate}
+                        onChange={(e) => {
+                          setAdminEndDate(e.target.value)
+                          loadAdminData("timeoff")
+                        }}
+                        className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#E31E24] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {timeOffRequests.length === 0 ? (
+                    <div className="bg-white rounded-xl p-8 text-center text-gray-500 shadow">
+                      No time off requests found for this date range
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {timeOffRequests
+                        .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                        .map((request) => (
+                        <div key={request.id} className="bg-white rounded-xl p-4 shadow border-l-4 border-blue-500">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <div className="font-bold text-lg text-gray-800">
+                                {request.employee_name}
+                              </div>
+                              <div className="text-gray-500 text-sm">
+                                Submitted: {new Date(request.submission_date).toLocaleDateString()}
+                              </div>
+                              <div className="text-gray-600 text-sm mt-1">
+                                Type: {request.request_type.replace('_', '/').toUpperCase()}
+                              </div>
+                              {request.mailbox_number && (
+                                <div className="text-gray-600 text-sm">
+                                  Mailbox: {request.mailbox_number}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                request.status === 'approved' 
+                                  ? "bg-green-100 text-green-700"
+                                  : request.status === 'denied'
+                                  ? "bg-red-100 text-red-700" 
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}>
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </span>
+                              <select
+                                value={request.status}
+                                onChange={async (e) => {
+                                  await updateTimeOffRequestStatus(request.id, e.target.value as any)
+                                  loadAdminData("timeoff")
+                                }}
+                                className="text-sm border rounded px-2 py-1"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="denied">Denied</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="mt-2">
+                            <strong className="text-gray-700 text-sm">Dates Requested:</strong>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {request.dates_requested.map((date, idx) => (
+                                <span key={idx} className="bg-gray-100 px-2 py-1 rounded text-sm">
+                                  {new Date(date).toLocaleDateString()}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {timeOffRequests.length > ITEMS_PER_PAGE && (
+                        <div className="flex justify-center items-center gap-4 mt-4">
+                          <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-gray-600">
+                            Page {currentPage} of {Math.ceil(timeOffRequests.length / ITEMS_PER_PAGE)}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPage(p => Math.min(Math.ceil(timeOffRequests.length / ITEMS_PER_PAGE), p + 1))}
+                            disabled={currentPage >= Math.ceil(timeOffRequests.length / ITEMS_PER_PAGE)}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Overtime Requests Tab */}
+              {adminTab === "overtime" && (
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Overtime Requests</h2>
+                  
+                  <div className="flex flex-wrap gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={adminStartDate}
+                        onChange={(e) => {
+                          setAdminStartDate(e.target.value)
+                          loadAdminData("overtime")
+                        }}
+                        className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#E31E24] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={adminEndDate}
+                        onChange={(e) => {
+                          setAdminEndDate(e.target.value)
+                          loadAdminData("overtime")
+                        }}
+                        className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#E31E24] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {overtimeRequests.length === 0 ? (
+                    <div className="bg-white rounded-xl p-8 text-center text-gray-500 shadow">
+                      No overtime requests found for this date range
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-xl shadow overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Employee</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Submitted</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Shift Date</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Time</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Hours</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Status</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {overtimeRequests
+                              .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                              .map((request) => (
+                              <tr key={request.id} className="border-t border-gray-200 hover:bg-gray-50">
+                                <td className="px-4 py-3">
+                                  <div className="font-semibold text-gray-800">{request.employee_name}</div>
+                                  {request.seniority_number && (
+                                    <div className="text-xs text-gray-500">Seniority: {request.seniority_number}</div>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-gray-600 text-sm">
+                                  {new Date(request.date_submitted).toLocaleDateString()}
+                                </td>
+                                <td className="px-4 py-3 text-gray-800">
+                                  {request.shift_date ? new Date(request.shift_date).toLocaleDateString() : '-'}
+                                </td>
+                                <td className="px-4 py-3 text-gray-800 text-sm">
+                                  {request.start_time || '-'} - {request.end_time || '-'}
+                                </td>
+                                <td className="px-4 py-3 text-gray-800 font-mono">
+                                  {request.pay_hours || '-'}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                    request.status === 'awarded' 
+                                      ? "bg-green-100 text-green-700"
+                                      : request.status === 'not_awarded'
+                                      ? "bg-red-100 text-red-700" 
+                                      : "bg-yellow-100 text-yellow-700"
+                                  }`}>
+                                    {request.status === 'not_awarded' ? 'Not Awarded' : request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <select
+                                    value={request.status}
+                                    onChange={async (e) => {
+                                      await updateOvertimeRequestStatus(request.id, e.target.value as any)
+                                      loadAdminData("overtime")
+                                    }}
+                                    className="text-sm border rounded px-2 py-1"
+                                  >
+                                    <option value="pending">Pending</option>
+                                    <option value="awarded">Awarded</option>
+                                    <option value="not_awarded">Not Awarded</option>
+                                  </select>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {overtimeRequests.length > ITEMS_PER_PAGE && (
+                    <div className="flex justify-center items-center gap-4 mt-4">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-gray-600">
+                        Page {currentPage} of {Math.ceil(overtimeRequests.length / ITEMS_PER_PAGE)}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(overtimeRequests.length / ITEMS_PER_PAGE), p + 1))}
+                        disabled={currentPage >= Math.ceil(overtimeRequests.length / ITEMS_PER_PAGE)}
+                        className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* FMLA Conversions Tab */}
+              {adminTab === "fmla" && (
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">FMLA Conversion Requests</h2>
+                  
+                  <div className="flex flex-wrap gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={adminStartDate}
+                        onChange={(e) => {
+                          setAdminStartDate(e.target.value)
+                          loadAdminData("fmla")
+                        }}
+                        className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#E31E24] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={adminEndDate}
+                        onChange={(e) => {
+                          setAdminEndDate(e.target.value)
+                          loadAdminData("fmla")
+                        }}
+                        className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#E31E24] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {fmlaConversions.length === 0 ? (
+                    <div className="bg-white rounded-xl p-8 text-center text-gray-500 shadow">
+                      No FMLA conversion requests found for this date range
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {fmlaConversions
+                        .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                        .map((request) => (
+                        <div key={request.id} className="bg-white rounded-xl p-4 shadow border-l-4 border-purple-500">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <div className="font-bold text-lg text-gray-800">
+                                {request.employee_name}
+                              </div>
+                              <div className="text-gray-500 text-sm">
+                                Submitted: {new Date(request.submission_date).toLocaleDateString()}
+                              </div>
+                              {request.mailbox_number && (
+                                <div className="text-gray-600 text-sm">
+                                  Mailbox: {request.mailbox_number}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                request.status === 'approved' 
+                                  ? "bg-green-100 text-green-700"
+                                  : request.status === 'denied'
+                                  ? "bg-red-100 text-red-700" 
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}>
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </span>
+                              <select
+                                value={request.status}
+                                onChange={async (e) => {
+                                  await updateFmlaConversionStatus(request.id, e.target.value as any)
+                                  loadAdminData("fmla")
+                                }}
+                                className="text-sm border rounded px-2 py-1"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="denied">Denied</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="mt-2">
+                            <strong className="text-gray-700 text-sm">Dates to Convert:</strong>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {request.dates_to_convert.map((date, idx) => (
+                                <span key={idx} className={`px-2 py-1 rounded text-sm ${
+                                  request.use_vacation_pay[idx] 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {new Date(date).toLocaleDateString()}
+                                  {request.use_vacation_pay[idx] && ' (Vacation Pay)'}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          {request.reason_for_disapproval && (
+                            <div className="mt-2 text-red-600 text-sm">
+                              <strong>Reason for Disapproval:</strong> {request.reason_for_disapproval}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {fmlaConversions.length > ITEMS_PER_PAGE && (
+                        <div className="flex justify-center items-center gap-4 mt-4">
+                          <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-gray-600">
+                            Page {currentPage} of {Math.ceil(fmlaConversions.length / ITEMS_PER_PAGE)}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPage(p => Math.min(Math.ceil(fmlaConversions.length / ITEMS_PER_PAGE), p + 1))}
+                            disabled={currentPage >= Math.ceil(fmlaConversions.length / ITEMS_PER_PAGE)}
+                            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </main>
@@ -1163,6 +2305,118 @@ export default function TimeClockKiosk() {
 
               <button
                 onClick={() => setSelectedTimesheet(null)}
+                className="mt-6 w-full bg-[#E31E24] text-white py-3 rounded-lg font-bold hover:bg-red-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Incident Report Detail Modal */}
+        {selectedIncidentReport && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-bold text-gray-800">Incident Report Details</h3>
+                <button
+                  onClick={() => setSelectedIncidentReport(null)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Employee Name</div>
+                    <div className="font-semibold">{selectedIncidentReport.employee_name}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Status</div>
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      selectedIncidentReport.status === 'resolved' 
+                        ? "bg-green-100 text-green-700"
+                        : selectedIncidentReport.status === 'reviewed'
+                        ? "bg-blue-100 text-blue-700" 
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}>
+                      {selectedIncidentReport.status.charAt(0).toUpperCase() + selectedIncidentReport.status.slice(1)}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Incident Date</div>
+                    <div className="font-semibold">{new Date(selectedIncidentReport.incident_date).toLocaleDateString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Incident Time</div>
+                    <div className="font-semibold">{selectedIncidentReport.incident_time}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Location</div>
+                    <div className="font-semibold">{selectedIncidentReport.incident_location}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Bus Number</div>
+                    <div className="font-semibold">{selectedIncidentReport.bus_number || '-'}</div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="text-sm text-gray-500">Supervisor Contacted</div>
+                    <div className="font-semibold">{selectedIncidentReport.supervisor_contacted || '-'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500 mb-2 font-semibold">Details of Event</div>
+                  <div className="bg-gray-50 rounded-lg p-4 text-gray-700 whitespace-pre-wrap">
+                    {selectedIncidentReport.details}
+                  </div>
+                </div>
+
+                {selectedIncidentReport.witnesses && (
+                  <div>
+                    <div className="text-sm text-gray-500 mb-2 font-semibold">Witnesses</div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-gray-700">
+                      {selectedIncidentReport.witnesses}
+                    </div>
+                  </div>
+                )}
+
+                {(selectedIncidentReport.passenger_name || selectedIncidentReport.passenger_address || selectedIncidentReport.passenger_phone) && (
+                  <div>
+                    <div className="text-sm text-gray-500 mb-2 font-semibold">Passenger Information</div>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-1">
+                      {selectedIncidentReport.passenger_name && (
+                        <div><strong>Name:</strong> {selectedIncidentReport.passenger_name}</div>
+                      )}
+                      {selectedIncidentReport.passenger_address && (
+                        <div><strong>Address:</strong> {selectedIncidentReport.passenger_address}</div>
+                      )}
+                      {selectedIncidentReport.passenger_city_state_zip && (
+                        <div><strong>City/State/Zip:</strong> {selectedIncidentReport.passenger_city_state_zip}</div>
+                      )}
+                      {selectedIncidentReport.passenger_phone && (
+                        <div><strong>Phone:</strong> {selectedIncidentReport.passenger_phone}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                  <div>
+                    <div className="text-sm text-gray-500">Date Completed</div>
+                    <div className="font-semibold">{selectedIncidentReport.date_completed}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Time Completed</div>
+                    <div className="font-semibold">{selectedIncidentReport.time_completed}</div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedIncidentReport(null)}
                 className="mt-6 w-full bg-[#E31E24] text-white py-3 rounded-lg font-bold hover:bg-red-700"
               >
                 Close

@@ -1,4 +1,4 @@
-import { supabase, Employee, TimeEntry, DviRecord, Timesheet, Vehicle, ActiveClockIn } from './supabase'
+import { supabase, Employee, TimeEntry, DviRecord, Timesheet, Vehicle, ActiveClockIn, IncidentReport, TimeOffRequest, OvertimeRequest, FmlaConversionRequest } from './supabase'
 
 // ==================== EMPLOYEE FUNCTIONS ====================
 
@@ -345,4 +345,304 @@ export async function getEmployeeStatus(employeeId: string) {
     dviCompleted,
     clockInTime: currentTimeEntry ? formatClockTime(currentTimeEntry.clock_in_time) : null
   }
+}
+
+// ==================== INCIDENT REPORT FUNCTIONS ====================
+
+export async function submitIncidentReport(
+  employeeUuid: string,
+  reportData: {
+    employee_name: string
+    incident_date: string
+    incident_time: string
+    incident_location: string
+    bus_number?: string
+    supervisor_contacted?: string
+    details: string
+    witnesses?: string
+    passenger_name?: string
+    passenger_address?: string
+    passenger_city_state_zip?: string
+    passenger_phone?: string
+  }
+): Promise<IncidentReport | null> {
+  const now = new Date()
+  const { data, error } = await supabase
+    .from('incident_reports')
+    .insert({
+      employee_id: employeeUuid,
+      employee_name: reportData.employee_name,
+      incident_date: reportData.incident_date,
+      incident_time: reportData.incident_time,
+      incident_location: reportData.incident_location,
+      bus_number: reportData.bus_number || null,
+      supervisor_contacted: reportData.supervisor_contacted || null,
+      details: reportData.details,
+      witnesses: reportData.witnesses || null,
+      passenger_name: reportData.passenger_name || null,
+      passenger_address: reportData.passenger_address || null,
+      passenger_city_state_zip: reportData.passenger_city_state_zip || null,
+      passenger_phone: reportData.passenger_phone || null,
+      date_completed: now.toISOString().split('T')[0],
+      time_completed: now.toTimeString().split(' ')[0],
+      status: 'pending'
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error submitting incident report:', error)
+    return null
+  }
+  return data
+}
+
+export async function getIncidentReports(startDate?: string, endDate?: string): Promise<IncidentReport[]> {
+  let query = supabase
+    .from('incident_reports')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (startDate) {
+    query = query.gte('incident_date', startDate)
+  }
+  if (endDate) {
+    query = query.lte('incident_date', endDate)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching incident reports:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function updateIncidentReportStatus(id: string, status: 'pending' | 'reviewed' | 'resolved'): Promise<boolean> {
+  const { error } = await supabase
+    .from('incident_reports')
+    .update({ status })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error updating incident report status:', error)
+    return false
+  }
+  return true
+}
+
+// ==================== TIME OFF REQUEST FUNCTIONS ====================
+
+export async function submitTimeOffRequest(
+  employeeUuid: string,
+  requestData: {
+    employee_name: string
+    mailbox_number?: string
+    start_time?: string
+    dates_requested: string[]
+    request_type: 'vacation_pto' | 'bereavement' | 'birthday' | 'jury_duty'
+  }
+): Promise<TimeOffRequest | null> {
+  const { data, error } = await supabase
+    .from('time_off_requests')
+    .insert({
+      employee_id: employeeUuid,
+      employee_name: requestData.employee_name,
+      mailbox_number: requestData.mailbox_number || null,
+      start_time: requestData.start_time || null,
+      submission_date: new Date().toISOString().split('T')[0],
+      dates_requested: requestData.dates_requested,
+      request_type: requestData.request_type,
+      status: 'pending',
+      days_available: [],
+      approved: []
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error submitting time off request:', error)
+    return null
+  }
+  return data
+}
+
+export async function getTimeOffRequests(startDate?: string, endDate?: string): Promise<TimeOffRequest[]> {
+  let query = supabase
+    .from('time_off_requests')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (startDate) {
+    query = query.gte('submission_date', startDate)
+  }
+  if (endDate) {
+    query = query.lte('submission_date', endDate)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching time off requests:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function updateTimeOffRequestStatus(id: string, status: 'pending' | 'approved' | 'denied'): Promise<boolean> {
+  const { error } = await supabase
+    .from('time_off_requests')
+    .update({ status })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error updating time off request status:', error)
+    return false
+  }
+  return true
+}
+
+// ==================== OVERTIME REQUEST FUNCTIONS ====================
+
+export async function submitOvertimeRequest(
+  employeeUuid: string,
+  requestData: {
+    employee_name: string
+    seniority_number?: string
+    shift_number?: string
+    shift_date?: string
+    start_time?: string
+    end_time?: string
+    pay_hours?: string
+    dispatcher_name?: string
+  }
+): Promise<OvertimeRequest | null> {
+  const { data, error } = await supabase
+    .from('overtime_requests')
+    .insert({
+      employee_id: employeeUuid,
+      employee_name: requestData.employee_name,
+      seniority_number: requestData.seniority_number || null,
+      time_stamp: new Date().toISOString(),
+      date_submitted: new Date().toISOString().split('T')[0],
+      shift_number: requestData.shift_number || null,
+      shift_date: requestData.shift_date || null,
+      start_time: requestData.start_time || null,
+      end_time: requestData.end_time || null,
+      pay_hours: requestData.pay_hours || null,
+      dispatcher_name: requestData.dispatcher_name || null,
+      status: 'pending'
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error submitting overtime request:', error)
+    return null
+  }
+  return data
+}
+
+export async function getOvertimeRequests(startDate?: string, endDate?: string): Promise<OvertimeRequest[]> {
+  let query = supabase
+    .from('overtime_requests')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (startDate) {
+    query = query.gte('date_submitted', startDate)
+  }
+  if (endDate) {
+    query = query.lte('date_submitted', endDate)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching overtime requests:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function updateOvertimeRequestStatus(id: string, status: 'pending' | 'awarded' | 'not_awarded'): Promise<boolean> {
+  const { error } = await supabase
+    .from('overtime_requests')
+    .update({ status })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error updating overtime request status:', error)
+    return false
+  }
+  return true
+}
+
+// ==================== FMLA CONVERSION FUNCTIONS ====================
+
+export async function submitFmlaConversion(
+  employeeUuid: string,
+  requestData: {
+    employee_name: string
+    mailbox_number?: string
+    dates_to_convert: string[]
+    use_vacation_pay: boolean[]
+  }
+): Promise<FmlaConversionRequest | null> {
+  const { data, error } = await supabase
+    .from('fmla_conversions')
+    .insert({
+      employee_id: employeeUuid,
+      employee_name: requestData.employee_name,
+      mailbox_number: requestData.mailbox_number || null,
+      submission_date: new Date().toISOString().split('T')[0],
+      dates_to_convert: requestData.dates_to_convert,
+      use_vacation_pay: requestData.use_vacation_pay,
+      status: 'pending',
+      fmla_approved: []
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error submitting FMLA conversion:', error)
+    return null
+  }
+  return data
+}
+
+export async function getFmlaConversions(startDate?: string, endDate?: string): Promise<FmlaConversionRequest[]> {
+  let query = supabase
+    .from('fmla_conversions')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (startDate) {
+    query = query.gte('submission_date', startDate)
+  }
+  if (endDate) {
+    query = query.lte('submission_date', endDate)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching FMLA conversions:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function updateFmlaConversionStatus(id: string, status: 'pending' | 'approved' | 'denied'): Promise<boolean> {
+  const { error } = await supabase
+    .from('fmla_conversions')
+    .update({ status })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error updating FMLA conversion status:', error)
+    return false
+  }
+  return true
 }
