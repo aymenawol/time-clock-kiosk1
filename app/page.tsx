@@ -82,6 +82,8 @@ export default function TimeClockKiosk() {
     dviCompleted: false,
     timesheetCompleted: false,
     clockInTime: "",
+    lunchWaiver: false,
+    expectedClockOut: "",
   })
 
   // Admin state
@@ -126,6 +128,7 @@ export default function TimeClockKiosk() {
   const [deleteConfirmSchedule, setDeleteConfirmSchedule] = useState<SafetyMeetingScheduleType | null>(null)
   const [safetyFilterMonth, setSafetyFilterMonth] = useState<string>('')
   const [safetyFilterYear, setSafetyFilterYear] = useState<string>('')
+  const [lunchWaiverChecked, setLunchWaiverChecked] = useState(false)
 
   // Real-time notifications state
   const [notifications, setNotifications] = useState<FormNotification[]>([])
@@ -333,12 +336,12 @@ export default function TimeClockKiosk() {
   }, [view, adminTab, addNotification])
 
   const formatTime = (date: Date | null) => {
-    if (!date) return '--:--:-- --'
+    if (!date) return '--:--:--'
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
-      hour12: true,
+      hour12: false,
     })
   }
 
@@ -365,6 +368,8 @@ export default function TimeClockKiosk() {
       dviCompleted: false,
       timesheetCompleted: false,
       clockInTime: "",
+      lunchWaiver: false,
+      expectedClockOut: "",
     })
   }
 
@@ -471,9 +476,9 @@ export default function TimeClockKiosk() {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      hour: 'numeric',
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: false
     })
   }
 
@@ -543,6 +548,8 @@ export default function TimeClockKiosk() {
           dviCompleted,
           timesheetCompleted: false,
           clockInTime: clockInTimeStr,
+          lunchWaiver: existingTimeEntry?.lunch_waiver || false,
+          expectedClockOut: existingTimeEntry?.expected_clock_out ? formatClockTime(existingTimeEntry.expected_clock_out) : "",
         })
         
         // Go to action selection screen
@@ -562,14 +569,18 @@ export default function TimeClockKiosk() {
     
     setIsLoading(true)
     try {
-      const timeEntry = await clockIn(currentEmployee.id)
+      const timeEntry = await clockIn(currentEmployee.id, lunchWaiverChecked)
       if (timeEntry) {
         setCurrentTimeEntry(timeEntry)
         setEmployeeData(prev => ({
           ...prev,
           clockedIn: true,
           clockInTime: formatClockTime(timeEntry.clock_in_time),
+          lunchWaiver: timeEntry.lunch_waiver,
+          expectedClockOut: timeEntry.expected_clock_out ? formatClockTime(timeEntry.expected_clock_out) : "",
         }))
+        // Reset lunch waiver checkbox for next clock-in
+        setLunchWaiverChecked(false)
       }
     } catch (err) {
       console.error("Clock in error:", err)
@@ -864,8 +875,14 @@ export default function TimeClockKiosk() {
           )}
         </div>
         {employeeData.clockedIn && (
-          <div className="text-white text-lg sm:text-xl font-bold">
-            Clocked in at {employeeData.clockInTime}
+          <div className="text-white text-sm sm:text-lg font-bold flex flex-col sm:flex-row sm:items-center sm:gap-4">
+            <span>Clocked in at {employeeData.clockInTime}</span>
+            {employeeData.expectedClockOut && (
+              <span className="text-[#FFE500]">
+                • Expected out: {employeeData.expectedClockOut}
+                {employeeData.lunchWaiver && " (Lunch Waived)"}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -883,18 +900,34 @@ export default function TimeClockKiosk() {
           <div className="w-full max-w-4xl">
             <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 shadow-2xl">
               {!employeeData.clockedIn ? (
-                // NOT CLOCKED IN - Show Clock In button
+                // NOT CLOCKED IN - Show Clock In button with lunch waiver option
                 <div className="text-center">
                   <div className="text-white text-2xl sm:text-4xl font-bold mb-6 sm:mb-8">
                     You are not clocked in
                   </div>
+                  
                   <button
                     onClick={handleClockIn}
                     disabled={isLoading}
-                    className="bg-green-500 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 px-16 sm:px-24 text-2xl sm:text-4xl font-bold hover:bg-green-600 transition-colors shadow-xl active:scale-95 disabled:opacity-50"
+                    className="bg-green-500 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 px-16 sm:px-24 text-2xl sm:text-4xl font-bold hover:bg-green-600 transition-colors shadow-xl active:scale-95 disabled:opacity-50 mb-6"
                   >
                     {isLoading ? "..." : "CLOCK IN"}
                   </button>
+
+                  {/* Lunch Waiver - Simple checkbox below button */}
+                  <div className="max-w-md mx-auto">
+                    <label className="flex items-center justify-center gap-3 cursor-pointer text-white">
+                      <input
+                        type="checkbox"
+                        checked={lunchWaiverChecked}
+                        onChange={(e) => setLunchWaiverChecked(e.target.checked)}
+                        className="w-5 h-5 rounded border-gray-400 text-[#E31E24] focus:ring-[#E31E24] cursor-pointer"
+                      />
+                      <span className="text-base sm:text-lg">
+                        Lunch Waiver <span className="text-gray-400 text-sm">({lunchWaiverChecked ? "8 hrs" : "8.5 hrs with lunch"})</span>
+                      </span>
+                    </label>
+                  </div>
                 </div>
               ) : (
                 // CLOCKED IN - Show options
@@ -1256,7 +1289,7 @@ export default function TimeClockKiosk() {
                     From: {notification.employeeName}
                   </div>
                   <div className="text-gray-400 text-xs mt-1">
-                    {notification.timestamp.toLocaleTimeString()}
+                    {notification.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                   </div>
                 </div>
                 <button
@@ -1434,13 +1467,25 @@ export default function TimeClockKiosk() {
                           key={clockIn.time_entry_id}
                           className="bg-white rounded-xl p-4 shadow border-l-4 border-green-500"
                         >
-                          <div className="font-bold text-lg text-gray-800">
-                            {clockIn.name}
+                          <div className="flex items-start justify-between">
+                            <div className="font-bold text-lg text-gray-800">
+                              {clockIn.name}
+                            </div>
+                            {clockIn.lunch_waiver && (
+                              <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">
+                                Lunch Waived
+                              </span>
+                            )}
                           </div>
                           <div className="text-gray-500 text-sm">ID: {clockIn.employee_id}</div>
                           <div className="mt-2 text-sm text-gray-600">
                             Clocked in: {formatAdminDateTime(clockIn.clock_in)}
                           </div>
+                          {clockIn.expected_clock_out && (
+                            <div className="mt-1 text-sm text-gray-600">
+                              Expected out: {formatAdminDateTime(clockIn.expected_clock_out)}
+                            </div>
+                          )}
                           <div className="mt-1 text-green-600 font-mono font-bold">
                             Duration: {clockIn.duration_hours}
                           </div>

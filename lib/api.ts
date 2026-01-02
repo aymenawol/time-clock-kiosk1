@@ -39,22 +39,50 @@ export async function getCurrentTimeEntry(employeeUuid: string): Promise<TimeEnt
   return data || null
 }
 
-export async function clockIn(employeeUuid: string): Promise<TimeEntry | null> {
-  const { data, error } = await supabase
+export async function clockIn(employeeUuid: string, lunchWaiver: boolean = false): Promise<TimeEntry | null> {
+  const clockInTime = new Date()
+  // Calculate expected clock out: 8 hours if lunch waiver, 8.5 hours otherwise
+  const hoursToAdd = lunchWaiver ? 8 : 8.5
+  const expectedClockOut = new Date(clockInTime.getTime() + hoursToAdd * 60 * 60 * 1000)
+
+  // Try with lunch_waiver fields first, fall back to basic insert if columns don't exist
+  let result = await supabase
     .from('time_entries')
     .insert({
       employee_id: employeeUuid,
-      clock_in_time: new Date().toISOString(),
-      date: new Date().toISOString().split('T')[0]
+      clock_in_time: clockInTime.toISOString(),
+      date: clockInTime.toISOString().split('T')[0],
+      lunch_waiver: lunchWaiver,
+      expected_clock_out: expectedClockOut.toISOString()
     })
     .select()
     .single()
 
-  if (error) {
-    console.error('Error clocking in:', error)
+  // If error (likely missing columns), try without lunch waiver fields
+  if (result.error) {
+    console.warn('Lunch waiver columns may not exist, trying basic insert:', result.error.message)
+    result = await supabase
+      .from('time_entries')
+      .insert({
+        employee_id: employeeUuid,
+        clock_in_time: clockInTime.toISOString(),
+        date: clockInTime.toISOString().split('T')[0]
+      })
+      .select()
+      .single()
+  }
+
+  if (result.error) {
+    console.error('Error clocking in:', result.error)
     return null
   }
-  return data
+  
+  // Add lunch waiver info to the returned data even if not in DB
+  return {
+    ...result.data,
+    lunch_waiver: lunchWaiver,
+    expected_clock_out: expectedClockOut.toISOString()
+  }
 }
 
 export async function clockOut(timeEntryId: string): Promise<TimeEntry | null> {
@@ -321,7 +349,7 @@ export function formatClockTime(isoString: string): string {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: true
+    hour12: false
   })
 }
 

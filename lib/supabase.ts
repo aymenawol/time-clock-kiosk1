@@ -41,6 +41,8 @@ export interface TimeEntry {
   clock_out_time: string | null
   date: string
   total_hours: number | null
+  lunch_waiver: boolean
+  expected_clock_out: string | null
   created_at: string
 }
 
@@ -85,6 +87,8 @@ export interface ActiveClockIn {
   employee_id: string
   name: string
   clock_in: string
+  lunch_waiver: boolean
+  expected_clock_out: string | null
   duration_hours: string
 }
 
