@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Search, Delete, Home, FileText, ChevronDown, ChevronUp, Bell, X } from 'lucide-react'
+import { Search, Delete, Home, FileText, ChevronDown, ChevronUp, Bell, X, ArrowLeft } from 'lucide-react'
 import DVIForm from "@/components/dvi-form"
 import TimesheetForm from "@/components/timesheet-form"
 import IncidentReportForm from "@/components/incident-report-form"
 import TimeOffRequestForm from "@/components/time-off-request-form"
 import OvertimeRequestForm from "@/components/overtime-request-form"
 import FmlaConversionForm from "@/components/fmla-conversion-form"
+import SafetyMeetingSchedule from "@/components/safety-meeting-schedule"
+import type { SafetyMeetingScheduleData } from "@/components/safety-meeting-schedule"
 import { getSupabase } from "@/lib/supabase"
 import {
   getEmployeeByEmployeeId,
@@ -36,13 +38,18 @@ import {
   submitFmlaConversion,
   getFmlaConversions,
   updateFmlaConversionStatus,
+  getSafetyMeetingSchedules,
+  createSafetyMeetingSchedule,
+  updateSafetyMeetingSchedule,
+  deleteSafetyMeetingSchedule,
+  generateNewShareToken,
 } from "@/lib/api"
-import type { Employee, TimeEntry, ActiveClockIn, Timesheet, DviRecord, IncidentReport, TimeOffRequest, OvertimeRequest, FmlaConversionRequest } from "@/lib/supabase"
+import type { Employee, TimeEntry, ActiveClockIn, Timesheet, DviRecord, IncidentReport, TimeOffRequest, OvertimeRequest, FmlaConversionRequest, SafetyMeetingSchedule as SafetyMeetingScheduleType } from "@/lib/supabase"
 
-type ViewState = "login" | "employeeIdEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin" | "adminLogin" | "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion"
+type ViewState = "login" | "employeeIdEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin" | "adminLogin" | "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion" | "safetySchedules"
 type FormType = "dvi" | "timesheet"
 type OptionalFormType = "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion"
-type AdminTab = "dashboard" | "employees" | "timesheets" | "dvi" | "incidents" | "timeoff" | "overtime" | "fmla"
+type AdminTab = "dashboard" | "employees" | "timesheets" | "dvi" | "incidents" | "timeoff" | "overtime" | "fmla" | "safety"
 
 // Notification type for real-time form submissions
 type FormNotification = {
@@ -109,6 +116,16 @@ export default function TimeClockKiosk() {
   const [showFormsDropdown, setShowFormsDropdown] = useState(false)
   const formsButtonRef = useRef<HTMLButtonElement>(null)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+
+  // Safety Meeting Schedule state
+  const [safetyMeetingSchedules, setSafetyMeetingSchedules] = useState<SafetyMeetingScheduleType[]>([])
+  const [selectedSafetySchedule, setSelectedSafetySchedule] = useState<SafetyMeetingScheduleType | null>(null)
+  const [showCreateSchedule, setShowCreateSchedule] = useState(false)
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [shareUrl, setShareUrl] = useState('')
+  const [deleteConfirmSchedule, setDeleteConfirmSchedule] = useState<SafetyMeetingScheduleType | null>(null)
+  const [safetyFilterMonth, setSafetyFilterMonth] = useState<string>('')
+  const [safetyFilterYear, setSafetyFilterYear] = useState<string>('')
 
   // Real-time notifications state
   const [notifications, setNotifications] = useState<FormNotification[]>([])
@@ -408,6 +425,9 @@ export default function TimeClockKiosk() {
       } else if (tab === "fmla") {
         const requests = await getFmlaConversions(adminStartDate, adminEndDate)
         setFmlaConversions(requests)
+      } else if (tab === "safety") {
+        const schedules = await getSafetyMeetingSchedules()
+        setSafetyMeetingSchedules(schedules)
       }
     } catch (err) {
       console.error("Error loading admin data:", err)
@@ -765,7 +785,7 @@ export default function TimeClockKiosk() {
     setShowClockOutConfirm(false)
   }
 
-  const isLoggedIn = view === "actionSelect" || view === "dvi" || view === "timesheet" || view === "clockout" || view === "incidentReport" || view === "timeOffRequest" || view === "overtimeRequest" || view === "fmlaConversion"
+  const isLoggedIn = view === "actionSelect" || view === "dvi" || view === "timesheet" || view === "clockout" || view === "incidentReport" || view === "timeOffRequest" || view === "overtimeRequest" || view === "fmlaConversion" || view === "safetySchedules"
 
   // Clock Out Confirmation Modal
   const ClockOutConfirmModal = () => (
@@ -913,19 +933,29 @@ export default function TimeClockKiosk() {
                     </button>
                   </div>
 
-                  {/* Additional Forms Section */}
+                  {/* Forms & Resources Section */}
                   <div className="mt-8 sm:mt-10 pt-6 border-t border-gray-600">
                     <button
                       onClick={() => setShowAdditionalForms(!showAdditionalForms)}
                       className="w-full flex items-center justify-center gap-2 text-gray-400 hover:text-white transition-colors py-2"
                     >
                       <FileText size={20} />
-                      <span className="text-lg font-semibold">Additional Forms</span>
+                      <span className="text-lg font-semibold">Forms & Resources</span>
                       {showAdditionalForms ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
                     
                     {showAdditionalForms && (
                       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          onClick={() => {
+                            loadAdminData("safety")
+                            setView("safetySchedules")
+                          }}
+                          className="bg-yellow-600 text-white py-4 px-4 rounded-xl font-semibold hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base sm:col-span-2"
+                        >
+                          <FileText size={18} />
+                          View Safety Meeting Schedules
+                        </button>
                         <button
                           onClick={handleGoToIncidentReport}
                           className="bg-gray-700 text-white py-4 px-4 rounded-xl font-semibold hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
@@ -1055,6 +1085,140 @@ export default function TimeClockKiosk() {
     )
   }
 
+  // Safety Meeting Schedules View (for drivers)
+  if (view === "safetySchedules") {
+    // Get unique months and years for filter dropdowns
+    const availableMonths = [...new Set(safetyMeetingSchedules.map(s => s.month))].sort((a, b) => {
+      const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      return monthOrder.indexOf(a) - monthOrder.indexOf(b)
+    })
+    const availableYears = [...new Set(safetyMeetingSchedules.map(s => s.year))].sort((a, b) => b - a)
+    
+    // Filter schedules based on selected filters
+    const filteredSchedules = safetyMeetingSchedules.filter(schedule => {
+      if (safetyFilterMonth && schedule.month !== safetyFilterMonth) return false
+      if (safetyFilterYear && schedule.year !== parseInt(safetyFilterYear)) return false
+      return true
+    }).sort((a, b) => {
+      // Sort by year desc, then month desc
+      if (b.year !== a.year) return b.year - a.year
+      const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      return monthOrder.indexOf(b.month) - monthOrder.indexOf(a.month)
+    })
+
+    return (
+      <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
+        {showClockOutConfirm && <ClockOutConfirmModal />}
+        
+        {/* Header */}
+        <header className="bg-[#E31E24] px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setView("actionSelect")}
+              className="bg-white text-[#E31E24] px-4 sm:px-6 py-2 rounded font-bold text-base sm:text-lg hover:bg-gray-100 flex items-center justify-center gap-2"
+            >
+              <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+            <div className="text-white text-lg sm:text-xl font-bold">
+              Safety Meeting Schedules
+            </div>
+            <div className="w-20"></div>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-auto py-4">
+          <div className="max-w-4xl mx-auto px-4">
+            {adminLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E31E24] mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading schedules...</p>
+              </div>
+            ) : safetyMeetingSchedules.length === 0 ? (
+              <div className="bg-white rounded-xl p-8 text-center">
+                <p className="text-gray-600">No safety meeting schedules available.</p>
+              </div>
+            ) : (
+              <>
+                {/* Filter Controls */}
+                <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="font-semibold text-gray-700">Filter by:</span>
+                    <select
+                      value={safetyFilterMonth}
+                      onChange={(e) => setSafetyFilterMonth(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E31E24]"
+                    >
+                      <option value="">All Months</option>
+                      {availableMonths.map(month => (
+                        <option key={month} value={month}>{month}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={safetyFilterYear}
+                      onChange={(e) => setSafetyFilterYear(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E31E24]"
+                    >
+                      <option value="">All Years</option>
+                      {availableYears.map(year => (
+                        <option key={year} value={year.toString()}>{year}</option>
+                      ))}
+                    </select>
+                    {(safetyFilterMonth || safetyFilterYear) && (
+                      <button
+                        onClick={() => {
+                          setSafetyFilterMonth('')
+                          setSafetyFilterYear('')
+                        }}
+                        className="text-[#E31E24] hover:text-red-700 font-medium flex items-center gap-1"
+                      >
+                        <X size={16} />
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Showing {filteredSchedules.length} of {safetyMeetingSchedules.length} schedule{safetyMeetingSchedules.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+
+                {/* Schedule List */}
+                {filteredSchedules.length === 0 ? (
+                  <div className="bg-white rounded-xl p-8 text-center">
+                    <p className="text-gray-600">No schedules match your filter.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredSchedules.map((schedule) => (
+                      <SafetyMeetingSchedule
+                        key={schedule.id}
+                        initialData={{
+                          id: schedule.id,
+                          title: schedule.title,
+                          month: schedule.month,
+                          year: schedule.year,
+                          instruction: schedule.instruction,
+                          meetings: schedule.meetings || [],
+                          created_at: schedule.created_at,
+                          updated_at: schedule.updated_at
+                        }}
+                        editable={false}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
+          <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
+        </footer>
+      </div>
+    )
+  }
+
   // Admin Panel View
   if (view === "admin") {
     // Helper to get notification label
@@ -1164,6 +1328,21 @@ export default function TimeClockKiosk() {
               <ChevronDown size={16} className={`transition-transform ${showFormsDropdown ? 'rotate-180' : ''}`} />
             </button>
           </div>
+          
+          {/* Safety Meetings Tab */}
+          <button
+            onClick={() => {
+              handleAdminTabChange("safety")
+              setShowFormsDropdown(false)
+            }}
+            className={`px-4 sm:px-6 py-2 rounded font-bold text-sm sm:text-base whitespace-nowrap transition-colors ${
+              adminTab === "safety"
+                ? "bg-[#E31E24] text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
+          >
+            Safety Meetings
+          </button>
         </div>
         
         {/* Forms Dropdown Menu - Fixed position based on button location */}
@@ -2095,6 +2274,127 @@ export default function TimeClockKiosk() {
                   )}
                 </div>
               )}
+
+              {/* Safety Meetings Tab */}
+              {adminTab === "safety" && (
+                <div>
+                  {/* Schedule List or Detail View */}
+                  {showCreateSchedule || selectedSafetySchedule ? (
+                    <div>
+                      <button
+                        onClick={() => {
+                          setShowCreateSchedule(false)
+                          setSelectedSafetySchedule(null)
+                        }}
+                        className="mb-4 text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
+                      >
+                        ← Back to All Schedules
+                      </button>
+                      <SafetyMeetingSchedule
+                        initialData={selectedSafetySchedule ? {
+                          id: selectedSafetySchedule.id,
+                          title: selectedSafetySchedule.title,
+                          month: selectedSafetySchedule.month,
+                          year: selectedSafetySchedule.year,
+                          instruction: selectedSafetySchedule.instruction,
+                          meetings: selectedSafetySchedule.meetings || [],
+                          created_at: selectedSafetySchedule.created_at,
+                          updated_at: selectedSafetySchedule.updated_at
+                        } : {
+                          title: "SAFETY MEETING SCHEDULES",
+                          month: new Date().toLocaleString('default', { month: 'long' }),
+                          year: new Date().getFullYear(),
+                          instruction: "Drivers and Coordinators - Please have vests and closed-toe shoes.",
+                          meetings: []
+                        }}
+                        editable={true}
+                        onSave={async (data: SafetyMeetingScheduleData) => {
+                          if (selectedSafetySchedule) {
+                            await updateSafetyMeetingSchedule(selectedSafetySchedule.id, {
+                              title: data.title,
+                              month: data.month,
+                              year: data.year,
+                              instruction: data.instruction,
+                              meetings: data.meetings
+                            })
+                          } else {
+                            await createSafetyMeetingSchedule({
+                              title: data.title,
+                              month: data.month,
+                              year: data.year,
+                              instruction: data.instruction,
+                              meetings: data.meetings
+                            })
+                          }
+                          setShowCreateSchedule(false)
+                          setSelectedSafetySchedule(null)
+                          loadAdminData("safety")
+                        }}
+                        onShare={() => {
+                          if (selectedSafetySchedule?.share_token) {
+                            const url = `${window.location.origin}/safety/${selectedSafetySchedule.share_token}`
+                            setShareUrl(url)
+                            setShareModalOpen(true)
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Safety Meeting Schedules</h2>
+                        <button
+                          onClick={() => {
+                            setSelectedSafetySchedule(null)
+                            setShowCreateSchedule(true)
+                          }}
+                          className="bg-[#E31E24] text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700 flex items-center gap-2"
+                        >
+                          <span className="text-xl">+</span>
+                          New Schedule
+                        </button>
+                      </div>
+                      {safetyMeetingSchedules.length === 0 ? (
+                        <div className="bg-white rounded-xl p-8 text-center text-gray-500 shadow">
+                          No safety meeting schedules found. Create one to get started.
+                        </div>
+                      ) : (
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                          {safetyMeetingSchedules.map((schedule) => (
+                            <div
+                              key={schedule.id}
+                              className="bg-white rounded-xl shadow border-l-4 border-yellow-500 overflow-hidden"
+                            >
+                              <div 
+                                onClick={() => setSelectedSafetySchedule(schedule)}
+                                className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="font-bold text-lg text-gray-800">
+                                  {schedule.month} {schedule.year}
+                                </div>
+                                <div className="text-gray-600 text-sm mt-1">
+                                  {schedule.title}
+                                </div>
+                                <div className="text-gray-500 text-sm mt-2">
+                                  {schedule.meetings?.length || 0} meetings scheduled
+                                </div>
+                              </div>
+                              <div className="border-t border-gray-200 p-3 bg-gray-50 flex justify-end">
+                                <button
+                                  onClick={() => setDeleteConfirmSchedule(schedule)}
+                                  className="bg-red-600 text-white text-sm px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </>
           )}
         </main>
@@ -2102,6 +2402,69 @@ export default function TimeClockKiosk() {
         <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
           <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
         </footer>
+
+        {/* Share Link Modal */}
+        {shareModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Share Safety Meeting Schedule</h3>
+              <p className="text-gray-600 mb-4">Anyone with this link can view the schedule:</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={shareUrl}
+                  readOnly
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                />
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(shareUrl)
+                    alert("Link copied to clipboard!")
+                  }}
+                  className="bg-[#E31E24] text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700"
+                >
+                  Copy
+                </button>
+              </div>
+              <button
+                onClick={() => setShareModalOpen(false)}
+                className="w-full mt-4 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-bold hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmSchedule && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Delete Schedule</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete the <strong>{deleteConfirmSchedule.month} {deleteConfirmSchedule.year}</strong> schedule? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setDeleteConfirmSchedule(null)}
+                  className="bg-gray-200 text-gray-800 px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    await deleteSafetyMeetingSchedule(deleteConfirmSchedule.id)
+                    setDeleteConfirmSchedule(null)
+                    loadAdminData("safety")
+                  }}
+                  className="bg-red-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Employee Modal */}
         {showEmployeeModal && (

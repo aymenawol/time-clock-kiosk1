@@ -171,3 +171,24 @@ export interface FmlaConversionRequest {
   approved_by: string | null
   created_at: string
 }
+
+export interface SafetyMeeting {
+  id: string
+  date: string
+  time: string
+  category: 'driver' | 'coordinator' | 'fueler_washer' | 'technician'
+}
+
+export interface SafetyMeetingSchedule {
+  id: string
+  title: string
+  month: string
+  year: number
+  instruction: string
+  meetings: SafetyMeeting[]
+  is_active: boolean
+  share_token: string | null
+  created_at: string
+  updated_at: string
+}
+

@@ -68,7 +68,6 @@ export default function TimeOffRequestForm({ employeeName = "", onSubmit, onCanc
             <div className="text-xs text-gray-500">the mobility company</div>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-center underline">TIME OFF REQUEST FORM</h1>
-          <p className="text-xs text-center mt-1 text-gray-600">Please print in black or blue ink only.</p>
         </div>
 
         <div className="p-4 space-y-4">

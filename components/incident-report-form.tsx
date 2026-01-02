@@ -146,11 +146,6 @@ export default function IncidentReportForm({ employeeName = "", onSubmit, onCanc
             />
           </div>
 
-          {/* Continue on back page notice */}
-          <div className="text-center text-sm underline font-semibold">
-            (Continue on back page if necessary)
-          </div>
-
           {/* Witnesses */}
           <div>
             <label className="font-bold text-sm">Witnesses (Print Names):</label>

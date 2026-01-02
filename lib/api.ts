@@ -1,4 +1,4 @@
-import { supabase, Employee, TimeEntry, DviRecord, Timesheet, Vehicle, ActiveClockIn, IncidentReport, TimeOffRequest, OvertimeRequest, FmlaConversionRequest } from './supabase'
+import { supabase, Employee, TimeEntry, DviRecord, Timesheet, Vehicle, ActiveClockIn, IncidentReport, TimeOffRequest, OvertimeRequest, FmlaConversionRequest, SafetyMeetingSchedule, SafetyMeeting } from './supabase'
 
 // ==================== EMPLOYEE FUNCTIONS ====================
 
@@ -645,4 +645,138 @@ export async function updateFmlaConversionStatus(id: string, status: 'pending' |
     return false
   }
   return true
+}
+
+// ==================== SAFETY MEETING SCHEDULE FUNCTIONS ====================
+
+export async function getSafetyMeetingSchedules(): Promise<SafetyMeetingSchedule[]> {
+  const { data, error } = await supabase
+    .from('safety_meeting_schedules')
+    .select('*')
+    .eq('is_active', true)
+    .order('year', { ascending: false })
+    .order('month', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching safety meeting schedules:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function getSafetyMeetingScheduleById(id: string): Promise<SafetyMeetingSchedule | null> {
+  const { data, error } = await supabase
+    .from('safety_meeting_schedules')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    console.error('Error fetching safety meeting schedule:', error)
+    return null
+  }
+  return data
+}
+
+export async function getSafetyMeetingScheduleByShareToken(shareToken: string): Promise<SafetyMeetingSchedule | null> {
+  const { data, error } = await supabase
+    .from('safety_meeting_schedules')
+    .select('*')
+    .eq('share_token', shareToken)
+    .eq('is_active', true)
+    .single()
+
+  if (error) {
+    console.error('Error fetching safety meeting schedule by share token:', error)
+    return null
+  }
+  return data
+}
+
+export async function createSafetyMeetingSchedule(scheduleData: {
+  title: string
+  month: string
+  year: number
+  instruction: string
+  meetings: SafetyMeeting[]
+}): Promise<SafetyMeetingSchedule | null> {
+  // Generate a unique share token
+  const shareToken = `${scheduleData.month.toLowerCase().substring(0, 3)}${scheduleData.year}-${Math.random().toString(36).substring(2, 8)}`
+
+  const { data, error } = await supabase
+    .from('safety_meeting_schedules')
+    .insert({
+      title: scheduleData.title,
+      month: scheduleData.month,
+      year: scheduleData.year,
+      instruction: scheduleData.instruction,
+      meetings: scheduleData.meetings,
+      share_token: shareToken,
+      is_active: true
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating safety meeting schedule:', error)
+    return null
+  }
+  return data
+}
+
+export async function updateSafetyMeetingSchedule(id: string, scheduleData: {
+  title?: string
+  month?: string
+  year?: number
+  instruction?: string
+  meetings?: SafetyMeeting[]
+}): Promise<SafetyMeetingSchedule | null> {
+  const { data, error } = await supabase
+    .from('safety_meeting_schedules')
+    .update(scheduleData)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating safety meeting schedule:', error)
+    return null
+  }
+  return data
+}
+
+export async function deleteSafetyMeetingSchedule(id: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('safety_meeting_schedules')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting safety meeting schedule:', error)
+    return false
+  }
+  return true
+}
+
+export async function generateNewShareToken(id: string): Promise<string | null> {
+  const { data: schedule } = await supabase
+    .from('safety_meeting_schedules')
+    .select('month, year')
+    .eq('id', id)
+    .single()
+
+  if (!schedule) return null
+
+  const shareToken = `${schedule.month.toLowerCase().substring(0, 3)}${schedule.year}-${Math.random().toString(36).substring(2, 8)}`
+
+  const { error } = await supabase
+    .from('safety_meeting_schedules')
+    .update({ share_token: shareToken })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error generating new share token:', error)
+    return null
+  }
+  return shareToken
 }

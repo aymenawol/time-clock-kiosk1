@@ -501,19 +501,12 @@ export default function DVIForm({ onSubmit }: DVIFormProps) {
           </div>
 
           <div className="text-xs italic mt-4">
-            Inspect all items on DVL. Use &quot;OK&quot; if no defect is found or &quot;X&quot; if defect is found; use
-            &quot;NA&quot; if not applicable. Turn in daily
+            Inspect all items below. Check the box if no defect is found; leave unchecked if defect is found.
           </div>
         </div>
 
         <div className="p-3 sm:p-6 border-b bg-white">
           <div className="mb-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-            {/* Left side labels */}
-            <div className="hidden sm:flex flex-col justify-around h-48 sm:h-64 text-black font-bold text-xs sm:text-sm w-16 sm:w-20 shrink-0">
-              <div className="text-slate-500 font-bold text-right whitespace-nowrap text-xs sm:text-sm">Left Side</div>
-              <div className="text-slate-500 font-bold text-right whitespace-nowrap text-xs sm:text-sm">Right Side</div>
-            </div>
-
             {/* Canvas with bus diagram */}
             <div className="relative">
               <canvas
@@ -536,20 +529,6 @@ export default function DVIForm({ onSubmit }: DVIFormProps) {
                 <Trash2 size={16} />
               </button>
             </div>
-
-            {/* Right side labels */}
-            <div className="hidden sm:flex flex-col justify-around h-48 sm:h-64 text-black font-bold text-xs sm:text-sm w-16 sm:w-20 shrink-0">
-              <div className="text-slate-500 font-bold text-left whitespace-nowrap text-xs sm:text-sm">Rear End</div>
-              <div className="text-slate-500 font-bold text-left whitespace-nowrap text-xs sm:text-sm">Front End</div>
-            </div>
-          </div>
-
-          {/* Mobile labels */}
-          <div className="sm:hidden grid grid-cols-2 gap-2 mb-4 text-xs font-bold text-slate-500 text-center">
-            <div>Left Side</div>
-            <div>Right Side</div>
-            <div>Rear End</div>
-            <div>Front End</div>
           </div>
 
           <h2 className="text-base sm:text-lg font-bold mb-4 text-center underline">VEHICLE EXTERIOR CHECKS</h2>
