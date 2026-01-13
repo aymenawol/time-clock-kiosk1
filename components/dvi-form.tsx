@@ -8,9 +8,11 @@ import type { Vehicle } from "@/lib/supabase"
 
 interface DVIFormProps {
   onSubmit?: (data: Record<string, any>) => void
+  clockInTime?: string
+  clockOutTime?: string
 }
 
-export default function DVIForm({ onSubmit }: DVIFormProps) {
+export default function DVIForm({ onSubmit, clockInTime, clockOutTime }: DVIFormProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false)
   const [vehicleSearchTerm, setVehicleSearchTerm] = useState("")
@@ -26,8 +28,8 @@ export default function DVIForm({ onSubmit }: DVIFormProps) {
     timeWorked: "",
     beginningMiles: "",
     endMiles: "",
-    beginningTime: "",
-    endTime: "",
+    beginningTime: clockInTime || "",
+    endTime: clockOutTime || "",
     operatorComments: "",
     nextDriverReviewed: "",
     techComments: "",
@@ -435,11 +437,11 @@ export default function DVIForm({ onSubmit }: DVIFormProps) {
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">End Miles:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Beginning Miles:</span>
                   <input
                     type="number"
-                    name="endMiles"
-                    value={formData.endMiles}
+                    name="beginningMiles"
+                    value={formData.beginningMiles}
                     onChange={handleInputChange}
                     className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
@@ -453,7 +455,8 @@ export default function DVIForm({ onSubmit }: DVIFormProps) {
                     name="beginningTime"
                     value={formData.beginningTime}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base bg-gray-100"
+                    readOnly
                   />
                 </div>
               </div>
@@ -475,11 +478,11 @@ export default function DVIForm({ onSubmit }: DVIFormProps) {
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">End Time:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">End Miles:</span>
                   <input
-                    type="time"
-                    name="endTime"
-                    value={formData.endTime}
+                    type="number"
+                    name="endMiles"
+                    value={formData.endMiles}
                     onChange={handleInputChange}
                     className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
                   />
@@ -487,13 +490,14 @@ export default function DVIForm({ onSubmit }: DVIFormProps) {
               </div>
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Beginning Miles:</span>
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">End Time:</span>
                   <input
-                    type="number"
-                    name="beginningMiles"
-                    value={formData.beginningMiles}
+                    type="time"
+                    name="endTime"
+                    value={formData.endTime}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base bg-gray-100"
+                    readOnly
                   />
                 </div>
               </div>

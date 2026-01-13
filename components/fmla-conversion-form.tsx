@@ -68,10 +68,6 @@ export default function FmlaConversionForm({ employeeName = "", onSubmit, onCanc
       <div className="border-2 sm:border-4 border-black overflow-hidden">
         {/* Header */}
         <div className="bg-gray-100 p-4 border-b-2 border-black">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="text-2xl font-bold italic text-gray-700">transdev</div>
-            <div className="text-xs text-gray-500">the mobility company</div>
-          </div>
           <h1 className="text-xl sm:text-2xl font-bold text-center underline">Absence/FMLA Conversion Form</h1>
         </div>
 

@@ -46,7 +46,7 @@ import {
 } from "@/lib/api"
 import type { Employee, TimeEntry, ActiveClockIn, Timesheet, DviRecord, IncidentReport, TimeOffRequest, OvertimeRequest, FmlaConversionRequest, SafetyMeetingSchedule as SafetyMeetingScheduleType } from "@/lib/supabase"
 
-type ViewState = "login" | "employeeIdEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin" | "adminLogin" | "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion" | "safetySchedules"
+type ViewState = "login" | "employeeIdEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin" | "adminLogin" | "coordinator" | "coordinatorLogin" | "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion" | "safetySchedules"
 type FormType = "dvi" | "timesheet"
 type OptionalFormType = "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion"
 type AdminTab = "dashboard" | "employees" | "timesheets" | "dvi" | "incidents" | "timeoff" | "overtime" | "fmla" | "safety"
@@ -62,6 +62,8 @@ type FormNotification = {
 
 // Admin PIN - change this to your desired admin password
 const ADMIN_PIN = "9999"
+// Coordinator PIN - change this to your desired coordinator password
+const COORDINATOR_PIN = "1234"
 
 export default function TimeClockKiosk() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
@@ -100,6 +102,10 @@ export default function TimeClockKiosk() {
   const [adminEndDate, setAdminEndDate] = useState('')
   const [adminPin, setAdminPin] = useState('')
   const [adminPinError, setAdminPinError] = useState<string | null>(null)
+  const [coordinatorPin, setCoordinatorPin] = useState('')
+  const [coordinatorPinError, setCoordinatorPinError] = useState<string | null>(null)
+  const [coordinatorClockIns, setCoordinatorClockIns] = useState<ActiveClockIn[]>([])
+  const [coordinatorLoading, setCoordinatorLoading] = useState(false)
   const [selectedDviRecord, setSelectedDviRecord] = useState<DviRecord | null>(null)
   const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -384,6 +390,12 @@ export default function TimeClockKiosk() {
     setAdminPinError(null)
   }
 
+  const handleCoordinatorLoginClick = () => {
+    setView("coordinatorLogin")
+    setCoordinatorPin("")
+    setCoordinatorPinError(null)
+  }
+
   const handleAdminPinSubmit = () => {
     if (adminPin === ADMIN_PIN) {
       setView("admin")
@@ -394,6 +406,30 @@ export default function TimeClockKiosk() {
     } else {
       setAdminPinError("Invalid PIN. Please try again.")
       setAdminPin("")
+    }
+  }
+
+  const handleCoordinatorPinSubmit = async () => {
+    if (coordinatorPin === COORDINATOR_PIN) {
+      setView("coordinator")
+      setCoordinatorPin("")
+      setCoordinatorPinError(null)
+      setCoordinatorLoading(true)
+      try {
+        const clockIns = await getActiveClockIns()
+        setCoordinatorClockIns(clockIns)
+        // Also load today's DVI records for the coordinator table
+        const today = new Date()
+        const todayStr = today.toISOString().split('T')[0]
+        const records = await getDVIRecords(todayStr, todayStr)
+        setDviRecords(records)
+      } catch (err) {
+        console.error("Error loading coordinator data:", err)
+      }
+      setCoordinatorLoading(false)
+    } else {
+      setCoordinatorPinError("Invalid PIN. Please try again.")
+      setCoordinatorPin("")
     }
   }
 
@@ -1025,10 +1061,6 @@ export default function TimeClockKiosk() {
             </div>
           </div>
         </main>
-
-        <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
-          <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
-        </footer>
       </div>
     )
   }
@@ -1046,10 +1078,6 @@ export default function TimeClockKiosk() {
             <TimesheetForm clockInTime={employeeData.clockInTime} onSubmit={handleTimesheetComplete} />
           )}
         </div>
-
-        <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
-          <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
-        </footer>
       </div>
     )
   }
@@ -1110,10 +1138,6 @@ export default function TimeClockKiosk() {
             />
           )}
         </div>
-
-        <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
-          <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
-        </footer>
       </div>
     )
   }
@@ -1244,10 +1268,119 @@ export default function TimeClockKiosk() {
             )}
           </div>
         </div>
+      </div>
+    )
+  }
 
-        <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
-          <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
-        </footer>
+  // Coordinator Panel View
+  if (view === "coordinator") {
+    // Get DVI data for clocked in employees to show in coordinator table
+    const getCoordinatorTableData = () => {
+      return coordinatorClockIns.map(clockIn => {
+        // Find DVI record for this employee if it exists
+        const dviRecord = dviRecords.find(dvi => {
+          const dviData = dvi.inspection_data as any
+          return dviData?.busNumber && new Date(dvi.inspection_date).toDateString() === new Date(clockIn.clock_in).toDateString()
+        })
+        
+        const dviData = dviRecord?.inspection_data as any
+        
+        return {
+          ...clockIn,
+          date: new Date(clockIn.clock_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          busNumber: dviData?.busNumber || '-',
+          startTime: new Date(clockIn.clock_in).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          firstBreak: '-',  // To be filled from timesheet or other source
+          secondBreak: '-', // To be filled from timesheet or other source
+          endTime: clockIn.expected_clock_out ? new Date(clockIn.expected_clock_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '-',
+          hasDvi: !!dviRecord
+        }
+      })
+    }
+
+    const coordinatorData = getCoordinatorTableData()
+    const employeesWithDvi = coordinatorData.filter(e => e.hasDvi)
+
+    return (
+      <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
+        <header className="bg-[#1A1A1A] px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleDashboard}
+              className="bg-[#E31E24] text-white px-4 sm:px-6 py-2 rounded font-bold text-sm sm:text-lg hover:bg-red-700 flex items-center gap-2"
+            >
+              <Home size={18} />
+              <span className="hidden sm:inline">Dashboard</span>
+            </button>
+            <h1 className="text-white text-lg sm:text-2xl font-bold">Coordinator View</h1>
+          </div>
+        </header>
+
+        <main className="flex-1 p-4 sm:p-6 overflow-auto">
+          {coordinatorLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-xl text-gray-600">Loading...</div>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Currently Clocked In</h2>
+              
+              {employeesWithDvi.length === 0 ? (
+                <div className="bg-white rounded-xl p-8 text-center text-gray-500 shadow">
+                  <p className="text-lg mb-2">No employees with DVI sheets currently clocked in</p>
+                  <p className="text-sm text-gray-400">This table only shows employees who have submitted their DVI sheet</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Date</th>
+                          <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Bus #</th>
+                          <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Name</th>
+                          <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Start Time</th>
+                          <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">1st Break</th>
+                          <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">2nd Break</th>
+                          <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">End Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {employeesWithDvi.map((employee) => (
+                          <tr key={employee.time_entry_id} className="border-t border-gray-200 hover:bg-gray-50">
+                            <td className="px-4 py-3 text-gray-600">{employee.date}</td>
+                            <td className="px-4 py-3 font-mono font-bold text-gray-800">{employee.busNumber}</td>
+                            <td className="px-4 py-3 font-semibold text-gray-800">{employee.name}</td>
+                            <td className="px-4 py-3 font-mono text-gray-600">{employee.startTime}</td>
+                            <td className="px-4 py-3 text-gray-600">{employee.firstBreak}</td>
+                            <td className="px-4 py-3 text-gray-600">{employee.secondBreak}</td>
+                            <td className="px-4 py-3 font-mono text-gray-600">{employee.endTime}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Also show all clocked in employees for reference */}
+              {coordinatorClockIns.length > employeesWithDvi.length && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-bold text-gray-700 mb-3">Clocked In (Awaiting DVI)</h3>
+                  <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                    <div className="flex flex-wrap gap-2">
+                      {coordinatorClockIns.filter(c => !coordinatorData.find(d => d.time_entry_id === c.time_entry_id)?.hasDvi).map(emp => (
+                        <span key={emp.time_entry_id} className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                          {emp.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
       </div>
     )
   }
@@ -1461,36 +1594,43 @@ export default function TimeClockKiosk() {
                       No employees currently clocked in
                     </div>
                   ) : (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {activeClockIns.map((clockIn) => (
-                        <div 
-                          key={clockIn.time_entry_id}
-                          className="bg-white rounded-xl p-4 shadow border-l-4 border-green-500"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="font-bold text-lg text-gray-800">
-                              {clockIn.name}
-                            </div>
-                            {clockIn.lunch_waiver && (
-                              <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">
-                                Lunch Waived
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-gray-500 text-sm">ID: {clockIn.employee_id}</div>
-                          <div className="mt-2 text-sm text-gray-600">
-                            Clocked in: {formatAdminDateTime(clockIn.clock_in)}
-                          </div>
-                          {clockIn.expected_clock_out && (
-                            <div className="mt-1 text-sm text-gray-600">
-                              Expected out: {formatAdminDateTime(clockIn.expected_clock_out)}
-                            </div>
-                          )}
-                          <div className="mt-1 text-green-600 font-mono font-bold">
-                            Duration: {clockIn.duration_hours}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="bg-white rounded-xl shadow overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Name</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Employee ID</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Clock In</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Expected Out</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Duration</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Lunch</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {activeClockIns.map((clockIn) => (
+                              <tr key={clockIn.time_entry_id} className="border-t border-gray-200 hover:bg-gray-50">
+                                <td className="px-4 py-3 font-semibold text-gray-800">{clockIn.name}</td>
+                                <td className="px-4 py-3 font-mono text-gray-600">{clockIn.employee_id}</td>
+                                <td className="px-4 py-3 text-gray-600">{formatAdminDateTime(clockIn.clock_in)}</td>
+                                <td className="px-4 py-3 text-gray-600">
+                                  {clockIn.expected_clock_out ? formatAdminDateTime(clockIn.expected_clock_out) : '-'}
+                                </td>
+                                <td className="px-4 py-3 font-mono font-bold text-green-600">{clockIn.duration_hours}</td>
+                                <td className="px-4 py-3">
+                                  {clockIn.lunch_waiver ? (
+                                    <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">
+                                      Waived
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400 text-sm">-</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2444,10 +2584,6 @@ export default function TimeClockKiosk() {
           )}
         </main>
 
-        <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
-          <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
-        </footer>
-
         {/* Share Link Modal */}
         {shareModalOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -2840,7 +2976,7 @@ export default function TimeClockKiosk() {
     <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
       <header className="bg-[#E31E24] px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
         <button
-          onClick={(view === "employeeIdEntry" || view === "adminLogin") ? handleDashboard : undefined}
+          onClick={(view === "employeeIdEntry" || view === "adminLogin" || view === "coordinatorLogin") ? handleDashboard : undefined}
           disabled={view === "login"}
           className={`px-4 sm:px-6 py-2 rounded font-bold text-base sm:text-lg flex items-center justify-center gap-2 ${
             view === "login"
@@ -2860,6 +2996,12 @@ export default function TimeClockKiosk() {
               className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
             >
               DRIVER
+            </button>
+            <button
+              onClick={handleCoordinatorLoginClick}
+              className="flex-1 sm:flex-none bg-[#FFE500] text-black px-4 sm:px-8 py-2 rounded font-bold text-sm sm:text-lg hover:bg-yellow-400 whitespace-nowrap"
+            >
+              COORDINATOR
             </button>
             <button
               onClick={handleAdminLoginClick}
@@ -3027,6 +3169,72 @@ export default function TimeClockKiosk() {
           </div>
         )}
 
+        {view === "coordinatorLogin" && (
+          <div className="w-full max-w-4xl px-2">
+            <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 mb-6 sm:mb-8 shadow-2xl">
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="text-gray-400 text-lg sm:text-2xl mb-3 sm:mb-4">Enter Coordinator PIN</div>
+                <div className="bg-white rounded-xl p-4 sm:p-6 min-h-[80px] sm:min-h-[100px] flex items-center justify-center">
+                  <div className="text-4xl sm:text-6xl font-bold font-mono tracking-widest text-black">
+                    {coordinatorPin ? "•".repeat(coordinatorPin.length) : "—"}
+                  </div>
+                </div>
+                {coordinatorPinError && (
+                  <div className="mt-4 text-red-500 text-lg font-semibold">
+                    {coordinatorPinError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+                <button
+                  key={digit}
+                  onClick={() => coordinatorPin.length < 10 && setCoordinatorPin(coordinatorPin + digit.toString())}
+                  className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
+                >
+                  {digit}
+                </button>
+              ))}
+              <button
+                onClick={() => setCoordinatorPin("")}
+                className="bg-[#E31E24] text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-red-700 transition-colors shadow-lg active:scale-95"
+              >
+                CLEAR
+              </button>
+              <button
+                onClick={() => coordinatorPin.length < 10 && setCoordinatorPin(coordinatorPin + "0")}
+                className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
+              >
+                0
+              </button>
+              <button
+                onClick={() => setCoordinatorPin(coordinatorPin.slice(0, -1))}
+                className="bg-gray-600 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 flex items-center justify-center hover:bg-gray-700 transition-colors shadow-lg active:scale-95"
+              >
+                <Delete size={32} className="sm:w-12 sm:h-12" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 sm:gap-6">
+              <button
+                onClick={handleDashboard}
+                className="bg-gray-600 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-gray-700 transition-colors shadow-lg active:scale-95"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={handleCoordinatorPinSubmit}
+                disabled={coordinatorPin.length === 0}
+                className="bg-[#FFE500] text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-yellow-400 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+              >
+                LOGIN
+              </button>
+            </div>
+          </div>
+        )}
+
         {view === "clockout" && (
           <div className="w-full max-w-4xl text-center px-4">
             <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 mb-6 sm:mb-8 shadow-2xl">
@@ -3048,10 +3256,6 @@ export default function TimeClockKiosk() {
           </div>
         )}
       </main>
-
-      <footer className="bg-[#1A1A1A] text-white py-3 sm:py-4 text-center">
-        <div className="text-base sm:text-xl font-bold">VISI2N by Transdev</div>
-      </footer>
     </div>
   )
 }

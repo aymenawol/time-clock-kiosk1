@@ -59,10 +59,7 @@ export default function SafetyMeetingPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <header className="bg-[#E31E24] text-white p-4 rounded-t-xl mb-0">
-          <div className="flex items-center gap-4">
-            <div className="text-2xl font-bold italic">transdev</div>
-            <div className="text-sm opacity-75">the mobility company</div>
-          </div>
+          <h1 className="text-2xl font-bold">Safety Meeting Schedule</h1>
         </header>
 
         {/* Schedule Content */}
@@ -79,11 +76,6 @@ export default function SafetyMeetingPage() {
           }}
           editable={false}
         />
-
-        {/* Footer */}
-        <footer className="bg-[#1A1A1A] text-white py-4 text-center rounded-b-xl mt-0">
-          <div className="text-base font-bold">VISI2N by Transdev</div>
-        </footer>
       </div>
     </div>
   )
