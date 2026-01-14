@@ -168,6 +168,20 @@ export async function submitDvi(
 
 // ==================== TIMESHEET FUNCTIONS ====================
 
+export async function getTimesheetForTimeEntry(timeEntryId: string): Promise<Timesheet | null> {
+  const { data, error } = await supabase
+    .from('timesheets')
+    .select('*')
+    .eq('time_entry_id', timeEntryId)
+    .limit(1)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error fetching timesheet record:', error)
+  }
+  return data || null
+}
+
 export async function submitTimesheet(
   employeeUuid: string,
   timeEntryId: string | null,

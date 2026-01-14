@@ -17,6 +17,7 @@ import {
   clockIn,
   clockOut,
   getDviForTimeEntry,
+  getTimesheetForTimeEntry,
   submitDvi,
   submitTimesheet,
   formatClockTime,
@@ -134,7 +135,7 @@ export default function TimeClockKiosk() {
   const [deleteConfirmSchedule, setDeleteConfirmSchedule] = useState<SafetyMeetingScheduleType | null>(null)
   const [safetyFilterMonth, setSafetyFilterMonth] = useState<string>('')
   const [safetyFilterYear, setSafetyFilterYear] = useState<string>('')
-  const [lunchWaiverChecked, setLunchWaiverChecked] = useState(false)
+  const [lunchWaiverSelection, setLunchWaiverSelection] = useState<boolean | null>(null)
 
   // Real-time notifications state
   const [notifications, setNotifications] = useState<FormNotification[]>([])
@@ -418,11 +419,12 @@ export default function TimeClockKiosk() {
       try {
         const clockIns = await getActiveClockIns()
         setCoordinatorClockIns(clockIns)
-        // Also load today's DVI records for the coordinator table
-        const today = new Date()
-        const todayStr = today.toISOString().split('T')[0]
-        const records = await getDVIRecords(todayStr, todayStr)
+        // Load DVI records and timesheets for currently clocked-in employees
+        // Don't filter by date since we match by time_entry_id
+        const records = await getDVIRecords()
         setDviRecords(records)
+        const timesheetRecords = await getTimesheets(undefined, undefined, undefined)
+        setTimesheets(timesheetRecords)
       } catch (err) {
         console.error("Error loading coordinator data:", err)
       }
@@ -569,11 +571,14 @@ export default function TimeClockKiosk() {
         
         let clockInTimeStr = ""
         let dviCompleted = false
+        let timesheetCompleted = false
         
         if (existingTimeEntry) {
           clockInTimeStr = formatClockTime(existingTimeEntry.clock_in_time)
           const dvi = await getDviForTimeEntry(existingTimeEntry.id)
           dviCompleted = !!dvi
+          const timesheet = await getTimesheetForTimeEntry(existingTimeEntry.id)
+          timesheetCompleted = !!timesheet
         }
         
         setEmployeeData({
@@ -582,7 +587,7 @@ export default function TimeClockKiosk() {
           visibleId: employee.id,
           clockedIn: !!existingTimeEntry,
           dviCompleted,
-          timesheetCompleted: false,
+          timesheetCompleted,
           clockInTime: clockInTimeStr,
           lunchWaiver: existingTimeEntry?.lunch_waiver || false,
           expectedClockOut: existingTimeEntry?.expected_clock_out ? formatClockTime(existingTimeEntry.expected_clock_out) : "",
@@ -601,11 +606,11 @@ export default function TimeClockKiosk() {
   }
 
   const handleClockIn = async () => {
-    if (!currentEmployee) return
+    if (!currentEmployee || lunchWaiverSelection === null) return
     
     setIsLoading(true)
     try {
-      const timeEntry = await clockIn(currentEmployee.id, lunchWaiverChecked)
+      const timeEntry = await clockIn(currentEmployee.id, lunchWaiverSelection)
       if (timeEntry) {
         setCurrentTimeEntry(timeEntry)
         setEmployeeData(prev => ({
@@ -615,8 +620,8 @@ export default function TimeClockKiosk() {
           lunchWaiver: timeEntry.lunch_waiver,
           expectedClockOut: timeEntry.expected_clock_out ? formatClockTime(timeEntry.expected_clock_out) : "",
         }))
-        // Reset lunch waiver checkbox for next clock-in
-        setLunchWaiverChecked(false)
+        // Reset lunch waiver selection for next clock-in
+        setLunchWaiverSelection(null)
       }
     } catch (err) {
       console.error("Clock in error:", err)
@@ -944,25 +949,43 @@ export default function TimeClockKiosk() {
                   
                   <button
                     onClick={handleClockIn}
-                    disabled={isLoading}
+                    disabled={isLoading || lunchWaiverSelection === null}
                     className="bg-green-500 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 px-16 sm:px-24 text-2xl sm:text-4xl font-bold hover:bg-green-600 transition-colors shadow-xl active:scale-95 disabled:opacity-50 mb-6"
                   >
                     {isLoading ? "..." : "CLOCK IN"}
                   </button>
 
-                  {/* Lunch Waiver - Simple checkbox below button */}
+                  {/* Lunch Waiver Selection - Must choose before clocking in */}
                   <div className="max-w-md mx-auto">
-                    <label className="flex items-center justify-center gap-3 cursor-pointer text-white">
-                      <input
-                        type="checkbox"
-                        checked={lunchWaiverChecked}
-                        onChange={(e) => setLunchWaiverChecked(e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-400 text-[#E31E24] focus:ring-[#E31E24] cursor-pointer"
-                      />
-                      <span className="text-base sm:text-lg">
-                        Lunch Waiver <span className="text-gray-400 text-sm">({lunchWaiverChecked ? "8 hrs" : "8.5 hrs with lunch"})</span>
-                      </span>
-                    </label>
+                    <div className="flex items-center justify-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer text-white">
+                        <input
+                          type="radio"
+                          name="lunchWaiver"
+                          checked={lunchWaiverSelection === false}
+                          onChange={() => setLunchWaiverSelection(false)}
+                          className="w-5 h-5 text-[#E31E24] focus:ring-[#E31E24] cursor-pointer"
+                        />
+                        <span className="text-base sm:text-lg">
+                          Take Lunch <span className="text-gray-400 text-sm">(8.5 hrs)</span>
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-white">
+                        <input
+                          type="radio"
+                          name="lunchWaiver"
+                          checked={lunchWaiverSelection === true}
+                          onChange={() => setLunchWaiverSelection(true)}
+                          className="w-5 h-5 text-[#E31E24] focus:ring-[#E31E24] cursor-pointer"
+                        />
+                        <span className="text-base sm:text-lg">
+                          Waive Lunch <span className="text-gray-400 text-sm">(8 hrs)</span>
+                        </span>
+                      </label>
+                    </div>
+                    {lunchWaiverSelection === null && (
+                      <div className="text-yellow-400 text-sm mt-2">Please select a lunch option to clock in</div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -1073,7 +1096,12 @@ export default function TimeClockKiosk() {
 
         <div className="flex-1 overflow-auto">
           {view === "dvi" ? (
-            <DVIFormWrapper onComplete={handleDviComplete} />
+            <DVIFormWrapper 
+              onComplete={handleDviComplete} 
+              operatorName={employeeData.name}
+              clockInTime={employeeData.clockInTime}
+              clockOutTime={employeeData.expectedClockOut}
+            />
           ) : (
             <TimesheetForm clockInTime={employeeData.clockInTime} onSubmit={handleTimesheetComplete} />
           )}
@@ -1277,21 +1305,43 @@ export default function TimeClockKiosk() {
     // Get DVI data for clocked in employees to show in coordinator table
     const getCoordinatorTableData = () => {
       return coordinatorClockIns.map(clockIn => {
-        // Find DVI record for this employee if it exists
-        const dviRecord = dviRecords.find(dvi => {
-          const dviData = dvi.inspection_data as any
-          return dviData?.busNumber && new Date(dvi.inspection_date).toDateString() === new Date(clockIn.clock_in).toDateString()
-        })
+        // Find DVI record for this employee if it exists (match by time_entry_id)
+        const dviRecord = dviRecords.find(dvi => dvi.time_entry_id === clockIn.time_entry_id)
         
         const dviData = dviRecord?.inspection_data as any
+        
+        // Find timesheet for this employee to get break windows
+        const timesheet = timesheets.find(ts => 
+          ts.time_entry_id === clockIn.time_entry_id ||
+          (ts.operator_name?.toLowerCase() === clockIn.name.toLowerCase() && 
+           new Date(ts.date).toDateString() === new Date(clockIn.clock_in).toDateString())
+        )
+        
+        // Parse break windows from timesheet (format: "First: HH:MM ---------------------- Second: HH:MM")
+        let firstBreak = '-'
+        let secondBreak = '-'
+        if (timesheet?.brk_windows) {
+          const brkMatch = timesheet.brk_windows.match(/First:\s*(\d{1,2}:\d{2}).*Second:\s*(\d{1,2}:\d{2})/)
+          if (brkMatch) {
+            firstBreak = brkMatch[1]
+            secondBreak = brkMatch[2]
+          }
+        } else {
+          // Calculate break windows from clock-in time if no timesheet
+          const clockInDate = new Date(clockIn.clock_in)
+          const firstBreakDate = new Date(clockInDate.getTime() + (2 * 60 + 15) * 60 * 1000) // 2h 15m
+          const secondBreakDate = new Date(clockInDate.getTime() + 6 * 60 * 60 * 1000) // 6h
+          firstBreak = firstBreakDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+          secondBreak = secondBreakDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+        }
         
         return {
           ...clockIn,
           date: new Date(clockIn.clock_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          busNumber: dviData?.busNumber || '-',
+          busNumber: dviData?.busNumber || timesheet?.bus_number || '-',
           startTime: new Date(clockIn.clock_in).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          firstBreak: '-',  // To be filled from timesheet or other source
-          secondBreak: '-', // To be filled from timesheet or other source
+          firstBreak,
+          secondBreak,
           endTime: clockIn.expected_clock_out ? new Date(clockIn.expected_clock_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '-',
           hasDvi: !!dviRecord
         }
@@ -3260,12 +3310,12 @@ export default function TimeClockKiosk() {
   )
 }
 
-function DVIFormWrapper({ onComplete }: { onComplete: (data?: Record<string, any>) => void }) {
+function DVIFormWrapper({ onComplete, operatorName, clockInTime, clockOutTime }: { onComplete: (data?: Record<string, any>) => void, operatorName: string, clockInTime: string, clockOutTime: string }) {
   const handleDviSubmit = (data: Record<string, any>) => {
     onComplete(data)
   }
 
-  return <DVIForm onSubmit={handleDviSubmit} />
+  return <DVIForm onSubmit={handleDviSubmit} operatorName={operatorName} clockInTime={clockInTime} clockOutTime={clockOutTime} />
 }
 
 // Employee Form Component for Admin

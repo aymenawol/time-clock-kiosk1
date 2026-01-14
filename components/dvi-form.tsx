@@ -10,9 +10,10 @@ interface DVIFormProps {
   onSubmit?: (data: Record<string, any>) => void
   clockInTime?: string
   clockOutTime?: string
+  operatorName?: string
 }
 
-export default function DVIForm({ onSubmit, clockInTime, clockOutTime }: DVIFormProps) {
+export default function DVIForm({ onSubmit, clockInTime, clockOutTime, operatorName }: DVIFormProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false)
   const [vehicleSearchTerm, setVehicleSearchTerm] = useState("")
@@ -20,9 +21,11 @@ export default function DVIForm({ onSubmit, clockInTime, clockOutTime }: DVIForm
 
   const [formData, setFormData] = useState({
     busNumber: "",
+    vehicleType: "" as "" | "ev" | "diesel",
+    vehicleStatus: "" as "" | "ready" | "charging" | "biohazard" | "shop" | "full" | "3/4" | "1/2" | "1/4" | "empty",
     date: new Date().toISOString().split("T")[0],
     tenEightTime: "",
-    operatorName: "",
+    operatorName: operatorName || "",
     operatorSignature: "",
     milesDriver: "",
     timeWorked: "",
@@ -365,6 +368,42 @@ export default function DVIForm({ onSubmit, clockInTime, clockOutTime }: DVIForm
                   </div>
                 </div>
               </div>
+
+              {/* Vehicle Type & Status - Single Combined Dropdown */}
+              <div className="flex-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">TYPE/STATUS:</span>
+                  <select
+                    value={formData.vehicleType && formData.vehicleStatus ? `${formData.vehicleType}:${formData.vehicleStatus}` : ""}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (!val) {
+                        setFormData(prev => ({ ...prev, vehicleType: "", vehicleStatus: "" }))
+                        return
+                      }
+                      const [type, status] = val.split(":")
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        vehicleType: type as any, 
+                        vehicleStatus: status as any 
+                      }))
+                    }}
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base bg-white"
+                  >
+                    <option value="">Select type & status...</option>
+                    <option value="ev:ready">EV → Ready</option>
+                    <option value="ev:charging">EV → Charging</option>
+                    <option value="ev:biohazard">EV → Biohazard</option>
+                    <option value="ev:shop">EV → Shop</option>
+                    <option disabled>──────────</option>
+                    <option value="diesel:full">Diesel → Full Tank</option>
+                    <option value="diesel:3/4">Diesel → ¾ Tank</option>
+                    <option value="diesel:1/2">Diesel → ½ Tank</option>
+                    <option value="diesel:1/4">Diesel → ¼ Tank</option>
+                    <option value="diesel:empty">Diesel → Empty</option>
+                  </select>
+                </div>
+              </div>
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-xs sm:text-sm font-bold whitespace-nowrap">DATE:</span>
@@ -404,7 +443,8 @@ export default function DVIForm({ onSubmit, clockInTime, clockOutTime }: DVIForm
                     name="operatorName"
                     value={formData.operatorName}
                     onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
+                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base bg-gray-100"
+                    readOnly
                   />
                 </div>
               </div>
