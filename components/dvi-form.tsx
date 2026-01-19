@@ -2,9 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Camera, Save, Trash2, ChevronDown, Search } from 'lucide-react'
-import { getActiveVehicles } from "@/lib/api"
-import type { Vehicle } from "@/lib/supabase"
+import { Camera, Save, Trash2 } from 'lucide-react'
 
 interface DVIFormProps {
   onSubmit?: (data: Record<string, any>) => void
@@ -14,11 +12,6 @@ interface DVIFormProps {
 }
 
 export default function DVIForm({ onSubmit, clockInTime, clockOutTime, operatorName }: DVIFormProps) {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false)
-  const [vehicleSearchTerm, setVehicleSearchTerm] = useState("")
-  const vehicleDropdownRef = useRef<HTMLDivElement>(null)
-
   const [formData, setFormData] = useState({
     busNumber: "",
     vehicleType: "" as "" | "ev" | "diesel",
@@ -113,43 +106,29 @@ export default function DVIForm({ onSubmit, clockInTime, clockOutTime, operatorN
     })
   }
 
-  // Load vehicles from Supabase
-  useEffect(() => {
-    const loadVehicles = async () => {
-      const vehicleList = await getActiveVehicles()
-      setVehicles(vehicleList)
+  // Get canvas data as base64 image
+  const getCanvasData = (): string | null => {
+    const canvas = canvasRef.current
+    if (!canvas) return null
+    
+    try {
+      return canvas.toDataURL('image/png')
+    } catch (e) {
+      console.error('Error getting canvas data:', e)
+      return null
     }
-    loadVehicles()
-  }, [])
-
-  // Close vehicle dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (vehicleDropdownRef.current && !vehicleDropdownRef.current.contains(event.target as Node)) {
-        setShowVehicleDropdown(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  const filteredVehicles = vehicles.filter(v => 
-    v.vehicle_number.toLowerCase().includes(vehicleSearchTerm.toLowerCase()) ||
-    (v.vehicle_type && v.vehicle_type.toLowerCase().includes(vehicleSearchTerm.toLowerCase()))
-  )
-
-  const handleVehicleSelect = (vehicle: Vehicle) => {
-    setFormData({ ...formData, busNumber: vehicle.vehicle_number })
-    setShowVehicleDropdown(false)
-    setVehicleSearchTerm("")
   }
 
   const handleSubmit = () => {
+    // Capture the bus canvas drawing
+    const busCanvasImage = getCanvasData()
+    
     const submissionData = {
       ...formData,
       exteriorChecks,
       interiorChecks,
       brakeChecks,
+      busCanvasImage, // Include the canvas drawing as base64
       timestamp: new Date().toISOString(),
     }
 
@@ -313,233 +292,199 @@ export default function DVIForm({ onSubmit, clockInTime, clockOutTime, operatorN
           <h1 className="text-xl sm:text-2xl font-bold text-center">VEHICLE INSPECTION</h1>
         </div>
 
-        <div className="p-3 sm:p-6 border-b">
-          <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">BUS #</span>
-                  <div className="relative flex-1" ref={vehicleDropdownRef}>
-                    <div 
-                      className="flex items-center border-b border-black px-2 py-1 cursor-pointer"
-                      onClick={() => setShowVehicleDropdown(!showVehicleDropdown)}
-                    >
-                      <span className={`flex-1 text-sm sm:text-base ${formData.busNumber ? "text-black" : "text-gray-400"}`}>
-                        {formData.busNumber || "Select vehicle..."}
-                      </span>
-                      <ChevronDown size={16} className={`transition-transform ${showVehicleDropdown ? "rotate-180" : ""}`} />
-                    </div>
-                    
-                    {showVehicleDropdown && (
-                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
-                        <div className="p-2 border-b border-gray-200">
-                          <div className="relative">
-                            <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <input
-                              type="text"
-                              placeholder="Search vehicles..."
-                              value={vehicleSearchTerm}
-                              onChange={(e) => setVehicleSearchTerm(e.target.value)}
-                              className="w-full pl-7 pr-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-500"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                        </div>
-                        <div className="max-h-44 overflow-y-auto">
-                          {filteredVehicles.length === 0 ? (
-                            <div className="px-3 py-2 text-sm text-gray-500">No vehicles found</div>
-                          ) : (
-                            filteredVehicles.map((vehicle) => (
-                              <div
-                                key={vehicle.id}
-                                onClick={() => handleVehicleSelect(vehicle)}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
-                              >
-                                <span className="font-mono font-bold text-sm">{vehicle.vehicle_number}</span>
-                                {vehicle.vehicle_type && (
-                                  <span className="text-xs text-gray-500">{vehicle.vehicle_type}</span>
-                                )}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+        <div className="p-3 sm:p-6 border-b overflow-hidden">
+          <div className="space-y-4">
+            {/* Row 1: Bus Type, Bus #, Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">BUS TYPE</label>
+                <select
+                  value={formData.vehicleType}
+                  onChange={(e) => {
+                    const type = e.target.value as "" | "ev" | "diesel"
+                    setFormData(prev => ({ ...prev, vehicleType: type, busNumber: "", vehicleStatus: "" }))
+                  }}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm bg-white"
+                >
+                  <option value="">Select type...</option>
+                  <option value="ev">EV</option>
+                  <option value="diesel">Diesel</option>
+                </select>
               </div>
-
-              {/* Vehicle Type & Status - Single Combined Dropdown */}
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">TYPE/STATUS:</span>
-                  <select
-                    value={formData.vehicleType && formData.vehicleStatus ? `${formData.vehicleType}:${formData.vehicleStatus}` : ""}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      if (!val) {
-                        setFormData(prev => ({ ...prev, vehicleType: "", vehicleStatus: "" }))
-                        return
-                      }
-                      const [type, status] = val.split(":")
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        vehicleType: type as any, 
-                        vehicleStatus: status as any 
-                      }))
-                    }}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base bg-white"
-                  >
-                    <option value="">Select type & status...</option>
-                    <option value="ev:ready">EV → Ready</option>
-                    <option value="ev:charging">EV → Charging</option>
-                    <option value="ev:biohazard">EV → Biohazard</option>
-                    <option value="ev:shop">EV → Shop</option>
-                    <option disabled>──────────</option>
-                    <option value="diesel:full">Diesel → Full Tank</option>
-                    <option value="diesel:3/4">Diesel → ¾ Tank</option>
-                    <option value="diesel:1/2">Diesel → ½ Tank</option>
-                    <option value="diesel:1/4">Diesel → ¼ Tank</option>
-                    <option value="diesel:empty">Diesel → Empty</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">BUS #</label>
+                <select
+                  value={formData.busNumber}
+                  onChange={(e) => setFormData(prev => ({ ...prev, busNumber: e.target.value }))}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm bg-white disabled:bg-gray-100"
+                  disabled={!formData.vehicleType}
+                >
+                  <option value="">{formData.vehicleType ? "Select bus #..." : "Select type first..."}</option>
+                  {formData.vehicleType === "ev" && (
+                    Array.from({ length: 50 }, (_, i) => {
+                      const num = String(i + 1).padStart(2, "0")
+                      return <option key={`ev-${num}`} value={`EV ${num}`}>EV {num}</option>
+                    })
+                  )}
+                  {formData.vehicleType === "diesel" && (
+                    Array.from({ length: 99 }, (_, i) => {
+                      const num = String(i + 1).padStart(2, "0")
+                      return <option key={`diesel-${num}`} value={num}>{num}</option>
+                    })
+                  )}
+                </select>
               </div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">DATE:</span>
-                  <input
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
-                  />
-                </div>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">10-8 TIME:</span>
-                  <input
-                    type="time"
-                    name="tenEightTime"
-                    value={formData.tenEightTime}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">STATUS</label>
+                <select
+                  value={formData.vehicleStatus}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vehicleStatus: e.target.value as any }))}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm bg-white disabled:bg-gray-100"
+                  disabled={!formData.vehicleType}
+                >
+                  <option value="">{formData.vehicleType ? "Select status..." : "Select type first..."}</option>
+                  {formData.vehicleType === "ev" && (
+                    <>
+                      <option value="ready">Ready</option>
+                      <option value="charging">Charging</option>
+                      <option value="biohazard">Biohazard</option>
+                      <option value="shop">Shop</option>
+                    </>
+                  )}
+                  {formData.vehicleType === "diesel" && (
+                    <>
+                      <option value="full">Full Tank</option>
+                      <option value="3/4">¾ Tank</option>
+                      <option value="1/2">½ Tank</option>
+                      <option value="1/4">¼ Tank</option>
+                      <option value="empty">Empty</option>
+                    </>
+                  )}
+                </select>
               </div>
             </div>
 
-            <div className="text-xs italic">
+            {/* Row 2: Date, 10-8 Time */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">DATE</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">10-8 TIME</label>
+                <input
+                  type="time"
+                  name="tenEightTime"
+                  value={formData.tenEightTime}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="text-xs italic py-1">
               I indicate by my signature that I have reviewed the previous operator&apos;s vehicle inspection report.
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Operator Name:</span>
-                  <input
-                    type="text"
-                    name="operatorName"
-                    value={formData.operatorName}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base bg-gray-100"
-                    readOnly
-                  />
-                </div>
+            {/* Row 3: Operator Name, Signature, Miles */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">Operator Name</label>
+                <input
+                  type="text"
+                  name="operatorName"
+                  value={formData.operatorName}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm bg-gray-100"
+                  readOnly
+                />
               </div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Signature:</span>
-                  <input
-                    type="text"
-                    name="operatorSignature"
-                    value={formData.operatorSignature}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">Signature</label>
+                <input
+                  type="text"
+                  name="operatorSignature"
+                  value={formData.operatorSignature}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm"
+                />
               </div>
-              <div className="w-full sm:w-32 shrink-0">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Miles:</span>
-                  <input
-                    type="number"
-                    name="milesDriver"
-                    value={formData.milesDriver}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">Miles</label>
+                <input
+                  type="number"
+                  name="milesDriver"
+                  value={formData.milesDriver}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm"
+                />
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Beginning Miles:</span>
-                  <input
-                    type="number"
-                    name="beginningMiles"
-                    value={formData.beginningMiles}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
-                  />
-                </div>
+            {/* Row 4: Beginning Miles, Beginning Time, Time Worked */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">Beginning Miles</label>
+                <input
+                  type="number"
+                  name="beginningMiles"
+                  value={formData.beginningMiles}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm"
+                />
               </div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Beginning Time:</span>
-                  <input
-                    type="time"
-                    name="beginningTime"
-                    value={formData.beginningTime}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base bg-gray-100"
-                    readOnly
-                  />
-                </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">Beginning Time</label>
+                <input
+                  type="time"
+                  name="beginningTime"
+                  value={formData.beginningTime}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm bg-gray-100"
+                  readOnly
+                />
               </div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Time Worked:</span>
-                  <input
-                    type="text"
-                    name="timeWorked"
-                    value={formData.timeWorked}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
-                    placeholder="HH:MM"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">Time Worked</label>
+                <input
+                  type="text"
+                  name="timeWorked"
+                  value={formData.timeWorked}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm"
+                  placeholder="HH:MM"
+                />
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">End Miles:</span>
-                  <input
-                    type="number"
-                    name="endMiles"
-                    value={formData.endMiles}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base"
-                  />
-                </div>
+            {/* Row 5: End Miles, End Time */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">End Miles</label>
+                <input
+                  type="number"
+                  name="endMiles"
+                  value={formData.endMiles}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm"
+                />
               </div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs sm:text-sm font-bold whitespace-nowrap">End Time:</span>
-                  <input
-                    type="time"
-                    name="endTime"
-                    value={formData.endTime}
-                    onChange={handleInputChange}
-                    className="flex-1 border-b border-black px-2 py-1 text-sm sm:text-base bg-gray-100"
-                    readOnly
-                  />
-                </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-1">End Time</label>
+                <input
+                  type="time"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleInputChange}
+                  className="w-full border border-black rounded px-2 py-1.5 text-sm bg-gray-100"
+                  readOnly
+                />
               </div>
             </div>
           </div>

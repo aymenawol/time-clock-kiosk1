@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Search, Delete, Home, FileText, ChevronDown, ChevronUp, Bell, X, ArrowLeft } from 'lucide-react'
+import { Search, Delete, Home, FileText, ChevronDown, ChevronUp, Bell, X, ArrowLeft, Download } from 'lucide-react'
 import DVIForm from "@/components/dvi-form"
 import TimesheetForm from "@/components/timesheet-form"
 import IncidentReportForm from "@/components/incident-report-form"
@@ -11,6 +11,14 @@ import FmlaConversionForm from "@/components/fmla-conversion-form"
 import SafetyMeetingSchedule from "@/components/safety-meeting-schedule"
 import type { SafetyMeetingScheduleData } from "@/components/safety-meeting-schedule"
 import { getSupabase } from "@/lib/supabase"
+import {
+  generateDVIPdf,
+  generateIncidentReportPdf,
+  generateTimeOffRequestPdf,
+  generateOvertimeRequestPdf,
+  generateFmlaConversionPdf,
+  generateTimesheetPdf,
+} from "@/lib/pdf-generator"
 import {
   getEmployeeByEmployeeId,
   getCurrentTimeEntry,
@@ -107,8 +115,6 @@ export default function TimeClockKiosk() {
   const [coordinatorPinError, setCoordinatorPinError] = useState<string | null>(null)
   const [coordinatorClockIns, setCoordinatorClockIns] = useState<ActiveClockIn[]>([])
   const [coordinatorLoading, setCoordinatorLoading] = useState(false)
-  const [selectedDviRecord, setSelectedDviRecord] = useState<DviRecord | null>(null)
-  const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 10
   const [showAdditionalForms, setShowAdditionalForms] = useState(false)
@@ -118,10 +124,6 @@ export default function TimeClockKiosk() {
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([])
   const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>([])
   const [fmlaConversions, setFmlaConversions] = useState<FmlaConversionRequest[]>([])
-  const [selectedIncidentReport, setSelectedIncidentReport] = useState<IncidentReport | null>(null)
-  const [selectedTimeOffRequest, setSelectedTimeOffRequest] = useState<TimeOffRequest | null>(null)
-  const [selectedOvertimeRequest, setSelectedOvertimeRequest] = useState<OvertimeRequest | null>(null)
-  const [selectedFmlaConversion, setSelectedFmlaConversion] = useState<FmlaConversionRequest | null>(null)
   const [showFormsDropdown, setShowFormsDropdown] = useState(false)
   const formsButtonRef = useRef<HTMLButtonElement>(null)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
@@ -1821,10 +1823,11 @@ export default function TimeClockKiosk() {
                                 </div>
                               </div>
                               <button
-                                onClick={() => setSelectedTimesheet(sheet)}
-                                className="text-[#E31E24] hover:underline text-sm font-semibold"
+                                onClick={() => generateTimesheetPdf(sheet as any)}
+                                className="text-[#E31E24] hover:underline text-sm font-semibold flex items-center gap-1"
                               >
-                                View Details
+                                <Download size={14} />
+                                Download PDF
                               </button>
                             </div>
                           </div>
@@ -1961,10 +1964,11 @@ export default function TimeClockKiosk() {
                                   </td>
                                   <td className="px-4 py-3">
                                     <button
-                                      onClick={() => setSelectedDviRecord(record)}
-                                      className="text-[#E31E24] hover:underline text-sm font-semibold"
+                                      onClick={() => generateDVIPdf(record as any)}
+                                      className="text-[#E31E24] hover:underline text-sm font-semibold flex items-center gap-1"
                                     >
-                                      View Details
+                                      <Download size={14} />
+                                      Download PDF
                                     </button>
                                   </td>
                                 </tr>
@@ -2094,10 +2098,11 @@ export default function TimeClockKiosk() {
                             </div>
                           )}
                           <button
-                            onClick={() => setSelectedIncidentReport(report)}
-                            className="mt-3 text-[#E31E24] hover:underline text-sm font-semibold"
+                            onClick={() => generateIncidentReportPdf(report as any)}
+                            className="mt-3 text-[#E31E24] hover:underline text-sm font-semibold flex items-center gap-1"
                           >
-                            View Full Details
+                            <Download size={14} />
+                            Download PDF
                           </button>
                         </div>
                       ))}
@@ -2221,6 +2226,13 @@ export default function TimeClockKiosk() {
                               ))}
                             </div>
                           </div>
+                          <button
+                            onClick={() => generateTimeOffRequestPdf(request as any)}
+                            className="mt-3 text-[#E31E24] hover:underline text-sm font-semibold flex items-center gap-1"
+                          >
+                            <Download size={14} />
+                            Download PDF
+                          </button>
                         </div>
                       ))}
                       
@@ -2299,6 +2311,7 @@ export default function TimeClockKiosk() {
                               <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Hours</th>
                               <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Status</th>
                               <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Action</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">PDF</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -2348,6 +2361,15 @@ export default function TimeClockKiosk() {
                                     <option value="awarded">Awarded</option>
                                     <option value="not_awarded">Not Awarded</option>
                                   </select>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <button
+                                    onClick={() => generateOvertimeRequestPdf(request as any)}
+                                    className="text-[#E31E24] hover:underline text-sm font-semibold flex items-center gap-1"
+                                  >
+                                    <Download size={14} />
+                                    PDF
+                                  </button>
                                 </td>
                               </tr>
                             ))}
@@ -2481,6 +2503,13 @@ export default function TimeClockKiosk() {
                               <strong>Reason for Disapproval:</strong> {request.reason_for_disapproval}
                             </div>
                           )}
+                          <button
+                            onClick={() => generateFmlaConversionPdf(request as any)}
+                            className="mt-3 text-[#E31E24] hover:underline text-sm font-semibold flex items-center gap-1"
+                          >
+                            <Download size={14} />
+                            Download PDF
+                          </button>
                         </div>
                       ))}
                       
@@ -2712,309 +2741,6 @@ export default function TimeClockKiosk() {
                   setEditingEmployee(null)
                 }}
               />
-            </div>
-          </div>
-        )}
-
-        {/* DVI Detail Modal */}
-        {selectedDviRecord && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold text-gray-800">DVI Inspection Details</h3>
-                <button
-                  onClick={() => setSelectedDviRecord(null)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-500">Date</div>
-                    <div className="font-semibold">{new Date(selectedDviRecord.inspection_date).toLocaleDateString()}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Employee</div>
-                    <div className="font-semibold">{(selectedDviRecord as any).employees?.name || "Unknown"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Vehicle Number</div>
-                    <div className="font-semibold font-mono">{(selectedDviRecord as any).vehicle_number || "-"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Inspection Type</div>
-                    <div className="font-semibold capitalize">{selectedDviRecord.inspection_type || "-"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Status</div>
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      selectedDviRecord.is_passed 
-                        ? "bg-green-100 text-green-700" 
-                        : "bg-red-100 text-red-700"
-                    }`}>
-                      {selectedDviRecord.is_passed ? "Passed" : "Failed"}
-                    </span>
-                  </div>
-                </div>
-
-                {selectedDviRecord.inspection_data && Object.keys(selectedDviRecord.inspection_data).length > 0 && (
-                  <div>
-                    <div className="text-sm text-gray-500 mb-2 font-semibold">Inspection Items</div>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                      {Object.entries(selectedDviRecord.inspection_data).map(([key, value]) => (
-                        <div key={key} className="flex justify-between items-center py-1 border-b border-gray-200 last:border-0">
-                          <span className="text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
-                          <span className={`font-semibold ${
-                            value === true || value === 'pass' || value === 'ok' 
-                              ? 'text-green-600' 
-                              : value === false || value === 'fail' 
-                                ? 'text-red-600' 
-                                : 'text-gray-800'
-                          }`}>
-                            {typeof value === 'boolean' ? (value ? '✓ Pass' : '✗ Fail') : String(value)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selectedDviRecord.notes && (
-                  <div>
-                    <div className="text-sm text-gray-500 mb-2 font-semibold">Notes</div>
-                    <div className="bg-gray-50 rounded-lg p-4 text-gray-700 whitespace-pre-wrap">
-                      {selectedDviRecord.notes}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={() => setSelectedDviRecord(null)}
-                className="mt-6 w-full bg-[#E31E24] text-white py-3 rounded-lg font-bold hover:bg-red-700"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Timesheet Detail Modal */}
-        {selectedTimesheet && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-xl p-6 w-full max-w-3xl shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold text-gray-800">Timesheet Details</h3>
-                <button
-                  onClick={() => setSelectedTimesheet(null)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-500">Date</div>
-                    <div className="font-semibold">{new Date(selectedTimesheet.date).toLocaleDateString()}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Employee</div>
-                    <div className="font-semibold">{(selectedTimesheet as any).employees?.name || selectedTimesheet.operator_name || "Unknown"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Bus Number</div>
-                    <div className="font-semibold font-mono">{selectedTimesheet.bus_number || "-"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Check-in</div>
-                    <div className="font-semibold">{selectedTimesheet.check_in || "-"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Check-out</div>
-                    <div className="font-semibold">{selectedTimesheet.check_out || "-"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Break Windows</div>
-                    <div className="font-semibold">{selectedTimesheet.brk_windows || "-"}</div>
-                  </div>
-                </div>
-
-                {selectedTimesheet.entries && selectedTimesheet.entries.length > 0 && (
-                  <div>
-                    <div className="text-sm text-gray-500 mb-2 font-semibold">Work Entries ({selectedTimesheet.entries.length} total)</div>
-                    <div className="bg-gray-50 rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-200">
-                          <tr>
-                            <th className="px-3 py-2 text-left">Work Order</th>
-                            <th className="px-3 py-2 text-left">Description</th>
-                            <th className="px-3 py-2 text-center">ST</th>
-                            <th className="px-3 py-2 text-center">OT</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedTimesheet.entries.map((entry: any, idx: number) => (
-                            <tr key={idx} className="border-t border-gray-200">
-                              <td className="px-3 py-2 font-mono">{entry.workOrder || "-"}</td>
-                              <td className="px-3 py-2">{entry.description || "-"}</td>
-                              <td className="px-3 py-2 text-center">{entry.straightTime || "0"}</td>
-                              <td className="px-3 py-2 text-center">{entry.overTime || "0"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {selectedTimesheet.totals && (
-                  <div>
-                    <div className="text-sm text-gray-500 mb-2 font-semibold">Totals</div>
-                    <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-[#E31E24]">{selectedTimesheet.totals.totalHours || "0"}</div>
-                        <div className="text-xs text-gray-500">Total Hours</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-gray-800">{selectedTimesheet.totals.straightTime || "0"}</div>
-                        <div className="text-xs text-gray-500">Straight Time</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-gray-800">{selectedTimesheet.totals.overTime || "0"}</div>
-                        <div className="text-xs text-gray-500">Overtime</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-gray-800">{selectedTimesheet.totals.breakHours || "0"}</div>
-                        <div className="text-xs text-gray-500">Break Hours</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={() => setSelectedTimesheet(null)}
-                className="mt-6 w-full bg-[#E31E24] text-white py-3 rounded-lg font-bold hover:bg-red-700"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Incident Report Detail Modal */}
-        {selectedIncidentReport && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold text-gray-800">Incident Report Details</h3>
-                <button
-                  onClick={() => setSelectedIncidentReport(null)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-500">Employee Name</div>
-                    <div className="font-semibold">{selectedIncidentReport.employee_name}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Status</div>
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      selectedIncidentReport.status === 'resolved' 
-                        ? "bg-green-100 text-green-700"
-                        : selectedIncidentReport.status === 'reviewed'
-                        ? "bg-blue-100 text-blue-700" 
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}>
-                      {selectedIncidentReport.status.charAt(0).toUpperCase() + selectedIncidentReport.status.slice(1)}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Incident Date</div>
-                    <div className="font-semibold">{new Date(selectedIncidentReport.incident_date).toLocaleDateString()}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Incident Time</div>
-                    <div className="font-semibold">{selectedIncidentReport.incident_time}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Location</div>
-                    <div className="font-semibold">{selectedIncidentReport.incident_location}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Bus Number</div>
-                    <div className="font-semibold">{selectedIncidentReport.bus_number || '-'}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="text-sm text-gray-500">Supervisor Contacted</div>
-                    <div className="font-semibold">{selectedIncidentReport.supervisor_contacted || '-'}</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-sm text-gray-500 mb-2 font-semibold">Details of Event</div>
-                  <div className="bg-gray-50 rounded-lg p-4 text-gray-700 whitespace-pre-wrap">
-                    {selectedIncidentReport.details}
-                  </div>
-                </div>
-
-                {selectedIncidentReport.witnesses && (
-                  <div>
-                    <div className="text-sm text-gray-500 mb-2 font-semibold">Witnesses</div>
-                    <div className="bg-gray-50 rounded-lg p-4 text-gray-700">
-                      {selectedIncidentReport.witnesses}
-                    </div>
-                  </div>
-                )}
-
-                {(selectedIncidentReport.passenger_name || selectedIncidentReport.passenger_address || selectedIncidentReport.passenger_phone) && (
-                  <div>
-                    <div className="text-sm text-gray-500 mb-2 font-semibold">Passenger Information</div>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-1">
-                      {selectedIncidentReport.passenger_name && (
-                        <div><strong>Name:</strong> {selectedIncidentReport.passenger_name}</div>
-                      )}
-                      {selectedIncidentReport.passenger_address && (
-                        <div><strong>Address:</strong> {selectedIncidentReport.passenger_address}</div>
-                      )}
-                      {selectedIncidentReport.passenger_city_state_zip && (
-                        <div><strong>City/State/Zip:</strong> {selectedIncidentReport.passenger_city_state_zip}</div>
-                      )}
-                      {selectedIncidentReport.passenger_phone && (
-                        <div><strong>Phone:</strong> {selectedIncidentReport.passenger_phone}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                  <div>
-                    <div className="text-sm text-gray-500">Date Completed</div>
-                    <div className="font-semibold">{selectedIncidentReport.date_completed}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Time Completed</div>
-                    <div className="font-semibold">{selectedIncidentReport.time_completed}</div>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setSelectedIncidentReport(null)}
-                className="mt-6 w-full bg-[#E31E24] text-white py-3 rounded-lg font-bold hover:bg-red-700"
-              >
-                Close
-              </button>
             </div>
           </div>
         )}
