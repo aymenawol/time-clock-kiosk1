@@ -1,0 +1,2 @@
+-- Optional seed data for local development.
+-- Add INSERT statements here if you want baseline local records.
