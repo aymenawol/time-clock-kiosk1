@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getServerUserRole } from "@/lib/supabase-server"
 import Link from "next/link"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const ADMIN_ROLES = ["admin", "management"]
 
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/admin/airlines",        label: "Airlines" },
   { href: "/admin/notifications",   label: "Notifications" },
   { href: "/admin/reports",         label: "Reports" },
+  { href: "/admin/sign-in-sheets",  label: "Sign-In Sheets" },
   { href: "/board",                 label: "Board ↗" },
 ]
 
@@ -69,6 +71,7 @@ export default async function AdminLayout({
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link
               href="/"
               className="text-xs text-gray-500 hover:text-gray-300 transition-colors"

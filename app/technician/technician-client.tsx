@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 
@@ -26,10 +26,16 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
+  const [uploadingId, setUploadingId] = useState<string | null>(null)
 
   // Add repair note form
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ bus_id: '', defect_category: '', defect_item: '', notes: '' })
+
+  // Track locally updated photo_urls
+  const [photoUrlsMap, setPhotoUrlsMap] = useState<Record<string, string[]>>(
+    Object.fromEntries(initialRepairNotes.map(n => [n.id, n.photo_urls ?? []]))
+  )
 
   // Group open defects by bus
   const byBus: Record<string, { bus: RepairNote['bus']; notes: RepairNote[] }> = {}
@@ -37,6 +43,36 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
     const key = n.bus?.id ?? 'unknown'
     if (!byBus[key]) byBus[key] = { bus: n.bus, notes: [] }
     byBus[key].notes.push(n)
+  }
+
+  async function uploadPhoto(noteId: string, file: File) {
+    setUploadingId(noteId)
+    setError('')
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    const path = `${noteId}/${Date.now()}.${ext}`
+    const { error: upErr } = await supabase.storage
+      .from('repairs')
+      .upload(path, file, { contentType: file.type, upsert: false })
+    if (upErr) { setError(upErr.message); setUploadingId(null); return }
+
+    const { data: urlData } = supabase.storage.from('repairs').getPublicUrl(path)
+    const publicUrl = urlData?.publicUrl ?? ''
+
+    // Update repair_note.photo_urls
+    const existing = photoUrlsMap[noteId] ?? []
+    const newUrls = [...existing, publicUrl]
+    const { error: dbErr } = await supabase
+      .from('repair_notes')
+      .update({ photo_urls: newUrls })
+      .eq('id', noteId)
+    if (dbErr) { setError(dbErr.message) } else {
+      setPhotoUrlsMap(prev => ({ ...prev, [noteId]: newUrls }))
+    }
+    setUploadingId(null)
   }
 
   async function markResolved(noteId: string, busId: string | null, markReady: boolean) {
@@ -193,6 +229,30 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
                         <span className="ml-2">via {note.inspection.inspection_type.replace('_', '-')} inspection</span>
                       )}
                     </p>
+                    {/* Photo thumbnails */}
+                    {(photoUrlsMap[note.id] ?? []).length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {(photoUrlsMap[note.id] ?? []).map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noreferrer">
+                            <img src={url} alt={`Repair photo ${i + 1}`}
+                              className="w-16 h-16 object-cover rounded-lg border border-gray-700 hover:opacity-80" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {/* Photo upload */}
+                    <label className={`mt-2 inline-flex items-center gap-1.5 text-xs cursor-pointer ${
+                      uploadingId === note.id ? 'text-gray-600 pointer-events-none' : 'text-gray-500 hover:text-gray-300'
+                    }`}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingId === note.id}
+                        onChange={e => { if (e.target.files?.[0]) uploadPhoto(note.id, e.target.files[0]) }}
+                      />
+                      {uploadingId === note.id ? '⏳ Uploading…' : '📷 Add Photo'}
+                    </label>
                   </div>
                   <button
                     onClick={() => handleMarkResolved(note)}

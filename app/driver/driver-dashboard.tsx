@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { radioCodeAction } from './actions'
 
 interface Break {
   id: string
@@ -155,11 +156,13 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
     if (!currentShift) return
     setRadioCode(code)
     startTransition(async () => {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      await radioCodeAction(
+        currentShift.id,
+        currentShift.bus?.id ?? null,
+        currentShift.bus?.bus_number ?? null,
+        code,
+        employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown Driver'
       )
-      await supabase.from('shifts').update({ radio_status: code }).eq('id', currentShift.id)
     })
   }
 
@@ -361,6 +364,7 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
             <NavTile href="/driver/10-51"   label="10-51 Wheelchair" emoji="♿" highlight />
             <NavTile href="/driver/lost-found" label="Lost & Found" emoji="🔎" />
             <NavTile href="/driver/forms"   label="Forms"           emoji="📝" />
+            <NavTile href="/driver/end-of-shift" label="End of Shift" emoji="🔋" highlight />
           </div>
         </>
       )}
