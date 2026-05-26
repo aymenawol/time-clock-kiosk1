@@ -358,6 +358,9 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
             <NavTile href="/driver/counting-sheet" label="Counting Sheet" emoji="📋" />
             <NavTile href="/driver/inspection/pre_trip"  label="Pre-Trip"      emoji="🔍" />
             <NavTile href="/driver/inspection/post_trip" label="Post-Trip"     emoji="✅" />
+            <NavTile href="/driver/10-51"   label="10-51 Wheelchair" emoji="♿" highlight />
+            <NavTile href="/driver/lost-found" label="Lost & Found" emoji="🔎" />
+            <NavTile href="/driver/forms"   label="Forms"           emoji="📝" />
           </div>
         </>
       )}
@@ -365,11 +368,11 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
   )
 }
 
-function NavTile({ href, label, emoji }: { href: string; label: string; emoji: string }) {
+function NavTile({ href, label, emoji, highlight }: { href: string; label: string; emoji: string; highlight?: boolean }) {
   return (
-    <a href={href} className="bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-xl p-4 text-center block transition-colors">
+    <a href={href} className={`border rounded-xl p-4 text-center block transition-colors ${highlight ? 'bg-orange-950/40 border-orange-700 hover:border-orange-500' : 'bg-gray-900 border-gray-800 hover:border-gray-600'}`}>
       <div className="text-2xl mb-1">{emoji}</div>
-      <div className="text-xs text-gray-400">{label}</div>
+      <div className={`text-xs ${highlight ? 'text-orange-300 font-semibold' : 'text-gray-400'}`}>{label}</div>
     </a>
   )
 }

@@ -15,6 +15,12 @@ const NAV_ITEMS = [
   { href: "/admin/map",             label: "Live Map" },
   { href: "/admin/payroll",         label: "Payroll" },
   { href: "/admin/fatigue",         label: "Fatigue" },
+  { href: "/admin/emergency",       label: "Emergency" },
+  { href: "/chat",                  label: "Chat" },
+  { href: "/admin/performance",     label: "Performance" },
+  { href: "/admin/lost-found",      label: "Lost & Found" },
+  { href: "/admin/airlines",        label: "Airlines" },
+  { href: "/admin/notifications",   label: "Notifications" },
   { href: "/admin/reports",         label: "Reports" },
   { href: "/board",                 label: "Board ↗" },
 ]

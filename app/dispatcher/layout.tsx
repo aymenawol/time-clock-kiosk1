@@ -31,6 +31,12 @@ export default async function DispatcherLayout({ children }: { children: React.R
         <Link href="/board" className="text-sm text-yellow-500 hover:text-yellow-300 transition-colors font-semibold">
           Dispatch Board ↗
         </Link>
+        <Link href="/chat" className="text-sm text-blue-400 hover:text-blue-300 transition-colors font-semibold">
+          Chat
+        </Link>
+        <Link href="/admin/lost-found" className="text-sm text-gray-400 hover:text-white transition-colors">
+          Lost & Found
+        </Link>
         <div className="ml-auto flex items-center gap-4">
           <span className="text-xs text-gray-600">{role}</span>
           <form action="/auth/signout" method="post">
