@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { createBrowserClient } from "@supabase/ssr"
 import { Search, Delete, Home, FileText, ChevronDown, ChevronUp, Bell, X, ArrowLeft, Download } from 'lucide-react'
 import DVIForm from "@/components/dvi-form"
 import TimesheetForm from "@/components/timesheet-form"
@@ -55,7 +57,7 @@ import {
 } from "@/lib/api"
 import type { Employee, TimeEntry, ActiveClockIn, Timesheet, DviRecord, IncidentReport, TimeOffRequest, OvertimeRequest, FmlaConversionRequest, SafetyMeetingSchedule as SafetyMeetingScheduleType } from "@/lib/supabase"
 
-type ViewState = "login" | "employeeIdEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin" | "adminLogin" | "coordinator" | "coordinatorLogin" | "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion" | "safetySchedules"
+type ViewState = "login" | "employeeIdEntry" | "driverPinEntry" | "actionSelect" | "dvi" | "timesheet" | "clockout" | "admin" | "adminLogin" | "coordinator" | "coordinatorLogin" | "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion" | "safetySchedules"
 type FormType = "dvi" | "timesheet"
 type OptionalFormType = "incidentReport" | "timeOffRequest" | "overtimeRequest" | "fmlaConversion"
 type AdminTab = "dashboard" | "employees" | "timesheets" | "dvi" | "incidents" | "timeoff" | "overtime" | "fmla" | "safety"
@@ -69,12 +71,16 @@ type FormNotification = {
   recordId: string
 }
 
-// Admin PIN - change this to your desired admin password
-const ADMIN_PIN = "9999"
-// Coordinator PIN - change this to your desired coordinator password
-const COORDINATOR_PIN = "1234"
+
+function getSupabaseBrowser() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 export default function TimeClockKiosk() {
+  const router = useRouter()
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [mounted, setMounted] = useState(false)
   const [view, setView] = useState<ViewState>("login")
@@ -113,6 +119,8 @@ export default function TimeClockKiosk() {
   const [adminPinError, setAdminPinError] = useState<string | null>(null)
   const [coordinatorPin, setCoordinatorPin] = useState('')
   const [coordinatorPinError, setCoordinatorPinError] = useState<string | null>(null)
+  const [driverPin, setDriverPin] = useState('')
+  const [driverPinError, setDriverPinError] = useState<string | null>(null)
   const [coordinatorClockIns, setCoordinatorClockIns] = useState<ActiveClockIn[]>([])
   const [coordinatorLoading, setCoordinatorLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -159,8 +167,29 @@ export default function TimeClockKiosk() {
       setCurrentTime(new Date())
     }, 1000)
 
+    // Check for existing authenticated session and route accordingly
+    const supabase = getSupabaseBrowser()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      const role = user.app_metadata?.role as string | undefined
+      if (role === 'admin' || role === 'management') {
+        router.replace('/admin/employees')
+      } else if (role === 'coordinator' || role === 'supervisor' || role === 'dispatcher') {
+        setView('coordinator')
+        setCoordinatorLoading(true)
+        Promise.all([getActiveClockIns(), getDVIRecords(), getTimesheets(undefined, undefined, undefined)])
+          .then(([clockIns, records, timesheetRecords]) => {
+            setCoordinatorClockIns(clockIns)
+            setDviRecords(records)
+            setTimesheets(timesheetRecords)
+            setCoordinatorLoading(false)
+          })
+          .catch(() => setCoordinatorLoading(false))
+      }
+    })
+
     return () => clearInterval(timer)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Function to add a notification
   const addNotification = useCallback((notification: FormNotification) => {
@@ -365,10 +394,16 @@ export default function TimeClockKiosk() {
   }
 
   const handleDashboard = () => {
+    // Sign out driver if one is currently active on the kiosk
+    if (currentEmployee) {
+      getSupabaseBrowser().auth.signOut()
+    }
     setView("login")
     setCurrentEmployee(null)
     setCurrentTimeEntry(null)
     setError(null)
+    setDriverPin("")
+    setDriverPinError(null)
     setEmployeeData({
       name: "",
       id: "",
@@ -388,53 +423,19 @@ export default function TimeClockKiosk() {
   }
 
   const handleAdminLoginClick = () => {
-    setView("adminLogin")
-    setAdminPin("")
-    setAdminPinError(null)
+    router.push('/login')
   }
 
   const handleCoordinatorLoginClick = () => {
-    setView("coordinatorLogin")
-    setCoordinatorPin("")
-    setCoordinatorPinError(null)
+    router.push('/login')
   }
 
   const handleAdminPinSubmit = () => {
-    if (adminPin === ADMIN_PIN) {
-      setView("admin")
-      setAdminTab("dashboard")
-      setAdminPin("")
-      setAdminPinError(null)
-      loadAdminData("dashboard")
-    } else {
-      setAdminPinError("Invalid PIN. Please try again.")
-      setAdminPin("")
-    }
+    router.push('/login')
   }
 
   const handleCoordinatorPinSubmit = async () => {
-    if (coordinatorPin === COORDINATOR_PIN) {
-      setView("coordinator")
-      setCoordinatorPin("")
-      setCoordinatorPinError(null)
-      setCoordinatorLoading(true)
-      try {
-        const clockIns = await getActiveClockIns()
-        setCoordinatorClockIns(clockIns)
-        // Load DVI records and timesheets for currently clocked-in employees
-        // Don't filter by date since we match by time_entry_id
-        const records = await getDVIRecords()
-        setDviRecords(records)
-        const timesheetRecords = await getTimesheets(undefined, undefined, undefined)
-        setTimesheets(timesheetRecords)
-      } catch (err) {
-        console.error("Error loading coordinator data:", err)
-      }
-      setCoordinatorLoading(false)
-    } else {
-      setCoordinatorPinError("Invalid PIN. Please try again.")
-      setCoordinatorPin("")
-    }
+    router.push('/login')
   }
 
   const handleEmployeeIdLogin = () => {
@@ -541,13 +542,6 @@ export default function TimeClockKiosk() {
       setIsLoading(true)
       setError(null)
       
-      // Block admin PIN on driver keypad (generic error)
-      if (enteredId === ADMIN_PIN) {
-        setError("Employee not found. Please check your ID.")
-        setIsLoading(false)
-        return
-      }
-      
       try {
         // Look up employee in Supabase
         const employee = await getEmployeeByEmployeeId(enteredId)
@@ -557,46 +551,21 @@ export default function TimeClockKiosk() {
           setIsLoading(false)
           return
         }
-        
-        // Admin-only accounts can't use the driver keypad
-        if ((employee as any).is_admin && !(employee as any).is_driver) {
-          setError("Employee not found. Please check your ID.")
+
+        // Terminated employees cannot use the kiosk
+        if ((employee as any).status === 'terminated') {
+          setError("Account disabled. Please contact your administrator.")
           setIsLoading(false)
           return
         }
         
         setCurrentEmployee(employee)
+        setEnteredId("")
         
-        // Check if already clocked in
-        const existingTimeEntry = await getCurrentTimeEntry(employee.id)
-        setCurrentTimeEntry(existingTimeEntry)
-        
-        let clockInTimeStr = ""
-        let dviCompleted = false
-        let timesheetCompleted = false
-        
-        if (existingTimeEntry) {
-          clockInTimeStr = formatClockTime(existingTimeEntry.clock_in_time)
-          const dvi = await getDviForTimeEntry(existingTimeEntry.id)
-          dviCompleted = !!dvi
-          const timesheet = await getTimesheetForTimeEntry(existingTimeEntry.id)
-          timesheetCompleted = !!timesheet
-        }
-        
-        setEmployeeData({
-          name: employee.name,
-          id: employee.employee_id,
-          visibleId: employee.id,
-          clockedIn: !!existingTimeEntry,
-          dviCompleted,
-          timesheetCompleted,
-          clockInTime: clockInTimeStr,
-          lunchWaiver: existingTimeEntry?.lunch_waiver || false,
-          expectedClockOut: existingTimeEntry?.expected_clock_out ? formatClockTime(existingTimeEntry.expected_clock_out) : "",
-        })
-        
-        // Go to action selection screen
-        setView("actionSelect")
+        // Go to PIN entry — driver must authenticate with Supabase
+        setDriverPin("")
+        setDriverPinError(null)
+        setView("driverPinEntry")
       } catch (err) {
         console.error("Login error:", err)
         const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again."
@@ -604,6 +573,60 @@ export default function TimeClockKiosk() {
       } finally {
         setIsLoading(false)
       }
+    }
+  }
+
+  const handleDriverPinSubmit = async () => {
+    if (!currentEmployee || driverPin.length === 0) return
+    setIsLoading(true)
+    setDriverPinError(null)
+
+    try {
+      const supabase = getSupabaseBrowser()
+      const email = `${currentEmployee.employee_id}@transdev.internal`
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password: driverPin })
+
+      if (authError) {
+        setDriverPinError("Incorrect PIN. Please try again.")
+        setDriverPin("")
+        setIsLoading(false)
+        return
+      }
+
+      // Auth successful — load time entry data
+      const existingTimeEntry = await getCurrentTimeEntry(currentEmployee.id)
+      setCurrentTimeEntry(existingTimeEntry)
+
+      let clockInTimeStr = ""
+      let dviCompleted = false
+      let timesheetCompleted = false
+
+      if (existingTimeEntry) {
+        clockInTimeStr = formatClockTime(existingTimeEntry.clock_in_time)
+        const dvi = await getDviForTimeEntry(existingTimeEntry.id)
+        dviCompleted = !!dvi
+        const timesheet = await getTimesheetForTimeEntry(existingTimeEntry.id)
+        timesheetCompleted = !!timesheet
+      }
+
+      setEmployeeData({
+        name: currentEmployee.name,
+        id: currentEmployee.employee_id,
+        visibleId: currentEmployee.id,
+        clockedIn: !!existingTimeEntry,
+        dviCompleted,
+        timesheetCompleted,
+        clockInTime: clockInTimeStr,
+        lunchWaiver: existingTimeEntry?.lunch_waiver || false,
+        expectedClockOut: existingTimeEntry?.expected_clock_out ? formatClockTime(existingTimeEntry.expected_clock_out) : "",
+      })
+
+      setView("actionSelect")
+    } catch (err) {
+      console.error("Driver auth error:", err)
+      setDriverPinError("An error occurred. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -832,6 +855,8 @@ export default function TimeClockKiosk() {
       }
     }
     setShowClockOutConfirm(false)
+    // Sign out the driver from Supabase before returning to kiosk home
+    await getSupabaseBrowser().auth.signOut()
     handleDashboard()
   }
 
@@ -2752,7 +2777,7 @@ export default function TimeClockKiosk() {
     <div className="min-h-screen bg-[#D3D3D3] flex flex-col">
       <header className="bg-[#E31E24] px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
         <button
-          onClick={(view === "employeeIdEntry" || view === "adminLogin" || view === "coordinatorLogin") ? handleDashboard : undefined}
+          onClick={(view === "employeeIdEntry" || view === "driverPinEntry" || view === "adminLogin" || view === "coordinatorLogin") ? handleDashboard : undefined}
           disabled={view === "login"}
           className={`px-4 sm:px-6 py-2 rounded font-bold text-base sm:text-lg flex items-center justify-center gap-2 ${
             view === "login"
@@ -2880,84 +2905,55 @@ export default function TimeClockKiosk() {
         )}
 
         {view === "adminLogin" && (
-          <div className="w-full max-w-4xl px-2">
-            <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 mb-6 sm:mb-8 shadow-2xl">
-              <div className="text-center mb-4 sm:mb-6">
-                <div className="text-gray-400 text-lg sm:text-2xl mb-3 sm:mb-4">Enter Admin PIN</div>
-                <div className="bg-white rounded-xl p-4 sm:p-6 min-h-[80px] sm:min-h-[100px] flex items-center justify-center">
-                  <div className="text-4xl sm:text-6xl font-bold font-mono tracking-widest text-black">
-                    {adminPin ? "•".repeat(adminPin.length) : "—"}
-                  </div>
-                </div>
-                {adminPinError && (
-                  <div className="mt-4 text-red-500 text-lg font-semibold">
-                    {adminPinError}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
-                <button
-                  key={digit}
-                  onClick={() => adminPin.length < 10 && setAdminPin(adminPin + digit.toString())}
-                  className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
-                >
-                  {digit}
-                </button>
-              ))}
+          <div className="w-full max-w-4xl px-2 text-center">
+            <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 mb-6 shadow-2xl">
+              <div className="text-gray-400 text-lg sm:text-2xl mb-6">Admin Login</div>
+              <p className="text-gray-300 mb-8">Please use the Staff Login page to authenticate.</p>
               <button
-                onClick={() => setAdminPin("")}
-                className="bg-[#E31E24] text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-red-700 transition-colors shadow-lg active:scale-95"
+                onClick={() => router.push('/login')}
+                className="bg-[#E31E24] text-white rounded-xl py-5 px-12 text-xl font-bold hover:bg-red-700 transition-colors shadow-lg"
               >
-                CLEAR
-              </button>
-              <button
-                onClick={() => adminPin.length < 10 && setAdminPin(adminPin + "0")}
-                className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
-              >
-                0
-              </button>
-              <button
-                onClick={() => setAdminPin(adminPin.slice(0, -1))}
-                className="bg-gray-600 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 flex items-center justify-center hover:bg-gray-700 transition-colors shadow-lg active:scale-95"
-              >
-                <Delete size={32} className="sm:w-12 sm:h-12" />
+                Go to Login
               </button>
             </div>
-
-            <div className="grid grid-cols-2 gap-4 sm:gap-6">
-              <button
-                onClick={handleDashboard}
-                className="bg-gray-600 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-gray-700 transition-colors shadow-lg active:scale-95"
-              >
-                CANCEL
-              </button>
-              <button
-                onClick={handleAdminPinSubmit}
-                disabled={adminPin.length === 0}
-                className="bg-[#FFE500] text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-yellow-400 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-              >
-                LOGIN
-              </button>
-            </div>
+            <button onClick={handleDashboard} className="text-gray-500 hover:text-gray-300 text-lg transition-colors">
+              ← Back
+            </button>
           </div>
         )}
 
         {view === "coordinatorLogin" && (
+          <div className="w-full max-w-4xl px-2 text-center">
+            <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 mb-6 shadow-2xl">
+              <div className="text-gray-400 text-lg sm:text-2xl mb-6">Coordinator / Staff Login</div>
+              <p className="text-gray-300 mb-8">Please use the Staff Login page to authenticate.</p>
+              <button
+                onClick={() => router.push('/login')}
+                className="bg-[#E31E24] text-white rounded-xl py-5 px-12 text-xl font-bold hover:bg-red-700 transition-colors shadow-lg"
+              >
+                Go to Login
+              </button>
+            </div>
+            <button onClick={handleDashboard} className="text-gray-500 hover:text-gray-300 text-lg transition-colors">
+              ← Back
+            </button>
+          </div>
+        )}
+
+        {view === "driverPinEntry" && (
           <div className="w-full max-w-4xl px-2">
             <div className="bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-6 sm:p-12 mb-6 sm:mb-8 shadow-2xl">
               <div className="text-center mb-4 sm:mb-6">
-                <div className="text-gray-400 text-lg sm:text-2xl mb-3 sm:mb-4">Enter Coordinator PIN</div>
+                <div className="text-white text-xl sm:text-3xl font-bold mb-1">{currentEmployee?.name}</div>
+                <div className="text-gray-400 text-base sm:text-xl mb-4">Enter your PIN to continue</div>
                 <div className="bg-white rounded-xl p-4 sm:p-6 min-h-[80px] sm:min-h-[100px] flex items-center justify-center">
                   <div className="text-4xl sm:text-6xl font-bold font-mono tracking-widest text-black">
-                    {coordinatorPin ? "•".repeat(coordinatorPin.length) : "—"}
+                    {driverPin ? "•".repeat(driverPin.length) : "—"}
                   </div>
                 </div>
-                {coordinatorPinError && (
+                {driverPinError && (
                   <div className="mt-4 text-red-500 text-lg font-semibold">
-                    {coordinatorPinError}
+                    {driverPinError}
                   </div>
                 )}
               </div>
@@ -2967,26 +2963,26 @@ export default function TimeClockKiosk() {
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
                 <button
                   key={digit}
-                  onClick={() => coordinatorPin.length < 10 && setCoordinatorPin(coordinatorPin + digit.toString())}
+                  onClick={() => driverPin.length < 10 && setDriverPin(driverPin + digit.toString())}
                   className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
                 >
                   {digit}
                 </button>
               ))}
               <button
-                onClick={() => setCoordinatorPin("")}
+                onClick={() => setDriverPin("")}
                 className="bg-[#E31E24] text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-red-700 transition-colors shadow-lg active:scale-95"
               >
                 CLEAR
               </button>
               <button
-                onClick={() => coordinatorPin.length < 10 && setCoordinatorPin(coordinatorPin + "0")}
+                onClick={() => driverPin.length < 10 && setDriverPin(driverPin + "0")}
                 className="bg-white text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-3xl sm:text-5xl font-bold hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
               >
                 0
               </button>
               <button
-                onClick={() => setCoordinatorPin(coordinatorPin.slice(0, -1))}
+                onClick={() => setDriverPin(driverPin.slice(0, -1))}
                 className="bg-gray-600 text-white rounded-xl sm:rounded-2xl py-8 sm:py-12 flex items-center justify-center hover:bg-gray-700 transition-colors shadow-lg active:scale-95"
               >
                 <Delete size={32} className="sm:w-12 sm:h-12" />
@@ -3001,11 +2997,11 @@ export default function TimeClockKiosk() {
                 CANCEL
               </button>
               <button
-                onClick={handleCoordinatorPinSubmit}
-                disabled={coordinatorPin.length === 0}
+                onClick={handleDriverPinSubmit}
+                disabled={driverPin.length === 0 || isLoading}
                 className="bg-[#FFE500] text-black rounded-xl sm:rounded-2xl py-8 sm:py-12 text-xl sm:text-3xl font-bold hover:bg-yellow-400 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
               >
-                LOGIN
+                {isLoading ? "..." : "LOGIN"}
               </button>
             </div>
           </div>
