@@ -5,13 +5,18 @@ import Link from "next/link"
 const ADMIN_ROLES = ["admin", "management"]
 
 const NAV_ITEMS = [
-  { href: "/admin/employees",      label: "Employees" },
-  { href: "/admin/buses",          label: "Fleet" },
-  { href: "/admin/bids",           label: "Shift Bids" },
-  { href: "/admin/overtime",       label: "Overtime" },
-  { href: "/admin/forms",          label: "Forms" },
-  { href: "/admin/safety-meetings",label: "Safety" },
-  { href: "/admin/reports",        label: "Reports" },
+  { href: "/admin/employees",       label: "Employees" },
+  { href: "/admin/buses",           label: "Fleet" },
+  { href: "/admin/fleet-readiness", label: "Fleet Status" },
+  { href: "/admin/bids",            label: "Shift Bids" },
+  { href: "/admin/overtime",        label: "Overtime" },
+  { href: "/admin/forms",           label: "Forms" },
+  { href: "/admin/safety-meetings", label: "Safety" },
+  { href: "/admin/map",             label: "Live Map" },
+  { href: "/admin/payroll",         label: "Payroll" },
+  { href: "/admin/fatigue",         label: "Fatigue" },
+  { href: "/admin/reports",         label: "Reports" },
+  { href: "/board",                 label: "Board ↗" },
 ]
 
 export default async function AdminLayout({

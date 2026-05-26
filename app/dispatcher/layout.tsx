@@ -25,6 +25,12 @@ export default async function DispatcherLayout({ children }: { children: React.R
         <Link href="/dispatcher/overtime" className="text-sm text-gray-400 hover:text-white transition-colors">
           Overtime
         </Link>
+        <Link href="/admin/map" className="text-sm text-gray-400 hover:text-white transition-colors">
+          Live Map
+        </Link>
+        <Link href="/board" className="text-sm text-yellow-500 hover:text-yellow-300 transition-colors font-semibold">
+          Dispatch Board ↗
+        </Link>
         <div className="ml-auto flex items-center gap-4">
           <span className="text-xs text-gray-600">{role}</span>
           <form action="/auth/signout" method="post">

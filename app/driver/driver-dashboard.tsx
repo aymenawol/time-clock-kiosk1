@@ -66,6 +66,62 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
   const [currentShift, setCurrentShift] = useState<Shift | null>(shift)
   const [isPending, startTransition] = useTransition()
   const [radioCode, setRadioCode] = useState(shift?.radio_status ?? '')
+  const [gpsStatus, setGpsStatus] = useState<'off' | 'active' | 'error'>('off')
+  const [gpsError, setGpsError] = useState<string | null>(null)
+  const lastPositionRef = { lat: 0, lng: 0, ts: 0 }
+
+  // GPS tracking — writes bus_positions when shift is active
+  useEffect(() => {
+    if (!currentShift || currentShift.status !== 'active') {
+      setGpsStatus('off')
+      return
+    }
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGpsStatus('error')
+      setGpsError('Geolocation not supported by this device')
+      return
+    }
+
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    // Throttle to one write per 10 seconds
+    const MIN_INTERVAL_MS = 10_000
+
+    const watchId = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const now = Date.now()
+        if (now - lastPositionRef.ts < MIN_INTERVAL_MS) return
+        lastPositionRef.ts = now
+        lastPositionRef.lat = pos.coords.latitude
+        lastPositionRef.lng = pos.coords.longitude
+
+        setGpsStatus('active')
+        setGpsError(null)
+
+        await supabase.from('bus_positions').insert({
+          bus_id:     currentShift.bus?.id ?? null,
+          shift_id:   currentShift.id,
+          latitude:   pos.coords.latitude,
+          longitude:  pos.coords.longitude,
+          speed:      pos.coords.speed != null ? pos.coords.speed * 3.6 : null, // m/s → km/h
+          heading:    pos.coords.heading,
+          accuracy:   pos.coords.accuracy,
+          recorded_at: new Date().toISOString(),
+        })
+      },
+      (err) => {
+        setGpsStatus('error')
+        setGpsError(err.message)
+      },
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 15_000 }
+    )
+
+    return () => navigator.geolocation.clearWatch(watchId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentShift?.id, currentShift?.status])
 
   // Real-time breaks updates
   useEffect(() => {
@@ -143,6 +199,20 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
       {otBanner?.is_active && otBanner.message && (
         <div className="bg-yellow-900/30 border border-yellow-700 rounded-xl p-4">
           <p className="text-yellow-200 text-sm font-medium">{otBanner.message}</p>
+        </div>
+      )}
+
+      {/* GPS status indicators */}
+      {gpsStatus === 'error' && (
+        <div className="bg-red-900/30 border border-red-700 rounded-xl p-3 flex items-center gap-2">
+          <span className="text-red-400 text-sm font-medium">⚠ GPS unavailable — contact dispatch</span>
+          {gpsError && <span className="text-red-600 text-xs ml-auto">{gpsError}</span>}
+        </div>
+      )}
+      {gpsStatus === 'active' && (
+        <div className="bg-green-900/20 border border-green-800 rounded-xl p-2 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <span className="text-green-400 text-xs">GPS tracking active</span>
         </div>
       )}
 
