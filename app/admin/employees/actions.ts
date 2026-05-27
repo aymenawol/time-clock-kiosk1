@@ -130,6 +130,100 @@ export async function createEmployeeAction(
   return { success: true, data: { id: emp.id, auth_user_id: authUserId } }
 }
 
+// ── Invite Employee ──────────────────────────────────────────────────────────
+
+export interface InviteEmployeeInput {
+  employee_id: string
+  name: string
+  email: string
+  phone?: string
+  hire_date?: string
+  seniority_number?: number
+  department?: string
+  role: EmployeeRole
+  shift?: string
+  pto_balance?: number
+  vacation_balance?: number
+  fmla_balance?: number
+}
+
+export async function inviteEmployeeAction(
+  input: InviteEmployeeInput
+): Promise<ActionResult<{ id: string; auth_user_id: string; invited: true }>> {
+  try {
+    await requireAdminRole()
+  } catch (e: any) {
+    return { success: false, error: e.message }
+  }
+
+  const admin = createSupabaseAdmin()
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ""
+
+  // 1. Send invite email — Supabase sends the magic link, user sets password on /onboard
+  const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(
+    input.email,
+    {
+      redirectTo: `${siteUrl}/auth/callback`,
+      data: { name: input.name, employee_id: input.employee_id },
+    }
+  )
+
+  if (authError || !authData.user) {
+    return { success: false, error: authError?.message ?? "Failed to send invite email" }
+  }
+
+  const authUserId = authData.user.id
+
+  // 2. Set role in app_metadata (inviteUserByEmail doesn't accept app_metadata directly)
+  await admin.auth.admin.updateUserById(authUserId, {
+    app_metadata: { role: input.role },
+  })
+
+  // 3. Insert the employee row
+  const { data: emp, error: empError } = await admin
+    .from("employees")
+    .insert({
+      employee_id: input.employee_id,
+      name: input.name,
+      pin: "",
+      is_active: true,
+      auth_user_id: authUserId,
+      email: input.email,
+      phone: input.phone ?? null,
+      hire_date: input.hire_date ?? null,
+      seniority_number: input.seniority_number ?? null,
+      department: input.department ?? null,
+      role: input.role,
+      status: "active",
+      shift: input.shift ?? null,
+      pto_balance: input.pto_balance ?? 0,
+      vacation_balance: input.vacation_balance ?? 0,
+      fmla_balance: input.fmla_balance ?? 0,
+    })
+    .select("id")
+    .single()
+
+  if (empError || !emp) {
+    await admin.auth.admin.deleteUser(authUserId)
+    return { success: false, error: empError?.message ?? "Failed to create employee record" }
+  }
+
+  // 4. Create profile row
+  const { error: profileError } = await admin.from("profiles").insert({
+    id: authUserId,
+    employee_id: input.employee_id,
+    role: input.role,
+    is_active: true,
+  })
+
+  if (profileError) {
+    console.error("Profile insert failed:", profileError.message)
+  }
+
+  revalidatePath("/admin/employees")
+  return { success: true, data: { id: emp.id, auth_user_id: authUserId, invited: true } }
+}
+
 // ── Update Employee ──────────────────────────────────────────────────────────
 
 export async function updateEmployeeAction(

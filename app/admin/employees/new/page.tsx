@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { createEmployeeAction } from "../actions"
-import type { CreateEmployeeInput } from "../actions"
+import { inviteEmployeeAction } from "../actions"
+import type { InviteEmployeeInput } from "../actions"
 import type { EmployeeRole } from "@/lib/supabase"
 import Link from "next/link"
 
@@ -32,13 +32,12 @@ export default function NewEmployeePage() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [invited, setInvited] = useState<string | null>(null)
 
   const [form, setForm] = useState<{
     employee_id: string
     name: string
     email: string
-    password: string
-    confirmPassword: string
     phone: string
     hire_date: string
     seniority_number: string
@@ -52,8 +51,6 @@ export default function NewEmployeePage() {
     employee_id: "",
     name: "",
     email: "",
-    password: "",
-    confirmPassword: "",
     phone: "",
     hire_date: "",
     seniority_number: "",
@@ -76,20 +73,11 @@ export default function NewEmployeePage() {
       setError("Role is required.")
       return
     }
-    if (form.password.length < 8) {
-      setError("Password must be at least 8 characters.")
-      return
-    }
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match.")
-      return
-    }
 
-    const input: CreateEmployeeInput = {
+    const input: InviteEmployeeInput = {
       employee_id: form.employee_id.trim(),
       name: form.name.trim(),
-      email: form.email.trim() || `${form.employee_id.trim()}@transdev.internal`,
-      password: form.password,
+      email: form.email.trim(),
       role: form.role as EmployeeRole,
       phone: form.phone.trim() || undefined,
       hire_date: form.hire_date || undefined,
@@ -104,9 +92,10 @@ export default function NewEmployeePage() {
     }
 
     startTransition(async () => {
-      const result = await createEmployeeAction(input)
+      const result = await inviteEmployeeAction(input)
       if (result.success) {
-        router.push("/admin/employees")
+        setInvited(form.email.trim())
+        setTimeout(() => router.push("/admin/employees"), 2500)
       } else {
         setError(result.error)
       }
@@ -184,28 +173,19 @@ export default function NewEmployeePage() {
           </Field>
         </div>
 
-        {/* Credentials */}
+        {/* Contact */}
         <hr className="border-gray-800" />
         <p className="text-xs text-gray-500">
-          Drivers use{" "}
-          <code className="text-gray-400">
-            {form.employee_id
-              ? `${form.employee_id}@transdev.internal`
-              : "{ID}@transdev.internal"}
-          </code>{" "}
-          as their email unless you specify a different one below.
+          An invite email will be sent so the employee can set their own password.
         </p>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Email">
+          <Field label="Email *">
             <input
               type="email"
+              required
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
-              placeholder={
-                form.employee_id
-                  ? `${form.employee_id}@transdev.internal`
-                  : "Leave blank for internal email"
-              }
+              placeholder="employee@example.com"
               className={INPUT_CLS}
             />
           </Field>
@@ -215,28 +195,6 @@ export default function NewEmployeePage() {
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
               placeholder="(555) 000-0000"
-              className={INPUT_CLS}
-            />
-          </Field>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Password *">
-            <input
-              type="password"
-              required
-              value={form.password}
-              onChange={(e) => set("password", e.target.value)}
-              placeholder="Min 8 characters"
-              className={INPUT_CLS}
-            />
-          </Field>
-          <Field label="Confirm Password *">
-            <input
-              type="password"
-              required
-              value={form.confirmPassword}
-              onChange={(e) => set("confirmPassword", e.target.value)}
-              placeholder="Repeat password"
               className={INPUT_CLS}
             />
           </Field>
@@ -317,6 +275,12 @@ export default function NewEmployeePage() {
           </div>
         )}
 
+        {invited && (
+          <div className="rounded-xl bg-green-950 border border-green-800 px-4 py-3 text-green-300 text-sm">
+            Invite sent to <strong>{invited}</strong>. Redirecting…
+          </div>
+        )}
+
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link
             href="/admin/employees"
@@ -330,7 +294,7 @@ export default function NewEmployeePage() {
             className="px-6 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
             style={{ backgroundColor: "#E31E24" }}
           >
-            {isPending ? "Creating…" : "Create Employee"}
+            {isPending ? "Sending Invite…" : "Create & Send Invite"}
           </button>
         </div>
       </form>
