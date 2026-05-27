@@ -23,6 +23,10 @@ interface OffDayReq {
   requested_date: string
   message: string | null
   response: string
+  available_start_time: string | null
+  available_hours: number | null
+  custom_availability: string | null
+  responded_at: string | null
 }
 
 interface Props {
@@ -218,13 +222,20 @@ export default function AdminOvertimeClient({ shifts, offDayRequests, banner, em
         ) : (
           <div className="space-y-2">
             {offDayRequests.map(req => (
-              <div key={req.id} className="bg-gray-900 border border-gray-800 rounded-lg p-3 flex items-center justify-between">
+              <div key={req.id} className="bg-gray-900 border border-gray-800 rounded-lg p-3 flex items-start justify-between gap-3">
                 <div>
                   <span className="text-white text-sm">{req.employees?.name ?? req.id}</span>
                   <span className="text-gray-500 text-xs ml-2">{req.requested_date}</span>
                   {req.message && <p className="text-gray-400 text-xs mt-0.5">{req.message}</p>}
+                  {(req.response === 'accepted' || req.response === 'custom') && (
+                    <p className="text-green-300 text-xs mt-1">
+                      {req.available_start_time && `From ${req.available_start_time}`}
+                      {req.available_hours && ` · ${req.available_hours}h available`}
+                      {req.custom_availability && ` · ${req.custom_availability}`}
+                    </p>
+                  )}
                 </div>
-                <span className={`px-2 py-0.5 text-xs rounded-full border ${
+                <span className={`flex-shrink-0 px-2 py-0.5 text-xs rounded-full border ${
                   req.response === 'accepted' ? 'bg-green-900/60 text-green-300 border-green-700' :
                   req.response === 'declined' ? 'bg-red-900/60 text-red-300 border-red-700' :
                   req.response === 'custom'   ? 'bg-blue-900/60 text-blue-300 border-blue-700' :

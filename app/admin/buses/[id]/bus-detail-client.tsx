@@ -6,18 +6,30 @@ import type { Bus, BusStatusHistory, RepairNote } from '@/lib/supabase'
 import { BUS_STATUS_LABELS, BUS_STATUS_COLOR } from '@/lib/supabase'
 import { updateBusStatusAction, updateBusAction, deleteBusAction } from '../actions'
 
-type Tab = 'overview' | 'history' | 'shifts' | 'repairs'
+type Tab = 'overview' | 'history' | 'shifts' | 'repairs' | 'inspections' | 'damage'
 
 interface Shift { id: string; date: string; status: string; employee?: { first_name: string; last_name: string } }
+
+interface Inspection {
+  id: string
+  inspection_type: string
+  inspection_date: string
+  is_locked: boolean
+  submitted_at: string | null
+  has_defects: boolean
+  damage_drawing: Array<{ type: string; data: string }> | null
+  driver: { first_name: string; last_name: string } | null
+}
 
 interface Props {
   bus: Bus
   history: BusStatusHistory[]
   shifts: Shift[]
   repairs: RepairNote[]
+  inspections: Inspection[]
 }
 
-export default function BusDetailClient({ bus, history, shifts, repairs }: Props) {
+export default function BusDetailClient({ bus, history, shifts, repairs, inspections }: Props) {
   const router = useRouter()
   const [tab, setTab]                 = useState<Tab>('overview')
   const [isPending, startTransition]  = useTransition()
@@ -57,10 +69,12 @@ export default function BusDetailClient({ bus, history, shifts, repairs }: Props
   }
 
   const TABS: { key: Tab; label: string; count?: number }[] = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'history',  label: 'Status History', count: history.length },
-    { key: 'shifts',   label: 'Shifts',          count: shifts.length },
-    { key: 'repairs',  label: 'Repairs',          count: repairs.filter(r => !r.is_resolved).length },
+    { key: 'overview',     label: 'Overview' },
+    { key: 'history',      label: 'Status History',  count: history.length },
+    { key: 'shifts',       label: 'Shifts',           count: shifts.length },
+    { key: 'repairs',      label: 'Repairs',          count: repairs.filter(r => !r.is_resolved).length },
+    { key: 'inspections',  label: 'Inspections',      count: inspections.length },
+    { key: 'damage',       label: 'Damage',           count: inspections.filter(i => (i.damage_drawing ?? []).some(d => d.type === 'image')).length },
   ]
 
   return (
@@ -222,6 +236,64 @@ export default function BusDetailClient({ bus, history, shifts, repairs }: Props
               <p className="text-gray-600 text-xs">{new Date(r.created_at).toLocaleDateString()}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Inspections Tab */}
+      {tab === 'inspections' && (
+        <div className="space-y-3">
+          {inspections.length === 0 && <p className="text-gray-500 text-sm">No inspections found.</p>}
+          {inspections.map((insp) => (
+            <div key={insp.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white text-sm font-medium">
+                    {insp.driver ? `${insp.driver.first_name} ${insp.driver.last_name}` : 'Unknown Driver'}
+                  </p>
+                  <p className="text-gray-500 text-xs">
+                    {insp.inspection_type === 'pre_trip' ? 'Pre-Trip' : 'Post-Trip'} ·{' '}
+                    {insp.inspection_date} ·{' '}
+                    {insp.submitted_at ? new Date(insp.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Not submitted'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {insp.has_defects && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-900 text-red-300">Defects</span>
+                  )}
+                  {insp.is_locked && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">Locked</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Damage Tab */}
+      {tab === 'damage' && (
+        <div className="space-y-6">
+          {inspections.every(i => !(i.damage_drawing ?? []).some(d => d.type === 'image')) && (
+            <p className="text-gray-500 text-sm">No damage markings recorded.</p>
+          )}
+          {inspections
+            .filter(i => (i.damage_drawing ?? []).some(d => d.type === 'image'))
+            .map(insp => {
+              const images = (insp.damage_drawing ?? []).filter(d => d.type === 'image' && d.data)
+              return (
+                <div key={insp.id} className="space-y-2">
+                  <p className="text-gray-400 text-sm">
+                    {insp.inspection_type === 'pre_trip' ? 'Pre-Trip' : 'Post-Trip'} — {insp.inspection_date}
+                    {insp.driver ? ` · ${insp.driver.first_name} ${insp.driver.last_name}` : ''}
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {images.map((img, idx) => (
+                      <img key={idx} src={img.data} alt={`Damage ${idx + 1}`} className="rounded-lg border border-gray-700 max-w-xs" />
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
         </div>
       )}
     </div>

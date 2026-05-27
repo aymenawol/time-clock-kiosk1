@@ -24,6 +24,8 @@ const NAV_ITEMS = [
   { href: "/admin/notifications",   label: "Notifications" },
   { href: "/admin/reports",         label: "Reports" },
   { href: "/admin/sign-in-sheets",  label: "Sign-In Sheets" },
+  { href: "/admin/counting-sheets", label: "Counting Sheets" },
+  { href: "/admin/inspections",     label: "Inspections" },
   { href: "/board",                 label: "Board ↗" },
 ]
 

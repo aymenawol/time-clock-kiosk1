@@ -131,7 +131,7 @@ export async function getBusesAction() {
 
 export async function getBusDetailAction(id: string) {
   const supabase = await createSupabaseServerClient()
-  const [busRes, historyRes, shiftsRes, repairsRes] = await Promise.all([
+  const [busRes, historyRes, shiftsRes, repairsRes, inspectionsRes] = await Promise.all([
     supabase.from('buses').select('*').eq('id', id).single(),
     supabase
       .from('bus_status_history')
@@ -150,12 +150,19 @@ export async function getBusDetailAction(id: string) {
       .select('*')
       .eq('bus_id', id)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('vehicle_inspections')
+      .select('id, inspection_type, inspection_date, is_locked, submitted_at, has_defects, damage_drawing, driver:driver_id(first_name, last_name)')
+      .eq('bus_id', id)
+      .order('inspection_date', { ascending: false })
+      .limit(30),
   ])
   return {
-    bus:     busRes.data,
-    history: historyRes.data ?? [],
-    shifts:  shiftsRes.data ?? [],
-    repairs: repairsRes.data ?? [],
-    error:   busRes.error?.message,
+    bus:         busRes.data,
+    history:     historyRes.data ?? [],
+    shifts:      shiftsRes.data ?? [],
+    repairs:     repairsRes.data ?? [],
+    inspections: inspectionsRes.data ?? [],
+    error:       busRes.error?.message,
   }
 }

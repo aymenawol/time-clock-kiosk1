@@ -10,7 +10,7 @@ export default async function AdminOvertimePage() {
 
   const [{ data: shiftsRaw }, { data: offDayRequests }, { data: bannerData }, { data: employees }] = await Promise.all([
     supabase.from('overtime_shifts').select('*').order('date', { ascending: false }),
-    supabase.from('off_day_requests').select('*, employees(name)').order('created_at', { ascending: false }),
+    supabase.from('off_day_requests').select('*, employees(name)').order('requested_date', { ascending: false }).limit(100),
     supabase.from('ot_banner').select('*').eq('id', 'singleton').single(),
     supabase.from('employees').select('id, name').eq('is_active', true).order('name'),
   ])

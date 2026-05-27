@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { submitCountingSheetAction } from './actions'
 
 interface CountingRow {
   id?: string
@@ -148,15 +149,9 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
     startTransition(async () => {
       const id = await saveSheet()
       if (!id) return
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const { error: submitErr } = await supabase
-        .from('counting_sheets')
-        .update({ status: 'submitted', submitted_at: new Date().toISOString(), end_time: new Date().toISOString() })
-        .eq('id', id)
-      if (submitErr) setError(submitErr.message)
+      const driverName = employee ? `${employee.first_name} ${employee.last_name}` : 'Driver'
+      const result = await submitCountingSheetAction(id, driverName)
+      if (result.error) setError(result.error)
       else { setSubmitted(true); router.refresh() }
     })
   }

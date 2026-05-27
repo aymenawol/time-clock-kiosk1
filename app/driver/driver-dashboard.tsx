@@ -312,8 +312,12 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
                     <p className="text-gray-600 text-sm">Not scheduled</p>
                   </div>
                 )
-                const canStart = brk.status === 'pending'
-                const isDone   = ['completed','missed'].includes(brk.status)
+                const now          = new Date()
+                const windowClosed = brk.window_close ? now > new Date(brk.window_close) : false
+                const windowOpen   = brk.window_open  ? now >= new Date(brk.window_open) : true
+                const canStart     = brk.status === 'pending' && windowOpen && !windowClosed
+                const windowMissed = brk.status === 'pending' && windowClosed
+                const isDone       = ['completed','missed'].includes(brk.status) || windowMissed
                 return (
                   <div key={brk.id} className={`border rounded-xl p-4 text-center ${
                     isDone ? 'border-gray-800 bg-gray-900/30 opacity-60' :
@@ -321,7 +325,14 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
                     'border-gray-800 bg-gray-900'
                   }`}>
                     <p className="text-gray-400 text-xs">Break {brk.break_number}</p>
-                    <p className="text-white font-semibold text-sm capitalize mt-0.5">{brk.status}</p>
+                    <p className="text-white font-semibold text-sm capitalize mt-0.5">
+                      {windowMissed ? 'missed' : brk.status}
+                    </p>
+                    {brk.window_open && !isDone && !canStart && (
+                      <p className="text-gray-500 text-xs mt-1">
+                        Opens {new Date(brk.window_open).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
                     {canStart && (
                       <button
                         onClick={() => handleBreakAction(brk)}
