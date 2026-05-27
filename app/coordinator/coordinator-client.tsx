@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Fragment, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { saveShiftNotesAction } from './actions'
 
 interface Break {
   id: string; break_number: 1 | 2; status: string
@@ -47,6 +48,19 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [router])
+
+  const [isPending, startTransition] = useTransition()
+  const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({})
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>(
+    () => Object.fromEntries(initialShifts.map(s => [s.id, s.notes ?? '']))
+  )
+
+  function saveNote(shiftId: string) {
+    startTransition(async () => {
+      await saveShiftNotesAction(shiftId, noteDrafts[shiftId] ?? '')
+      router.refresh()
+    })
+  }
 
   const active    = initialShifts.filter(s => s.status === 'active')
   const scheduled = initialShifts.filter(s => s.status === 'scheduled')
@@ -114,6 +128,7 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                   <th className="px-4 py-2 text-center">B1</th>
                   <th className="px-4 py-2 text-center">B2</th>
                   <th className="px-4 py-2 text-left">Radio</th>
+                  <th className="px-2 py-2 text-center">Notes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
@@ -121,34 +136,67 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                   const b1 = s.breaks.find(b => b.break_number === 1)
                   const b2 = s.breaks.find(b => b.break_number === 2)
                   return (
-                    <tr key={s.id} className="hover:bg-gray-800/30">
-                      <td className="px-4 py-3 text-white font-medium">
-                        {s.employee?.first_name} {s.employee?.last_name}
-                        {s.employee?.seniority_number && (
-                          <span className="text-gray-600 text-xs ml-1">#{s.employee.seniority_number}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-white">
-                        {s.bus ? `#${s.bus.bus_number}` : '—'}
-                        {s.bus && <span className="text-gray-600 text-xs ml-1">{s.bus.bus_type}</span>}
-                      </td>
-                      <td className="px-4 py-3 text-gray-400">
-                        {s.scheduled_start ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {b1 ? <BreakBadge brk={b1} /> : <span className="text-gray-700 text-xs">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {b2 ? <BreakBadge brk={b2} /> : <span className="text-gray-700 text-xs">—</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        {s.radio_status ? (
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded ${RADIO_COLOR[s.radio_status] ?? 'bg-gray-800 text-gray-400'}`}>
-                            {s.radio_status}
-                          </span>
-                        ) : <span className="text-gray-700 text-xs">—</span>}
-                      </td>
-                    </tr>
+                    <Fragment key={s.id}>
+                      <tr className="hover:bg-gray-800/30">
+                        <td className="px-4 py-3 text-white font-medium">
+                          {s.employee?.first_name} {s.employee?.last_name}
+                          {s.employee?.seniority_number && (
+                            <span className="text-gray-600 text-xs ml-1">#{s.employee.seniority_number}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-white">
+                          {s.bus ? `#${s.bus.bus_number}` : '—'}
+                          {s.bus && <span className="text-gray-600 text-xs ml-1">{s.bus.bus_type}</span>}
+                        </td>
+                        <td className="px-4 py-3 text-gray-400">{s.scheduled_start ?? '—'}</td>
+                        <td className="px-4 py-3 text-center">
+                          {b1 ? <BreakBadge brk={b1} /> : <span className="text-gray-700 text-xs">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {b2 ? <BreakBadge brk={b2} /> : <span className="text-gray-700 text-xs">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {s.radio_status ? (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${RADIO_COLOR[s.radio_status] ?? 'bg-gray-800 text-gray-400'}`}>
+                              {s.radio_status}
+                            </span>
+                          ) : <span className="text-gray-700 text-xs">—</span>}
+                        </td>
+                        <td className="px-2 py-3 text-center">
+                          <button
+                            onClick={() => setOpenNotes(p => ({ ...p, [s.id]: !p[s.id] }))}
+                            title={s.notes ? 'Edit notes' : 'Add notes'}
+                            className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${
+                              openNotes[s.id]
+                                ? 'border-blue-500 text-blue-300 bg-blue-950'
+                                : s.notes
+                                  ? 'border-yellow-700 text-yellow-500 hover:text-yellow-300'
+                                  : 'border-gray-700 text-gray-600 hover:text-gray-300'
+                            }`}
+                          >{s.notes ? '✎' : '+'}</button>
+                        </td>
+                      </tr>
+                      {openNotes[s.id] && (
+                        <tr className="bg-gray-950">
+                          <td colSpan={7} className="px-4 pb-3 pt-1">
+                            <div className="flex gap-2 items-start">
+                              <textarea
+                                value={noteDrafts[s.id] ?? ''}
+                                onChange={e => setNoteDrafts(p => ({ ...p, [s.id]: e.target.value }))}
+                                placeholder="Coordinator notes for this shift…"
+                                rows={2}
+                                className="flex-1 bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1.5 resize-none"
+                              />
+                              <button
+                                onClick={() => saveNote(s.id)}
+                                disabled={isPending}
+                                className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-3 py-1.5 rounded whitespace-nowrap"
+                              >{isPending ? 'Saving…' : 'Save'}</button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   )
                 })}
               </tbody>
@@ -182,6 +230,67 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Completed shifts — EOS Reports */}
+      {completed.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Completed — EOS Reports</h2>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
+            {completed.map(s => (
+              <div key={s.id} className="p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-white font-medium text-sm">
+                      {s.employee?.first_name} {s.employee?.last_name}
+                      {s.employee?.seniority_number && (
+                        <span className="text-gray-600 text-xs ml-1">#{s.employee.seniority_number}</span>
+                      )}
+                    </p>
+                    <p className="text-gray-500 text-xs mt-0.5">
+                      Bus {s.bus ? `#${s.bus.bus_number}` : '—'} &bull;{' '}
+                      {s.actual_start ?? s.scheduled_start ?? '?'} – {s.actual_end ?? s.scheduled_end ?? '?'}
+                      {s.breaks.filter(b => b.status === 'completed').length > 0 && (
+                        <span className="ml-2 text-green-600">
+                          {s.breaks.filter(b => b.status === 'completed').length} break(s)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setOpenNotes(p => ({ ...p, [s.id]: !p[s.id] }))}
+                    className={`shrink-0 text-xs px-2.5 py-1 rounded border transition-colors ${
+                      openNotes[s.id]
+                        ? 'bg-blue-800 border-blue-600 text-blue-200'
+                        : s.notes
+                          ? 'bg-yellow-950 border-yellow-700 text-yellow-400 hover:text-yellow-200'
+                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'
+                    }`}
+                  >{s.notes ? '✎ Edit Report' : '+ EOS Report'}</button>
+                </div>
+                {s.notes && !openNotes[s.id] && (
+                  <p className="mt-2 text-xs text-gray-400 bg-gray-800/50 rounded px-2 py-1.5">{s.notes}</p>
+                )}
+                {openNotes[s.id] && (
+                  <div className="mt-3 space-y-2">
+                    <textarea
+                      value={noteDrafts[s.id] ?? ''}
+                      onChange={e => setNoteDrafts(p => ({ ...p, [s.id]: e.target.value }))}
+                      placeholder="End-of-shift notes, incidents, or observations…"
+                      rows={3}
+                      className="w-full bg-gray-950 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 resize-none"
+                    />
+                    <button
+                      onClick={() => saveNote(s.id)}
+                      disabled={isPending}
+                      className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg font-medium"
+                    >{isPending ? 'Saving…' : 'Save EOS Report'}</button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
