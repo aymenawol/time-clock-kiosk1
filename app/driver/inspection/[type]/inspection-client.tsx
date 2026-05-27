@@ -24,6 +24,14 @@ interface Props {
 
 const DAMAGE_COLORS = ['#ef4444', '#f97316', '#eab308', '#3b82f6']
 
+type DrawTool = 'pen' | 'marker' | 'highlighter' | 'eraser'
+const TOOLS: { key: DrawTool; label: string; width: number; opacity: number }[] = [
+  { key: 'pen',         label: 'Pen',         width: 2,  opacity: 1   },
+  { key: 'marker',      label: 'Marker',      width: 6,  opacity: 1   },
+  { key: 'highlighter', label: 'Highlight',   width: 14, opacity: 0.5 },
+  { key: 'eraser',      label: 'Eraser',      width: 20, opacity: 1   },
+]
+
 export default function InspectionClient({ type, employee, shift, existingInspection, existingItems, today }: Props) {
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -51,7 +59,10 @@ export default function InspectionClient({ type, employee, shift, existingInspec
 
   const [items, setItems] = useState<InspectionItemRow[]>(buildItems)
   const [drawColor, setDrawColor] = useState(DAMAGE_COLORS[0])
+  const [drawTool,  setDrawTool]  = useState<DrawTool>('pen')
   const [isDrawing, setIsDrawing] = useState(false)
+  const [canUndo,   setCanUndo]   = useState(false)
+  const historyRef = useRef<ImageData[]>([])
 
   const hasDefects = items.some(i => i.is_ok === false)
   const unchecked  = items.filter(i => i.is_ok === null).length
@@ -72,25 +83,54 @@ export default function InspectionClient({ type, employee, shift, existingInspec
   }
   function startDraw(e: any) {
     if (locked) return
+    const c = canvasRef.current
+    const ctx = c?.getContext('2d')
+    if (!c || !ctx) return
+    historyRef.current.push(ctx.getImageData(0, 0, c.width, c.height))
+    if (historyRef.current.length > 20) historyRef.current.shift()
+    setCanUndo(true)
     setIsDrawing(true)
-    const ctx = canvasRef.current?.getContext('2d')
-    if (!ctx) return
-    const { x, y } = getPos(e, canvasRef.current!)
+    const { x, y } = getPos(e, c)
     ctx.beginPath(); ctx.moveTo(x, y)
   }
   function doDraw(e: any) {
     if (!isDrawing) return
-    const ctx = canvasRef.current?.getContext('2d')
-    if (!ctx) return
-    const { x, y } = getPos(e, canvasRef.current!)
-    ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = drawColor
-    ctx.lineTo(x, y); ctx.stroke()
+    const c = canvasRef.current
+    const ctx = c?.getContext('2d')
+    if (!c || !ctx) return
+    const { x, y } = getPos(e, c)
+    const tool = TOOLS.find(t => t.key === drawTool)!
+    if (drawTool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.lineWidth = tool.width; ctx.lineCap = 'round'
+      ctx.strokeStyle = 'rgba(0,0,0,1)'
+      ctx.lineTo(x, y); ctx.stroke()
+      ctx.globalCompositeOperation = 'source-over'
+    } else {
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.globalAlpha = tool.opacity
+      ctx.lineWidth = tool.width; ctx.lineCap = 'round'; ctx.strokeStyle = drawColor
+      ctx.lineTo(x, y); ctx.stroke()
+      ctx.globalAlpha = 1
+    }
   }
   function stopDraw() { setIsDrawing(false) }
+  function undoDraw() {
+    const c = canvasRef.current
+    const ctx = c?.getContext('2d')
+    if (!c || !ctx || historyRef.current.length === 0) return
+    ctx.clearRect(0, 0, c.width, c.height)
+    ctx.putImageData(historyRef.current.pop()!, 0, 0)
+    setCanUndo(historyRef.current.length > 0)
+  }
   function clearDamage() {
     const c = canvasRef.current
-    if (!c) return
-    c.getContext('2d')?.clearRect(0, 0, c.width, c.height)
+    const ctx = c?.getContext('2d')
+    if (!c || !ctx) return
+    historyRef.current.push(ctx.getImageData(0, 0, c.width, c.height))
+    if (historyRef.current.length > 20) historyRef.current.shift()
+    setCanUndo(true)
+    ctx.clearRect(0, 0, c.width, c.height)
   }
 
   async function saveInspection(submit = false) {
@@ -326,17 +366,44 @@ export default function InspectionClient({ type, employee, shift, existingInspec
       {/* Damage drawing */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Damage Diagram</h2>
-        <div className="flex gap-2 mb-2">
-          {DAMAGE_COLORS.map(c => (
+        <div className="space-y-2 mb-2">
+          <div className="flex flex-wrap gap-1">
+            {TOOLS.map(t => (
+              <button
+                key={t.key}
+                disabled={locked}
+                onClick={() => setDrawTool(t.key)}
+                className={`text-xs px-2.5 py-1 rounded border transition-colors ${
+                  drawTool === t.key
+                    ? 'bg-blue-600 border-blue-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'
+                } disabled:opacity-50`}
+              >{t.label}</button>
+            ))}
             <button
-              key={c}
+              disabled={locked || !canUndo}
+              onClick={undoDraw}
+              className="text-xs px-2.5 py-1 rounded border border-gray-700 bg-gray-800 text-gray-400 hover:text-white disabled:opacity-30 ml-auto"
+            >Undo</button>
+            <button
+              onClick={clearDamage}
               disabled={locked}
-              onClick={() => setDrawColor(c)}
-              className={`w-6 h-6 rounded-full border-2 transition-all ${drawColor === c ? 'border-white scale-110' : 'border-transparent'}`}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-          <button onClick={clearDamage} disabled={locked} className="ml-auto text-xs text-gray-500 hover:text-gray-300 border border-gray-700 rounded px-2">Clear</button>
+              className="text-xs px-2 py-1 rounded border border-gray-700 bg-gray-800 text-gray-500 hover:text-red-300 hover:border-red-700 disabled:opacity-30"
+            >Clear</button>
+          </div>
+          {drawTool !== 'eraser' && (
+            <div className="flex gap-2">
+              {DAMAGE_COLORS.map(c => (
+                <button
+                  key={c}
+                  disabled={locked}
+                  onClick={() => setDrawColor(c)}
+                  className={`w-6 h-6 rounded-full border-2 transition-all ${drawColor === c ? 'border-white scale-110' : 'border-transparent opacity-70'}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          )}
         </div>
         {/* Bus outline SVG as background */}
         <div className="relative">
