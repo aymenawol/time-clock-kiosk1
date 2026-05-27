@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/supabase-server'
 import Link from 'next/link'
+import SignOutButton from '@/components/sign-out-button'
 
 const TECHNICIAN_ROLES = ['admin', 'management', 'technician']
 
@@ -19,13 +20,8 @@ export default async function TechnicianLayout({ children }: { children: React.R
           <Link href="/technician" className="text-sm text-gray-400 hover:text-white transition-colors">
             Open Defects
           </Link>
-          <Link href="/admin/buses" className="text-sm text-gray-400 hover:text-white transition-colors">
-            Fleet
-          </Link>
         </div>
-        <form action="/api/auth/signout" method="post">
-          <button type="submit" className="text-xs text-gray-500 hover:text-gray-300">Sign out</button>
-        </form>
+        <SignOutButton />
       </nav>
       <main className="max-w-4xl mx-auto px-4 py-6">
         {children}

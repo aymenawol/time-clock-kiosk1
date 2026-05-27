@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/supabase-server'
 import Link from 'next/link'
+import SignOutButton from '@/components/sign-out-button'
 
 const FUELER_ROLES = ['admin', 'management', 'fueler_washer']
 
@@ -20,9 +21,7 @@ export default async function FuelerLayout({ children }: { children: React.React
           <Link href="/driver/forms" className="text-sm text-gray-400 hover:text-white">Forms</Link>
           <Link href="/driver/safety-meetings" className="text-sm text-gray-400 hover:text-white">Safety Meetings</Link>
         </div>
-        <form action="/api/auth/signout" method="post">
-          <button type="submit" className="text-xs text-gray-500 hover:text-gray-300">Sign out</button>
-        </form>
+        <SignOutButton />
       </nav>
       <main className="max-w-3xl mx-auto px-4 py-6">{children}</main>
     </div>

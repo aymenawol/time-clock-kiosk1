@@ -4,6 +4,19 @@ import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 
+type AppRouter = ReturnType<typeof useRouter>
+
+function redirectByRole(role: string | undefined, adminRedirectTo: string, router: AppRouter) {
+  if (!role) return
+  if (role === "admin" || role === "management") { router.replace(adminRedirectTo); return }
+  if (role === "coordinator" || role === "supervisor") { router.replace("/coordinator"); return }
+  if (role === "dispatcher") { router.replace("/dispatcher"); return }
+  if (role === "technician") { router.replace("/technician"); return }
+  if (role === "fueler_washer") { router.replace("/fueler"); return }
+  if (role === "payroll") { router.replace("/admin/payroll"); return }
+  // drivers: no routing here — they use the kiosk screen
+}
+
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -19,14 +32,12 @@ function LoginForm() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // If already logged in as admin redirect immediately
+  // If already logged in redirect to the appropriate dashboard
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         const role = user.app_metadata?.role as string | undefined
-        if (role === "admin" || role === "management") {
-          router.replace(redirectTo)
-        }
+        redirectByRole(role, redirectTo, router)
       }
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -57,22 +68,14 @@ function LoginForm() {
       return
     }
 
-    // Admin/management go to admin panel
-    if (role === "admin" || role === "management") {
-      router.replace(redirectTo)
-      return
-    }
+    redirectByRole(role, redirectTo, router)
 
-    // Coordinator/supervisor/dispatcher go back to kiosk (role detected on the kiosk page)
-    if (["coordinator", "supervisor", "dispatcher", "payroll", "technician", "fueler_washer"].includes(role)) {
-      router.replace("/")
-      return
+    // Drivers shouldn't log in from this portal
+    if (role === "driver") {
+      await supabase.auth.signOut()
+      setError("Driver login is available from the main kiosk screen.")
+      setLoading(false)
     }
-
-    // Drivers shouldn't be logging in from this page
-    await supabase.auth.signOut()
-    setError("Driver login is available from the main kiosk screen.")
-    setLoading(false)
   }
 
   return (

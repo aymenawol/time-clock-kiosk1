@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/supabase-server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import DriverShell from '@/components/driver-shell'
+import SignOutButton from '@/components/sign-out-button'
 
 export default async function DriverLayout({ children }: { children: React.ReactNode }) {
   const { user } = await getServerUser()
@@ -37,42 +38,40 @@ export default async function DriverLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <nav className="bg-gray-900 border-b border-gray-800 px-4 h-12 flex items-center gap-5">
-        <Link href="/driver" className="font-bold text-sm text-white/90">My Dashboard</Link>
-        <Link href="/driver/counting-sheet" className="text-sm text-gray-400 hover:text-white transition-colors">
+      <nav className="bg-gray-900 border-b border-gray-800 px-4 h-12 flex items-center gap-1 overflow-x-auto scrollbar-hide">
+        <Link href="/driver" className="font-bold text-sm text-white/90 whitespace-nowrap px-2 py-1 rounded-lg">My Dashboard</Link>
+        <Link href="/driver/counting-sheet" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Counting Sheet
         </Link>
-        <Link href="/driver/inspection/pre_trip" className="text-sm text-gray-400 hover:text-white transition-colors">
+        <Link href="/driver/inspection/pre_trip" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Pre-Trip
         </Link>
-        <Link href="/driver/inspection/post_trip" className="text-sm text-gray-400 hover:text-white transition-colors">
+        <Link href="/driver/inspection/post_trip" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Post-Trip
         </Link>
-        <Link href="/driver/10-51" className="text-sm text-orange-400 hover:text-orange-300 font-semibold transition-colors">
+        <Link href="/driver/10-51" className="text-sm text-orange-400 hover:text-orange-300 font-semibold transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           10-51
         </Link>
-        <Link href="/driver/lost-found" className="text-sm text-gray-400 hover:text-white transition-colors">
-          Lost & Found
+        <Link href="/driver/lost-found" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+          Lost &amp; Found
         </Link>
-        <Link href="/driver/bids" className="text-sm text-gray-400 hover:text-white transition-colors">
+        <Link href="/driver/bids" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Bids
         </Link>
-        <Link href="/driver/overtime" className="text-sm text-gray-400 hover:text-white transition-colors">
+        <Link href="/driver/overtime" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Overtime
         </Link>
-        <Link href="/driver/forms" className="text-sm text-gray-400 hover:text-white transition-colors">
+        <Link href="/driver/forms" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Forms
         </Link>
-        <Link href="/driver/safety-meetings" className="text-sm text-gray-400 hover:text-white transition-colors">
+        <Link href="/driver/safety-meetings" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Safety
         </Link>
-        <Link href="/driver/performance" className="text-sm text-gray-400 hover:text-white transition-colors">
+        <Link href="/driver/performance" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Performance
         </Link>
-        <div className="ml-auto flex items-center gap-4">
-          <form action="/auth/signout" method="post">
-            <button type="submit" className="text-xs text-gray-500 hover:text-gray-300">Sign out</button>
-          </form>
+        <div className="ml-auto pl-4 flex-shrink-0">
+          <SignOutButton />
         </div>
       </nav>
       <DriverShell employeeId={employeeId} isMotionLockExempt={isMotionLockExempt}>

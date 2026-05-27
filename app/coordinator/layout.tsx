@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/supabase-server'
 import Link from 'next/link'
+import SignOutButton from '@/components/sign-out-button'
 
 const COORDINATOR_ROLES = ['admin', 'management', 'coordinator', 'supervisor']
 
@@ -22,9 +23,7 @@ export default async function CoordinatorLayout({ children }: { children: React.
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-600 bg-gray-800 px-2 py-1 rounded">Read-only</span>
-          <form action="/api/auth/signout" method="post">
-            <button type="submit" className="text-xs text-gray-500 hover:text-gray-300">Sign out</button>
-          </form>
+          <SignOutButton />
         </div>
       </nav>
       <main className="max-w-4xl mx-auto px-4 py-6">
