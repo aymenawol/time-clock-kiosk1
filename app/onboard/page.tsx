@@ -63,13 +63,13 @@ export default function OnboardPage() {
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
             style={{ backgroundColor: '#E31E24' }}
           >
-            <span className="text-white text-2xl font-bold">TC</span>
+            <span className="text-white text-2xl font-bold">RC</span>
           </div>
           <h1 className="text-white text-2xl font-bold">
             Welcome{userName ? `, ${userName.split(' ')[0]}` : ''}!
           </h1>
           <p className="text-gray-400 text-sm mt-1">
-            Set your password to complete your account setup
+            Set your password to complete your Rolecall account
           </p>
         </div>
 

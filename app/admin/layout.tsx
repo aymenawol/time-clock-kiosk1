@@ -31,9 +31,9 @@ export default async function AdminLayout({
               className="inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold"
               style={{ backgroundColor: "#E31E24" }}
             >
-              TC
+              RC
             </span>
-            <span>Admin</span>
+            <span>Rolecall</span>
           </Link>
           <SignOutButton />
         </div>

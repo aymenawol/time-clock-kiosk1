@@ -87,9 +87,9 @@ function LoginForm() {
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
             style={{ backgroundColor: "#E31E24" }}
           >
-            <span className="text-white text-2xl font-bold">TC</span>
+            <span className="text-white text-2xl font-bold">RC</span>
           </div>
-          <h1 className="text-white text-2xl font-bold">Time Clock</h1>
+          <h1 className="text-white text-2xl font-bold">Rolecall</h1>
           <p className="text-gray-400 text-sm mt-1">Staff Login</p>
         </div>
 
@@ -110,7 +110,7 @@ function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@transdev.com"
+                placeholder="you@example.com"
                 className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition"
                 style={{ "--tw-ring-color": "#E31E24" } as React.CSSProperties}
               />

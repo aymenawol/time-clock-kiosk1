@@ -103,7 +103,7 @@ async function sendEmail(item: Record<string, unknown>): Promise<void> {
   const payload = item.payload as Record<string, unknown>
   const subject = payload.subject as string
     ?? payload.email_subject as string
-    ?? `Time Clock: ${(item.event_type as string).replace(/_/g, ' ')}`
+    ?? `Rolecall: ${(item.event_type as string).replace(/_/g, ' ')}`
   const html = payload.email_html as string
     ?? payload.message as string
       ? `<p>${payload.message}</p>`

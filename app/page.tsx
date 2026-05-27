@@ -583,7 +583,7 @@ export default function TimeClockKiosk() {
 
     try {
       const supabase = getSupabaseBrowser()
-      const email = `${currentEmployee.employee_id}@transdev.internal`
+      const email = `${currentEmployee.employee_id}@rolecall.internal`
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password: driverPin })
 
       if (authError) {
@@ -2815,7 +2815,7 @@ export default function TimeClockKiosk() {
       </header>
 
       <div className="bg-[#E31E24] text-white px-3 sm:px-6 py-2 sm:py-3 text-center">
-        <div className="text-base sm:text-xl font-bold">STATION ID: KIOSK-001</div>
+        <div className="text-base sm:text-xl font-bold">Rolecall &nbsp;·&nbsp; KIOSK-001</div>
       </div>
 
       <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
