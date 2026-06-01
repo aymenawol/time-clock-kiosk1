@@ -12,7 +12,7 @@ interface Break {
 interface Shift {
   id: string; status: string; scheduled_start: string | null; scheduled_end: string | null
   actual_start: string | null; actual_end: string | null; radio_status: string | null; notes: string | null
-  employee: { id: string; first_name: string; last_name: string; seniority_number: number | null } | null
+  employee: { id: string; name: string; seniority_number: number | null } | null
   bus: { id: string; bus_number: string; bus_type: string; fuel_level: number | null; status: string } | null
   tablet: { id: string; tablet_number: string } | null
   breaks: Break[]
@@ -109,7 +109,7 @@ export default function SupervisorClient({
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${BREAK_STATUS_COLOR[b.status] ?? 'bg-gray-700 text-gray-400'}`}>
                   {b.status}
                 </span>
-                <span className="text-white">{b.driver?.first_name} {b.driver?.last_name}</span>
+                <span className="text-white">{b.driver?.name}</span>
                 {b.bus && <span className="text-gray-500 text-xs">Bus #{b.bus.bus_number}</span>}
               </div>
             ))}
@@ -197,7 +197,7 @@ function ShiftRow({ shift }: { shift: Shift }) {
     <div className="px-4 py-3 flex items-center gap-3 text-sm">
       <div className="flex-1 min-w-0">
         <p className="text-white font-medium truncate">
-          {shift.employee?.first_name} {shift.employee?.last_name}
+          {shift.employee?.name}
         </p>
         <p className="text-gray-500 text-xs">
           {shift.scheduled_start ?? '—'} – {shift.scheduled_end ?? '—'}

@@ -13,7 +13,7 @@ export default async function EndOfShiftPage() {
 
   const { data: employee } = await supabase
     .from('employees')
-    .select('id, first_name, last_name')
+    .select('id, name')
     .eq('auth_user_id', user.id)
     .single()
 

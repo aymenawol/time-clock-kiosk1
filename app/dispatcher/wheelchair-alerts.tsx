@@ -30,7 +30,7 @@ export default function WheelchairAlertsPanel() {
     supabase.from('wheelchair_requests')
       .select(`
         id, passenger_name, flight_number, submitted_at, status,
-        employees!driver_id(full_name),
+        employees!driver_id(name),
         buses!bus_id(bus_number),
         airlines!airline_id(name)
       `)
@@ -43,17 +43,17 @@ export default function WheelchairAlertsPanel() {
           flight_number: string
           submitted_at: string
           status: string
-          employees: { full_name: string } | null
+          employees: { name: string } | null
           buses: { bus_number: string } | null
           airlines: { name: string } | null
         }
-        setRequests((data ?? []).map((r: RawReq) => ({
+        setRequests(((data ?? []) as unknown as RawReq[]).map((r) => ({
           id:             r.id,
           passenger_name: r.passenger_name,
           flight_number:  r.flight_number,
           submitted_at:   r.submitted_at,
           status:         r.status,
-          driver_name:    r.employees?.full_name ?? 'Unknown',
+          driver_name:    r.employees?.name ?? 'Unknown',
           bus_number:     r.buses?.bus_number ?? 'N/A',
           airline_name:   r.airlines?.name ?? 'Unknown',
         })))

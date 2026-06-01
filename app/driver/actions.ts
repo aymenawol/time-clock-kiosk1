@@ -1,7 +1,9 @@
 'use server'
 
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { requireUser } from '@/lib/auth/rbac'
+import { calcDailyHours } from '@/lib/payroll-calc'
+import { writePerformanceSnapshotAction } from '@/actions/performance-snapshot'
 import type { BusStatus } from '@/lib/supabase'
 
 // Radio code → bus status mapping
@@ -27,46 +29,47 @@ export async function radioCodeAction(
   code: string,
   employeeName: string
 ): Promise<{ error?: string }> {
-  const { user } = await import('@/lib/supabase-server').then(m => m.getServerUser())
-  if (!user) return { error: 'Unauthorized' }
+  const auth = await requireUser()
+  if (!auth.ok) return { error: auth.error }
 
   const admin = createSupabaseAdmin()
-  const supabaseUser = await createSupabaseServerClient()
 
   // 1. Update bus status
   const newStatus = RADIO_STATUS_MAP[code]
   if (busId && newStatus) {
-    await admin.from('buses').update({ status: newStatus }).eq('id', busId)
+    const { error: busErr } = await admin.from('buses').update({ status: newStatus }).eq('id', busId)
+    if (busErr) return { error: busErr.message }
   }
 
   // 2. Also update shift radio_status
-  await admin.from('shifts').update({ radio_status: code }).eq('id', shiftId)
+  const { error: shiftErr } = await admin.from('shifts').update({ radio_status: code }).eq('id', shiftId)
+  if (shiftErr) return { error: shiftErr.message }
 
-  // 3. Fire notifications to relevant roles
+  // 3. Fire notifications to relevant roles.
+  //    notification_queue.recipient_id is a FK to employees.id — use the
+  //    employee id (NOT auth_user_id, which silently violates the FK).
   const rolesToNotify = RADIO_NOTIFY_ROLES[code] ?? ['dispatcher']
 
   const { data: recipients } = await admin
     .from('employees')
-    .select('auth_user_id')
+    .select('id')
     .in('role', rolesToNotify)
     .eq('status', 'active')
-    .not('auth_user_id', 'is', null)
 
   if (recipients && recipients.length > 0) {
-    const notifRows = recipients.flatMap((emp: { auth_user_id: string }) => [
-      {
-        recipient_id: emp.auth_user_id,
-        event_type: 'radio_code',
-        channel: 'in_app',
-        payload: {
-          code,
-          bus_number: busNumber,
-          employee_name: employeeName,
-          shift_id: shiftId,
-        },
+    const notifRows = recipients.map((emp: { id: string }) => ({
+      recipient_id: emp.id,
+      event_type: 'radio_code',
+      channel: 'in_app',
+      payload: {
+        code,
+        bus_number: busNumber,
+        employee_name: employeeName,
+        shift_id: shiftId,
       },
-    ])
-    await admin.from('notification_queue').insert(notifRows)
+    }))
+    const { error: notifErr } = await admin.from('notification_queue').insert(notifRows)
+    if (notifErr) return { error: notifErr.message }
   }
 
   return {}
@@ -82,8 +85,8 @@ export async function submitEndOfShiftAction(data: {
   statusSubmitted: 'ready' | 'charge_required' | 'shop' | 'hazard'
   notes: string
 }): Promise<{ error?: string }> {
-  const { user } = await import('@/lib/supabase-server').then(m => m.getServerUser())
-  if (!user) return { error: 'Unauthorized' }
+  const auth = await requireUser()
+  if (!auth.ok) return { error: auth.error }
 
   const admin = createSupabaseAdmin()
 
@@ -91,7 +94,7 @@ export async function submitEndOfShiftAction(data: {
   const { data: emp } = await admin
     .from('employees')
     .select('id')
-    .eq('auth_user_id', user.id)
+    .eq('auth_user_id', auth.user.id)
     .single()
 
   if (!emp) return { error: 'Employee record not found' }
@@ -127,21 +130,47 @@ export async function submitEndOfShiftAction(data: {
     } else if (data.fuelLevelPct != null) {
       busUpdate.fuel_level = data.fuelLevelPct
     }
-    await admin.from('buses').update(busUpdate).eq('id', data.busId)
+    const { error: busErr } = await admin.from('buses').update(busUpdate).eq('id', data.busId)
+    if (busErr) return { error: busErr.message }
   }
 
-  // Hazard → purple alert to dispatch + management
+  // ── Close the shift (keystone): stamp end time, compute hours, free tablet ──
+  const { data: shiftRow } = await admin
+    .from('shifts')
+    .select('actual_start, tablet_id, status')
+    .eq('id', data.shiftId)
+    .single()
+
+  const nowIso = new Date().toISOString()
+  let totalHours: number | null = null
+  if (shiftRow?.actual_start) {
+    const { totalHours: t } = calcDailyHours(new Date(shiftRow.actual_start as string), new Date(nowIso))
+    totalHours = Math.round(t * 100) / 100 // NUMERIC(5,2)
+  }
+
+  const { error: closeErr } = await admin.from('shifts').update({
+    actual_end:  nowIso,
+    status:      'completed',
+    total_hours: totalHours,
+  }).eq('id', data.shiftId)
+  if (closeErr) return { error: closeErr.message }
+
+  // Release the assigned tablet back to the pool
+  if (shiftRow?.tablet_id) {
+    await admin.from('tablets').update({ is_available: true }).eq('id', shiftRow.tablet_id)
+  }
+
+  // Hazard → alert dispatch + management (recipient_id = employees.id, per FK)
   if (data.statusSubmitted === 'hazard') {
     const { data: recipients } = await admin
       .from('employees')
-      .select('auth_user_id')
+      .select('id')
       .in('role', ['dispatcher', 'management', 'admin'])
       .eq('status', 'active')
-      .not('auth_user_id', 'is', null)
 
     if (recipients && recipients.length > 0) {
-      const notifRows = recipients.map((r: { auth_user_id: string }) => ({
-        recipient_id: r.auth_user_id,
+      const notifRows = recipients.map((r: { id: string }) => ({
+        recipient_id: r.id,
         event_type: 'hazard_alert',
         channel: 'in_app',
         payload: {
@@ -153,6 +182,13 @@ export async function submitEndOfShiftAction(data: {
       }))
       await admin.from('notification_queue').insert(notifRows)
     }
+  }
+
+  // Best-effort performance snapshot — never block shift close on it.
+  try {
+    await writePerformanceSnapshotAction(data.shiftId)
+  } catch {
+    /* non-fatal */
   }
 
   return {}

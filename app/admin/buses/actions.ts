@@ -141,7 +141,7 @@ export async function getBusDetailAction(id: string) {
       .limit(50),
     supabase
       .from('shifts')
-      .select('*, employee:employee_id(first_name, last_name)')
+      .select('*, employee:employee_id(name)')
       .eq('bus_id', id)
       .order('date', { ascending: false })
       .limit(20),
@@ -152,7 +152,7 @@ export async function getBusDetailAction(id: string) {
       .order('created_at', { ascending: false }),
     supabase
       .from('vehicle_inspections')
-      .select('id, inspection_type, inspection_date, is_locked, submitted_at, has_defects, damage_drawing, driver:driver_id(first_name, last_name)')
+      .select('id, inspection_type, inspection_date, is_locked, submitted_at, has_defects, damage_drawing, driver:driver_id(name)')
       .eq('bus_id', id)
       .order('inspection_date', { ascending: false })
       .limit(30),

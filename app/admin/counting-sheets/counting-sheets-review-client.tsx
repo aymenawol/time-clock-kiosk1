@@ -18,7 +18,7 @@ interface Sheet {
   submitted_at: string | null
   start_time: string | null
   end_time: string | null
-  driver: { id: string; first_name: string; last_name: string; seniority_number: number | null } | null
+  driver: { id: string; name: string; seniority_number: number | null } | null
   bus: { bus_number: string; bus_type: string } | null
   counting_rows: CountingRow[]
 }
@@ -81,7 +81,7 @@ export default function CountingSheetsReviewClient({
               <div className="flex items-center gap-4">
                 <div>
                   <p className="text-white font-semibold">
-                    {sheet.driver ? `${sheet.driver.first_name} ${sheet.driver.last_name}` : 'Unknown'}
+                    {sheet.driver ? sheet.driver.name : 'Unknown'}
                     {sheet.driver?.seniority_number ? (
                       <span className="text-gray-500 text-xs ml-2">#{sheet.driver.seniority_number}</span>
                     ) : null}

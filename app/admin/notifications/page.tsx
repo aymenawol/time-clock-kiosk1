@@ -16,7 +16,7 @@ export default async function NotificationsPage() {
     .from('notification_log')
     .select(`
       id, event_type, channel, sent_at, delivered_at, failed, failure_reason,
-      employees!recipient_id(full_name)
+      employees!recipient_id(name)
     `)
     .order('sent_at', { ascending: false })
     .limit(1000)
@@ -29,12 +29,12 @@ export default async function NotificationsPage() {
     delivered_at: string | null
     failed: boolean
     failure_reason: string | null
-    employees: { full_name: string } | null
+    employees: { name: string } | null
   }
 
-  const logs = (raw ?? []).map((l: RawLog) => ({
+  const logs = ((raw ?? []) as unknown as RawLog[]).map((l) => ({
     id:             l.id,
-    recipient_name: l.employees?.full_name ?? 'Unknown',
+    recipient_name: l.employees?.name ?? 'Unknown',
     event_type:     l.event_type,
     channel:        l.channel,
     sent_at:        l.sent_at,

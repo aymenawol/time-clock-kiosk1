@@ -15,7 +15,7 @@ interface InspectionItemRow {
 
 interface Props {
   type: 'pre_trip' | 'post_trip'
-  employee: { id: string; first_name: string; last_name: string } | null
+  employee: { id: string; name: string } | null
   shift: { id: string; date: string; status: string; bus: { id: string; bus_number: string } | null } | null
   existingInspection: any | null
   existingItems: any[]
@@ -261,7 +261,7 @@ export default function InspectionClient({ type, employee, shift, existingInspec
         </div>
         <div>
           <p className="text-gray-500 text-xs">Driver</p>
-          <p className="text-white">{employee.first_name} {employee.last_name}</p>
+          <p className="text-white">{employee.name}</p>
         </div>
         <div>
           <p className="text-gray-500 text-xs mb-1">Start Time</p>

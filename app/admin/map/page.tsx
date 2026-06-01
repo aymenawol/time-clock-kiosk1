@@ -11,7 +11,7 @@ export default async function MapPage() {
       bus_id,
       employee_id,
       buses!inner(id, bus_number, bus_type),
-      employees!inner(id, first_name, last_name)
+      employees!inner(id, name)
     `)
     .eq('status', 'active')
 
@@ -36,7 +36,7 @@ export default async function MapPage() {
       bus_id: (bus as Record<string, unknown>).id as string,
       bus_number: (bus as Record<string, unknown>).bus_number as string,
       bus_type: (bus as Record<string, unknown>).bus_type as string,
-      driver_name: `${(emp as Record<string, unknown>).first_name} ${(emp as Record<string, unknown>).last_name}`,
+      driver_name: ((emp as Record<string, unknown>).name as string) ?? 'Unknown',
       shift_id: s.id as string,
       position: posMap[(bus as Record<string, unknown>).id as string] ?? null,
     }
@@ -53,7 +53,7 @@ export default async function MapPage() {
         <span className="text-gray-500 text-sm">Harry Reid International Airport</span>
       </div>
       <div className="flex-1 overflow-hidden">
-        <MapClient initialBuses={initialBuses} apiKey={apiKey} />
+        <MapClient initialBuses={initialBuses as unknown as Parameters<typeof MapClient>[0]['initialBuses']} apiKey={apiKey} />
       </div>
     </div>
   )

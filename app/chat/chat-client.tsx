@@ -51,7 +51,7 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
   useEffect(() => {
     if (!activeRoomId) return
     const unread = activeMessages.filter(m => !m.is_deleted).map(m => m.id)
-    if (unread.length) markReadAction(unread, currentEmployeeId)
+    if (unread.length) markReadAction(unread)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRoomId])
 
@@ -202,7 +202,7 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
                           <span className="text-gray-600 text-xs">{confirmedCount} confirmed</span>
                           {needsConfirm && (
                             <button
-                              onClick={() => startTransition(() => confirmMessageAction(msg.id))}
+                              onClick={() => startTransition(() => { void confirmMessageAction(msg.id) })}
                               className="text-xs bg-green-800 hover:bg-green-700 text-white px-2 py-0.5 rounded-full"
                             >
                               Confirm Read
@@ -220,7 +220,7 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
                         </span>
                         {isAdmin && !msg.is_deleted && (
                           <button
-                            onClick={() => { if (confirm('Remove this message?')) startTransition(() => deleteMessageAction(msg.id)) }}
+                            onClick={() => { if (confirm('Remove this message?')) startTransition(() => { void deleteMessageAction(msg.id) }) }}
                             className="text-gray-700 hover:text-red-400 text-xs"
                           >
                             remove

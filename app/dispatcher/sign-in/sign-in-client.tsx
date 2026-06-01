@@ -4,13 +4,13 @@ import { useRef, useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 
-interface Driver  { id: string; first_name: string; last_name: string; seniority_number: number | null }
+interface Driver  { id: string; name: string; seniority_number: number | null }
 interface BusOpt  { id: string; bus_number: string; bus_type: string; status: string; fuel_level: number | null }
 interface Tablet  { id: string; tablet_number: string }
 interface Shift   {
   id: string; date: string; status: string; scheduled_start: string | null; scheduled_end: string | null;
   actual_start: string | null; lunch_waiver: boolean; has_lunch: boolean;
-  employee: { first_name: string; last_name: string } | null
+  employee: { name: string } | null
   bus: { bus_number: string; bus_type: string } | null
   tablet: { tablet_number: string } | null
 }
@@ -146,7 +146,7 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
               <option value="">Select driver…</option>
               {drivers.map(d => (
                 <option key={d.id} value={d.id}>
-                  {d.last_name}, {d.first_name}{d.seniority_number ? ` (#${d.seniority_number})` : ''}
+                  {d.name}{d.seniority_number ? ` (#${d.seniority_number})` : ''}
                 </option>
               ))}
             </select>
@@ -236,7 +236,7 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
                 <tbody className="divide-y divide-gray-800">
                   {shifts.map(s => (
                     <tr key={s.id} className="hover:bg-gray-900/40">
-                      <td className="px-3 py-2 text-white">{s.employee?.last_name}, {s.employee?.first_name}</td>
+                      <td className="px-3 py-2 text-white">{s.employee?.name}</td>
                       <td className="px-3 py-2 text-gray-400">{s.bus ? `#${s.bus.bus_number}` : '—'}</td>
                       <td className="px-3 py-2 text-gray-400">{s.tablet?.tablet_number ?? '—'}</td>
                       <td className="px-3 py-2 text-gray-400">{s.scheduled_start ?? '—'}</td>

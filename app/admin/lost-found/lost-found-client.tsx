@@ -89,22 +89,22 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
     )
     const { data: hist } = await supabase
       .from('lost_item_status_history')
-      .select('old_status, new_status, changed_at, notes, employees!changed_by(full_name)')
+      .select('old_status, new_status, changed_at, notes, employees!changed_by(name)')
       .eq('item_id', item.id)
       .order('changed_at', { ascending: false })
 
-    setHistory((hist ?? []).map((h: {
+    setHistory(((hist ?? []) as unknown as Array<{
       old_status: string | null
       new_status: string
       changed_at: string
       notes: string | null
-      employees: { full_name: string } | null
-    }) => ({
+      employees: { name: string } | null
+    }>).map((h) => ({
       old_status: h.old_status,
       new_status: h.new_status,
       changed_at: h.changed_at,
       notes:      h.notes,
-      changer:    h.employees?.full_name ?? 'System',
+      changer:    h.employees?.name ?? 'System',
     })))
   }
 

@@ -34,18 +34,25 @@ export async function sendMessageAction(roomId: string, content: string, require
   return { success: true, messageId: msg.id }
 }
 
-export async function markDeliveredAction(messageId: string, recipientId: string) {
+export async function markDeliveredAction(messageId: string) {
+  const { user } = await assertChatRole()
   const admin = createSupabaseAdmin()
+  // Derive the recipient from the session — never trust a client-supplied id.
+  const { data: emp } = await admin.from('employees').select('id').eq('auth_user_id', user.id).single()
+  if (!emp) return
   await admin.from('chat_deliveries').upsert(
-    { message_id: messageId, recipient_id: recipientId },
+    { message_id: messageId, recipient_id: emp.id },
     { onConflict: 'message_id,recipient_id', ignoreDuplicates: true }
   )
 }
 
-export async function markReadAction(messageIds: string[], readerId: string) {
+export async function markReadAction(messageIds: string[]) {
   if (!messageIds.length) return
+  const { user } = await assertChatRole()
   const admin = createSupabaseAdmin()
-  const rows = messageIds.map(id => ({ message_id: id, reader_id: readerId }))
+  const { data: emp } = await admin.from('employees').select('id').eq('auth_user_id', user.id).single()
+  if (!emp) return
+  const rows = messageIds.map(id => ({ message_id: id, reader_id: emp.id }))
   await admin.from('chat_reads').upsert(rows, { onConflict: 'message_id,reader_id', ignoreDuplicates: true })
 }
 
@@ -104,13 +111,24 @@ export async function getUnconfirmedCountAction(): Promise<number> {
   const { data: emp } = await admin.from('employees').select('id').eq('auth_user_id', user.id).single()
   if (!emp) return 0
 
-  // Count messages requiring confirmation where this user hasn't confirmed
-  const { count } = await admin
+  // Count messages requiring confirmation where this user hasn't confirmed.
+  // Two-step anti-join (no raw SQL string interpolation): fetch the user's
+  // confirmed message ids, then exclude them.
+  const { data: confirmed } = await admin
+    .from('chat_confirmations')
+    .select('message_id')
+    .eq('confirmer_id', emp.id)
+  const confirmedIds = (confirmed ?? []).map((c: { message_id: string }) => c.message_id)
+
+  let query = admin
     .from('chat_messages')
     .select('id', { count: 'exact', head: true })
     .eq('requires_confirmation', true)
     .eq('is_deleted', false)
-    .not('id', 'in', `(SELECT message_id FROM chat_confirmations WHERE confirmer_id = '${emp.id}')`)
+  if (confirmedIds.length > 0) {
+    query = query.not('id', 'in', `(${confirmedIds.join(',')})`)
+  }
+  const { count } = await query
 
   return count ?? 0
 }

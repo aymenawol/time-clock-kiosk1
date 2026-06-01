@@ -13,7 +13,7 @@ export default async function DispatcherPage() {
       .from('shifts')
       .select(`
         *,
-        employee:employee_id(id, first_name, last_name, seniority_number),
+        employee:employee_id(id, name, seniority_number),
         bus:bus_id(id, bus_number, bus_type, fuel_level),
         tablet:tablet_id(id, tablet_number),
         breaks(*)

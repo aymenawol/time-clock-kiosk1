@@ -17,7 +17,7 @@ export default async function ChatPage() {
   // Get current employee
   const { data: emp } = await supabase
     .from('employees')
-    .select('id, full_name')
+    .select('id, name')
     .eq('auth_user_id', user.id)
     .single()
 
@@ -30,8 +30,8 @@ export default async function ChatPage() {
     .eq('employee_id', emp.id)
 
   type RoomRow = { id: string; name: string; type: string; department?: string | null }
-  const rooms: RoomRow[] = (memberRooms ?? [])
-    .map((r: { chat_rooms: RoomRow | null }) => r.chat_rooms)
+  const rooms: RoomRow[] = ((memberRooms ?? []) as unknown as { chat_rooms: RoomRow | null }[])
+    .map((r) => r.chat_rooms)
     .filter((r): r is RoomRow => r !== null)
     .sort((a, b) => {
       // Sort: emergency first, then department, then others
@@ -57,7 +57,7 @@ export default async function ChatPage() {
       .from('chat_messages')
       .select(`
         id, content, message_type, requires_confirmation, sent_at, is_deleted, sender_id,
-        employees!sender_id(full_name),
+        employees!sender_id(name),
         chat_confirmations(confirmer_id)
       `)
       .eq('room_id', room.id)
@@ -72,11 +72,11 @@ export default async function ChatPage() {
       sent_at: string
       is_deleted: boolean
       sender_id: string
-      employees: { full_name: string } | null
+      employees: { name: string } | null
       chat_confirmations: { confirmer_id: string }[]
     }
 
-    initialMessages[room.id] = (msgs ?? []).map((m: RawMsg) => ({
+    initialMessages[room.id] = ((msgs ?? []) as unknown as RawMsg[]).map((m) => ({
       id:                    m.id,
       content:               m.content,
       message_type:          m.message_type,
@@ -84,7 +84,7 @@ export default async function ChatPage() {
       sent_at:               m.sent_at,
       is_deleted:            m.is_deleted,
       sender_id:             m.sender_id,
-      sender_name:           m.employees?.full_name ?? 'Unknown',
+      sender_name:           m.employees?.name ?? 'Unknown',
       confirmed_by:          (m.chat_confirmations ?? []).map((c: { confirmer_id: string }) => c.confirmer_id),
     }))
   }))

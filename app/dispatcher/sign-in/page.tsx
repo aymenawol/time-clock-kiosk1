@@ -10,10 +10,10 @@ export default async function SignInPage() {
   const [driversRes, busesRes, tabletsRes, todayShiftsRes] = await Promise.all([
     supabase
       .from('employees')
-      .select('id, first_name, last_name, seniority_number')
+      .select('id, name, seniority_number')
       .eq('role', 'driver')
       .eq('status', 'active')
-      .order('last_name'),
+      .order('name'),
     supabase
       .from('buses')
       .select('id, bus_number, bus_type, status, fuel_level')
@@ -29,7 +29,7 @@ export default async function SignInPage() {
       .from('shifts')
       .select(`
         *,
-        employee:employee_id(first_name, last_name),
+        employee:employee_id(name),
         bus:bus_id(bus_number, bus_type),
         tablet:tablet_id(tablet_number)
       `)

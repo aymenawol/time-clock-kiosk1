@@ -53,6 +53,7 @@ export default function DriverBidsClient({ activeCycle, slots, mySubmission, myA
       if (prefs[rank]) preferences.push({ slot_id: prefs[rank], rank })
     })
     if (preferences.length === 0) { setErr('Select at least one preference'); return }
+    if (!activeCycle) { setErr('No active bid cycle'); return }
     startTransition(async () => {
       try { await submitBidAction(activeCycle.id, preferences); setSuccess('Preferences saved!') }
       catch (e: any) { setErr(e.message) }

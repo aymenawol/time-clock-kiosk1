@@ -13,7 +13,7 @@ interface Break {
 interface Shift {
   id: string; status: string; scheduled_start: string | null; scheduled_end: string | null
   actual_start: string | null; actual_end: string | null; radio_status: string | null; notes: string | null
-  employee: { id: string; first_name: string; last_name: string; seniority_number: number | null } | null
+  employee: { id: string; name: string; seniority_number: number | null } | null
   bus: { id: string; bus_number: string; bus_type: string; fuel_level: number | null; status: string } | null
   tablet: { id: string; tablet_number: string } | null
   breaks: Break[]
@@ -97,7 +97,7 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                   {b.status.toUpperCase()}
                 </span>
                 <span className="text-white font-medium">
-                  {b.driver?.first_name} {b.driver?.last_name}
+                  {b.driver?.name}
                 </span>
                 <span className="text-gray-500">— Break {b.break_number}</span>
                 {b.bus && <span className="text-gray-500">Bus #{b.bus.bus_number}</span>}
@@ -139,7 +139,7 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                     <Fragment key={s.id}>
                       <tr className="hover:bg-gray-800/30">
                         <td className="px-4 py-3 text-white font-medium">
-                          {s.employee?.first_name} {s.employee?.last_name}
+                          {s.employee?.name}
                           {s.employee?.seniority_number && (
                             <span className="text-gray-600 text-xs ml-1">#{s.employee.seniority_number}</span>
                           )}
@@ -222,7 +222,7 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
               <tbody className="divide-y divide-gray-800">
                 {scheduled.map(s => (
                   <tr key={s.id} className="hover:bg-gray-800/30">
-                    <td className="px-4 py-3 text-white">{s.employee?.first_name} {s.employee?.last_name}</td>
+                    <td className="px-4 py-3 text-white">{s.employee?.name}</td>
                     <td className="px-4 py-3 text-gray-400">{s.bus ? `#${s.bus.bus_number}` : '—'}</td>
                     <td className="px-4 py-3 text-gray-400">{s.scheduled_start ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-400">{s.scheduled_end ?? '—'}</td>
@@ -244,7 +244,7 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-white font-medium text-sm">
-                      {s.employee?.first_name} {s.employee?.last_name}
+                      {s.employee?.name}
                       {s.employee?.seniority_number && (
                         <span className="text-gray-600 text-xs ml-1">#{s.employee.seniority_number}</span>
                       )}

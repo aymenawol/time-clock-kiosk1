@@ -28,13 +28,13 @@ export default async function WheelchairPage() {
       .from('shifts')
       .select('id, buses(id, bus_number)')
       .eq('employee_id', emp.id)
-      .eq('status', 'clocked_in')
-      .order('clock_in', { ascending: false })
+      .eq('status', 'active')
+      .order('actual_start', { ascending: false })
       .limit(1)
       .maybeSingle()
 
     if (shift) {
-      const busData = shift.buses as { id: string; bus_number: string } | null
+      const busData = shift.buses as unknown as { id: string; bus_number: string } | null
       activeShift = { id: shift.id, bus: busData }
     }
   }

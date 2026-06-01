@@ -13,7 +13,7 @@ export default async function DriverPerformancePage() {
 
   const { data: emp } = await supabase
     .from('employees')
-    .select('id, full_name, role')
+    .select('id, name, role')
     .eq('auth_user_id', user.id)
     .single()
 
@@ -34,7 +34,7 @@ export default async function DriverPerformancePage() {
         <h1 className="text-2xl font-bold text-white">My Performance</h1>
         <p className="text-gray-400 text-sm mt-1">Your last 90 days</p>
       </div>
-      <PerformanceClient employees={[{ id: emp.id, full_name: emp.full_name, role: emp.role, snapshots: snapshots ?? [] }]} />
+      <PerformanceClient employees={[{ id: emp.id, name: emp.name, role: emp.role, snapshots: snapshots ?? [] }]} />
     </div>
   )
 }

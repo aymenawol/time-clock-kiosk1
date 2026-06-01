@@ -21,7 +21,7 @@ export default async function SignInSheetsPage({
     .from('shifts')
     .select(`
       id, date, status, scheduled_start, scheduled_end, actual_start, actual_end, radio_status,
-      employee:employee_id(id, first_name, last_name, seniority_number, employee_id),
+      employee:employee_id(id, name, seniority_number, employee_id),
       bus:bus_id(bus_number, bus_type),
       tablet:tablet_id(tablet_number)
     `, { count: 'exact' })

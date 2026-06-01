@@ -27,13 +27,13 @@ export default async function DriverLostFoundPage() {
       .from('shifts')
       .select('id, buses(id, bus_number)')
       .eq('employee_id', emp.id)
-      .eq('status', 'clocked_in')
-      .order('clock_in', { ascending: false })
+      .eq('status', 'active')
+      .order('actual_start', { ascending: false })
       .limit(1)
       .maybeSingle()
 
     if (shift?.buses) {
-      const bus = shift.buses as { id: string; bus_number: string }
+      const bus = shift.buses as unknown as { id: string; bus_number: string }
       busId     = bus.id
       busNumber = bus.bus_number
     }

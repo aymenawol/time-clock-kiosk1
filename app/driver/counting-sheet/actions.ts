@@ -1,9 +1,35 @@
 'use server'
 
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireUser } from '@/lib/auth/rbac'
+
+const STAFF_ROLES = ['admin', 'management', 'dispatcher', 'supervisor', 'coordinator']
 
 export async function submitCountingSheetAction(sheetId: string, driverName: string) {
+  const auth = await requireUser()
+  if (!auth.ok) return { error: auth.error }
+
   const admin = createSupabaseAdmin()
+
+  // Authorization: a driver may only submit their OWN sheet; staff may submit any.
+  const { data: sheet } = await admin
+    .from('counting_sheets')
+    .select('driver_id')
+    .eq('id', sheetId)
+    .single()
+  if (!sheet) return { error: 'Counting sheet not found.' }
+
+  if (!STAFF_ROLES.includes(auth.role ?? '')) {
+    const { data: me } = await admin
+      .from('employees')
+      .select('id')
+      .eq('auth_user_id', auth.user.id)
+      .maybeSingle()
+    if (!me || me.id !== sheet.driver_id) {
+      return { error: 'You can only submit your own counting sheet.' }
+    }
+  }
+
   const now = new Date().toISOString()
 
   // Mark sheet as submitted

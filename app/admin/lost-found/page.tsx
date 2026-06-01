@@ -21,7 +21,7 @@ export default async function AdminLostFoundPage() {
       status, found_at, collected_at, returned_to_dispatch_at,
       claimed_at, claimant_name, disposed_at, disposal_reason, photo_paths,
       buses(bus_number),
-      employees!reported_by(full_name)
+      employees!reported_by(name)
     `)
     .order('found_at', { ascending: false })
     .limit(200)
@@ -42,10 +42,10 @@ export default async function AdminLostFoundPage() {
     disposal_reason: string | null
     photo_paths: string[]
     buses: { bus_number: string } | null
-    employees: { full_name: string } | null
+    employees: { name: string } | null
   }
 
-  const items = (raw ?? []).map((r: RawItem) => ({
+  const items = ((raw ?? []) as unknown as RawItem[]).map((r) => ({
     id:                      r.id,
     item_description:        r.item_description,
     location_found:          r.location_found,
@@ -61,7 +61,7 @@ export default async function AdminLostFoundPage() {
     disposal_reason:         r.disposal_reason,
     photo_paths:             r.photo_paths ?? [],
     bus_number:              r.buses?.bus_number ?? 'N/A',
-    reporter_name:           r.employees?.full_name ?? 'Unknown',
+    reporter_name:           r.employees?.name ?? 'Unknown',
   }))
 
   return (

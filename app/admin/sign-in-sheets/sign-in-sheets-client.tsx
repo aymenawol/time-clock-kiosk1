@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-interface Employee { id: string; first_name: string; last_name: string; seniority_number: number | null; employee_id: string }
+interface Employee { id: string; name: string; seniority_number: number | null; employee_id: string }
 interface Shift {
   id: string; date: string; status: string; scheduled_start: string | null; scheduled_end: string | null
   actual_start: string | null; actual_end: string | null; radio_status: string | null
@@ -43,7 +43,7 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
     const rows = shifts.map(s => [
       s.employee?.seniority_number ?? '',
       s.employee?.employee_id ?? '',
-      s.employee ? `${s.employee.first_name} ${s.employee.last_name}` : '',
+      s.employee ? s.employee.name : '',
       s.scheduled_start ?? '',
       s.scheduled_end ?? '',
       s.actual_start ? new Date(s.actual_start).toLocaleTimeString() : '',
@@ -125,7 +125,7 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
                   <tr key={s.id} className="hover:bg-gray-800/40">
                     <td className="px-4 py-3 text-gray-500 text-xs">{s.employee?.seniority_number ?? '—'}</td>
                     <td className="px-4 py-3 text-white font-medium">
-                      {s.employee ? `${s.employee.first_name} ${s.employee.last_name}` : '—'}
+                      {s.employee ? s.employee.name : '—'}
                     </td>
                     <td className="px-4 py-3 text-gray-400 tabular-nums">
                       {s.scheduled_start ?? '—'} – {s.scheduled_end ?? '—'}

@@ -12,7 +12,7 @@ export default async function DriverPage() {
   // Get employee record for current user
   const { data: employee } = await supabase
     .from('employees')
-    .select('id, first_name, last_name, seniority_number')
+    .select('id, name, seniority_number')
     .eq('auth_user_id', user?.id)
     .single()
 

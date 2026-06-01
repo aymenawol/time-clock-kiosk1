@@ -26,7 +26,7 @@ interface Break {
 }
 
 interface Props {
-  employee: { id: string; first_name: string; last_name: string } | null
+  employee: { id: string; name: string } | null
   shift: { id: string; date: string; status: string; bus: { id: string; bus_number: string } | null; breaks: Break[] } | null
   existingSheet: any | null
   existingRows: CountingRow[]
@@ -149,7 +149,7 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
     startTransition(async () => {
       const id = await saveSheet()
       if (!id) return
-      const driverName = employee ? `${employee.first_name} ${employee.last_name}` : 'Driver'
+      const driverName = employee ? employee.name : 'Driver'
       const result = await submitCountingSheetAction(id, driverName)
       if (result.error) setError(result.error)
       else { setSubmitted(true); router.refresh() }
@@ -201,7 +201,7 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
 
       {/* Info bar */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex gap-6 text-sm">
-        <div><p className="text-gray-500 text-xs">Driver</p><p className="text-white">{employee.first_name} {employee.last_name}</p></div>
+        <div><p className="text-gray-500 text-xs">Driver</p><p className="text-white">{employee.name}</p></div>
         <div><p className="text-gray-500 text-xs">Bus</p><p className="text-white">{shift.bus ? `#${shift.bus.bus_number}` : '—'}</p></div>
         <div><p className="text-gray-500 text-xs">Date</p><p className="text-white">{today}</p></div>
       </div>

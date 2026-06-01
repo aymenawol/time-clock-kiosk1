@@ -10,10 +10,10 @@ import { TERMINALS } from '@/lib/terminals'
 
 interface Bus {
   id: string; bus_number: string; bus_type: 'EV' | 'Diesel'
-  fuel_level: number | null; battery_level: number | null; status: string
+  fuel_level: number | null; status: string
 }
 
-interface Employee { id: string; first_name: string; last_name: string }
+interface Employee { id: string; name: string }
 
 interface BusPosition {
   bus_id: string; latitude: number; longitude: number
@@ -30,7 +30,7 @@ interface Shift {
 interface FatigueAlert {
   id: string; employee_id: string; alert_type: string
   triggered_at: string; resolved_at: string | null; dismissed_at: string | null
-  employees: { first_name: string; last_name: string } | null
+  employees: { name: string } | null
 }
 
 interface OtBanner { is_active: boolean; message: string | null }
@@ -225,7 +225,7 @@ export default function DispatchBoardClient({
                   {/* Driver */}
                   {shift?.employee ? (
                     <p className="text-xs text-gray-300 truncate mt-0.5">
-                      {shift.employee.first_name} {shift.employee.last_name[0]}.
+                      {shift.employee.name}
                     </p>
                   ) : (
                     <p className="text-xs text-gray-600 mt-0.5">No driver</p>
@@ -237,19 +237,19 @@ export default function DispatchBoardClient({
                   )}
 
                   {/* Fuel/Battery */}
-                  {(bus.fuel_level != null || bus.battery_level != null) && (
+                  {bus.fuel_level != null && (
                     <div className="mt-1.5">
                       <div className="h-1 rounded bg-gray-800 overflow-hidden">
                         <div
                           className={`h-full rounded ${
-                            (bus.fuel_level ?? bus.battery_level ?? 0) < 25 ? 'bg-red-500' :
-                            (bus.fuel_level ?? bus.battery_level ?? 0) < 50 ? 'bg-yellow-500' : 'bg-green-500'
+                            (bus.fuel_level ?? 0) < 25 ? 'bg-red-500' :
+                            (bus.fuel_level ?? 0) < 50 ? 'bg-yellow-500' : 'bg-green-500'
                           }`}
-                          style={{ width: `${bus.fuel_level ?? bus.battery_level ?? 0}%` }}
+                          style={{ width: `${bus.fuel_level ?? 0}%` }}
                         />
                       </div>
                       <p className="text-xs text-gray-600 mt-0.5">
-                        {bus.bus_type === 'EV' ? 'Charge' : 'Fuel'}: {(bus.fuel_level ?? bus.battery_level)?.toFixed(0)}%
+                        {bus.bus_type === 'EV' ? 'Charge' : 'Fuel'}: {bus.fuel_level?.toFixed(0)}%
                       </p>
                     </div>
                   )}
@@ -278,7 +278,7 @@ export default function DispatchBoardClient({
 
               {selectedShift?.employee && (
                 <p className="text-gray-300 text-sm">
-                  {selectedShift.employee.first_name} {selectedShift.employee.last_name}
+                  {selectedShift.employee.name}
                 </p>
               )}
 
@@ -338,7 +338,7 @@ export default function DispatchBoardClient({
                   {a.alert_type.replace(/_/g, ' ')}
                 </p>
                 {a.employees && (
-                  <p className="text-gray-300 text-xs">{a.employees.first_name} {a.employees.last_name}</p>
+                  <p className="text-gray-300 text-xs">{a.employees.name}</p>
                 )}
                 <p className="text-gray-600 text-xs">{new Date(a.triggered_at).toLocaleTimeString()}</p>
                 <a href="/admin/fatigue" className="text-red-400 text-xs hover:text-red-300">Review →</a>

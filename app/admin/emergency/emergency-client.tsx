@@ -8,7 +8,7 @@ type EventType = 'weather' | 'airport_emergency' | 'reroute' | 'custom'
 
 interface AckStatus {
   acknowledged:   { employeeId: string; name: string; acknowledgedAt: string }[]
-  unacknowledged: { id: string; full_name: string }[]
+  unacknowledged: { id: string; name: string }[]
 }
 
 interface ActiveEvent {
@@ -80,7 +80,7 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
     setError(null)
     startTransition(async () => {
       const res = await triggerEmergencyAction(eventType, message)
-      if ('error' in res) { setError(res.error); return }
+      if ('error' in res) { setError(res.error ?? 'Failed to trigger emergency'); return }
     })
   }
 
@@ -133,7 +133,7 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
               <div className="mt-2 grid grid-cols-2 gap-1 max-h-48 overflow-y-auto">
                 {ackStatus.unacknowledged.map(e => (
                   <div key={e.id} className="text-gray-400 text-xs px-2 py-1 bg-gray-900 rounded">
-                    {e.full_name}
+                    {e.name}
                   </div>
                 ))}
               </div>

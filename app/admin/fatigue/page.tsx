@@ -10,7 +10,7 @@ export default async function FatiguePage() {
       id, employee_id, alert_type,
       shift_hours, consecutive_count, weekly_ot_hours,
       triggered_at, resolved_at, notes, dismissed_at, dismiss_reason,
-      employees!inner(first_name, last_name),
+      employees!inner(name),
       resolver:auth_users_resolved(email),
       dismisser:auth_users_dismissed(email)
     `)
@@ -20,7 +20,7 @@ export default async function FatiguePage() {
   // Fallback to simpler query without auth user joins if complex join fails
   const { data: alertsSimple } = !alerts ? await supabase
     .from('fatigue_alerts')
-    .select('id, employee_id, alert_type, shift_hours, consecutive_count, weekly_ot_hours, triggered_at, resolved_at, notes, dismissed_at, dismiss_reason, employees(first_name, last_name)')
+    .select('id, employee_id, alert_type, shift_hours, consecutive_count, weekly_ot_hours, triggered_at, resolved_at, notes, dismissed_at, dismiss_reason, employees(name)')
     .order('triggered_at', { ascending: false })
     .limit(200)
   : { data: null }
@@ -32,7 +32,7 @@ export default async function FatiguePage() {
     return {
       id:               a.id as string,
       employee_id:      a.employee_id as string,
-      employee_name:    emp ? `${emp.first_name} ${emp.last_name}` : 'Unknown',
+      employee_name:    emp ? (emp.name as string) : 'Unknown',
       alert_type:       a.alert_type as 'single_shift' | 'consecutive_days' | 'ot_threshold',
       shift_hours:      a.shift_hours as number | null,
       consecutive_count: a.consecutive_count as number | null,

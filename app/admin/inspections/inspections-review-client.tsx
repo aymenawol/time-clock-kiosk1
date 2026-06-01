@@ -17,7 +17,7 @@ interface Inspection {
   submitted_at: string | null
   has_defects: boolean
   damage_drawing: Array<{ type: string; data: string }> | null
-  driver: { first_name: string; last_name: string } | null
+  driver: { name: string } | null
   bus: { bus_number: string } | null
   inspection_items: InspectionItem[]
 }
@@ -96,7 +96,7 @@ export default function InspectionsReviewClient({
               <div className="space-y-0.5">
                 <div className="flex items-center gap-3">
                   <span className="text-white font-semibold">
-                    {insp.driver ? `${insp.driver.first_name} ${insp.driver.last_name}` : 'Unknown Driver'}
+                    {insp.driver ? insp.driver.name : 'Unknown Driver'}
                   </span>
                   <span className="text-gray-400 text-sm">Bus {insp.bus?.bus_number ?? '—'}</span>
                 </div>

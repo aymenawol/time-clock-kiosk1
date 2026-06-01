@@ -23,7 +23,7 @@ interface ShiftRow {
   actual_start: string | null
   scheduled_start: string | null
   scheduled_end: string | null
-  employee: { id: string; first_name: string; last_name: string; seniority_number: number | null } | null
+  employee: { id: string; name: string; seniority_number: number | null } | null
   bus: { id: string; bus_number: string; bus_type: string; fuel_level: number | null } | null
   tablet: { id: string; tablet_number: string } | null
   breaks: BreakRow[]
@@ -190,7 +190,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
                     return (
                       <tr key={s.id} className="hover:bg-gray-900/50">
                         <td className="px-3 py-2 text-white font-medium">
-                          {s.employee?.first_name} {s.employee?.last_name}
+                          {s.employee?.name}
                           {s.employee?.seniority_number && (
                             <span className="text-gray-600 text-xs ml-1">#{s.employee.seniority_number}</span>
                           )}
@@ -232,7 +232,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
               <div className="mt-2 space-y-1">
                 {scheduledShifts.map(s => (
                   <div key={s.id} className="flex gap-3 text-xs text-gray-500 border border-gray-800 rounded px-3 py-1.5">
-                    <span>{s.employee?.first_name} {s.employee?.last_name}</span>
+                    <span>{s.employee?.name}</span>
                     <span>·</span>
                     <span>{s.scheduled_start ?? '—'}</span>
                     {s.bus && <><span>·</span><span>Bus #{s.bus.bus_number}</span></>}
@@ -260,7 +260,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
                 }`}>
                   <div className="flex justify-between items-start">
                     <span className="text-white font-medium text-xs">
-                      {s.employee?.first_name} {s.employee?.last_name}
+                      {s.employee?.name}
                     </span>
                     <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
                       b.status === 'overrun' ? 'bg-orange-900 text-orange-300' :

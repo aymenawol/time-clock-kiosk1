@@ -16,7 +16,7 @@ export default async function PayrollPeriodPage({ params }: { params: Promise<{ 
 
   const { data: records } = await supabase
     .from('daily_hours_records')
-    .select('id, employee_id, work_date, regular_hours, overtime_hours, pto_hours, fmla_hours, total_paid_hours, missed_breaks, is_incomplete, clock_in, clock_out, employees(first_name, last_name)')
+    .select('id, employee_id, work_date, regular_hours, overtime_hours, pto_hours, fmla_hours, total_paid_hours, missed_breaks, is_incomplete, clock_in, clock_out, employees(name)')
     .eq('pay_period_id', id)
     .order('work_date')
 
@@ -25,7 +25,7 @@ export default async function PayrollPeriodPage({ params }: { params: Promise<{ 
     return {
       id:              r.id as string,
       employee_id:     r.employee_id as string,
-      employee_name:   emp ? `${emp.first_name} ${emp.last_name}` : 'Unknown',
+      employee_name:   emp ? (emp.name as string) : 'Unknown',
       work_date:       r.work_date as string,
       regular_hours:   r.regular_hours as number,
       overtime_hours:  r.overtime_hours as number,

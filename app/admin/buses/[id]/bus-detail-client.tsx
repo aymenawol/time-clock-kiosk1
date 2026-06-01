@@ -8,7 +8,7 @@ import { updateBusStatusAction, updateBusAction, deleteBusAction } from '../acti
 
 type Tab = 'overview' | 'history' | 'shifts' | 'repairs' | 'inspections' | 'damage'
 
-interface Shift { id: string; date: string; status: string; employee?: { first_name: string; last_name: string } }
+interface Shift { id: string; date: string; status: string; employee?: { name: string } }
 
 interface Inspection {
   id: string
@@ -18,7 +18,7 @@ interface Inspection {
   submitted_at: string | null
   has_defects: boolean
   damage_drawing: Array<{ type: string; data: string }> | null
-  driver: { first_name: string; last_name: string } | null
+  driver: { name: string } | null
 }
 
 interface Props {
@@ -208,7 +208,7 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
           {shifts.map((s: any) => (
             <div key={s.id} className="flex items-center gap-3 text-sm border border-gray-800 rounded-lg px-3 py-2">
               <span className="text-gray-500 w-28 shrink-0">{s.date}</span>
-              <span className="text-white">{s.employee?.first_name} {s.employee?.last_name}</span>
+              <span className="text-white">{s.employee?.name}</span>
               <span className={`ml-auto text-xs px-2 py-0.5 rounded ${
                 s.status === 'active' ? 'bg-green-900 text-green-300' :
                 s.status === 'completed' ? 'bg-gray-800 text-gray-400' : 'bg-gray-900 text-gray-500'
@@ -248,7 +248,7 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white text-sm font-medium">
-                    {insp.driver ? `${insp.driver.first_name} ${insp.driver.last_name}` : 'Unknown Driver'}
+                    {insp.driver ? insp.driver.name : 'Unknown Driver'}
                   </p>
                   <p className="text-gray-500 text-xs">
                     {insp.inspection_type === 'pre_trip' ? 'Pre-Trip' : 'Post-Trip'} ·{' '}
@@ -284,7 +284,7 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
                 <div key={insp.id} className="space-y-2">
                   <p className="text-gray-400 text-sm">
                     {insp.inspection_type === 'pre_trip' ? 'Pre-Trip' : 'Post-Trip'} — {insp.inspection_date}
-                    {insp.driver ? ` · ${insp.driver.first_name} ${insp.driver.last_name}` : ''}
+                    {insp.driver ? ` · ${insp.driver.name}` : ''}
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {images.map((img, idx) => (

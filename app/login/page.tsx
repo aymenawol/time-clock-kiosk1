@@ -14,7 +14,7 @@ function redirectByRole(role: string | undefined, adminRedirectTo: string, route
   if (role === "technician") { router.replace("/technician"); return }
   if (role === "fueler_washer") { router.replace("/fueler"); return }
   if (role === "payroll") { router.replace("/admin/payroll"); return }
-  // drivers: no routing here — they use the kiosk screen
+  if (role === "driver") { router.replace("/driver"); return }
 }
 
 function LoginForm() {
@@ -69,13 +69,6 @@ function LoginForm() {
     }
 
     redirectByRole(role, redirectTo, router)
-
-    // Drivers shouldn't log in from this portal
-    if (role === "driver") {
-      await supabase.auth.signOut()
-      setError("Driver login is available from the main kiosk screen.")
-      setLoading(false)
-    }
   }
 
   return (
@@ -90,7 +83,7 @@ function LoginForm() {
             <span className="text-white text-2xl font-bold">RC</span>
           </div>
           <h1 className="text-white text-2xl font-bold">Rolecall</h1>
-          <p className="text-gray-400 text-sm mt-1">Staff Login</p>
+          <p className="text-gray-400 text-sm mt-1">Sign In</p>
         </div>
 
         {/* Card */}
@@ -153,11 +146,7 @@ function LoginForm() {
           </form>
 
           <p className="mt-6 text-center text-xs text-gray-600">
-            Driver? Log in from the{" "}
-            <a href="/" className="text-gray-400 underline underline-offset-2">
-              kiosk screen
-            </a>
-            .
+            Trouble signing in? Contact your administrator.
           </p>
         </div>
       </div>

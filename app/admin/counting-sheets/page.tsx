@@ -16,7 +16,7 @@ export default async function CountingSheetsReviewPage({
     .from('counting_sheets')
     .select(`
       id, date, status, submitted_at, start_time, end_time,
-      driver:driver_id(id, first_name, last_name, seniority_number),
+      driver:driver_id(id, name, seniority_number),
       bus:bus_id(bus_number, bus_type),
       counting_rows(id, row_order, departure_time, rac, t1, t3, term1, term3_west, term3_east)
     `)

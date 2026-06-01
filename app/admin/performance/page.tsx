@@ -19,7 +19,7 @@ export default async function PerformancePage() {
   const { data: employees } = await supabase
     .from('employees')
     .select(`
-      id, full_name, role,
+      id, name, role,
       driver_performance_snapshots(
         snapshot_date, attendance_status, missed_breaks_count,
         safety_meetings_attended, safety_meetings_missed,
@@ -27,12 +27,12 @@ export default async function PerformancePage() {
       )
     `)
     .in('role', ['driver', 'fueler_washer'])
-    .order('full_name')
+    .order('name')
     .gte('driver_performance_snapshots.snapshot_date', cutoff)
 
   type RawEmp = {
     id: string
-    full_name: string
+    name: string
     role: string
     driver_performance_snapshots: {
       snapshot_date: string
@@ -46,9 +46,9 @@ export default async function PerformancePage() {
   }
 
   const formatted = (employees ?? []).map((e: RawEmp) => ({
-    id:        e.id,
-    full_name: e.full_name,
-    role:      e.role,
+    id:   e.id,
+    name: e.name,
+    role: e.role,
     snapshots: (e.driver_performance_snapshots ?? []).sort((a, b) =>
       b.snapshot_date.localeCompare(a.snapshot_date)
     ),

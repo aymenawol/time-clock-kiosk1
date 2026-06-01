@@ -29,7 +29,7 @@ interface Shift {
   breaks: Break[]
 }
 
-interface Employee { id: string; first_name: string; last_name: string; seniority_number: number | null }
+interface Employee { id: string; name: string; seniority_number: number | null }
 interface OtBanner { id: string; is_active: boolean; message: string | null }
 
 const RADIO_CODES = [
@@ -103,6 +103,7 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
         setGpsError(null)
 
         await supabase.from('bus_positions').insert({
+          driver_id:  employee?.id ?? null,
           bus_id:     currentShift.bus?.id ?? null,
           shift_id:   currentShift.id,
           latitude:   pos.coords.latitude,
@@ -161,7 +162,7 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
         currentShift.bus?.id ?? null,
         currentShift.bus?.bus_number ?? null,
         code,
-        employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown Driver'
+        employee ? employee.name : 'Unknown Driver'
       )
     })
   }
@@ -222,7 +223,7 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
       {/* Greeting */}
       <div>
         <h1 className="text-2xl font-bold text-white">
-          Hello, {employee.first_name}!
+          Hello, {employee.name}!
         </h1>
         <p className="text-gray-500 text-sm">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}

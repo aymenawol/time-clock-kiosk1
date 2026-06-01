@@ -57,28 +57,29 @@ export async function resolveEmergencyAction(eventId: string) {
 }
 
 export async function getEmergencyAckStatusAction(eventId: string) {
+  await assertAdmin()
   const admin = createSupabaseAdmin()
 
   const [{ data: acks }, { data: drivers }] = await Promise.all([
     admin.from('emergency_acknowledgements')
-      .select('employee_id, acknowledged_at, employees(full_name)')
+      .select('employee_id, acknowledged_at, employees(name)')
       .eq('event_id', eventId),
     admin.from('employees')
-      .select('id, full_name')
+      .select('id, name')
       .in('role', ['driver', 'dispatcher', 'supervisor', 'coordinator', 'fueler_washer']),
   ])
 
   const ackedIds = new Set((acks ?? []).map((a: { employee_id: string }) => a.employee_id))
 
-  type Emp = { id: string; full_name: string }
+  type Emp = { id: string; name: string }
   const unacknowledged = (drivers ?? []).filter((d: Emp) => !ackedIds.has(d.id))
-  const acknowledged   = (acks ?? []).map((a: {
+  const acknowledged   = ((acks ?? []) as unknown as Array<{
     employee_id: string
     acknowledged_at: string
-    employees: { full_name: string } | null
-  }) => ({
+    employees: { name: string } | null
+  }>).map((a) => ({
     employeeId:     a.employee_id,
-    name:           a.employees?.full_name ?? 'Unknown',
+    name:           a.employees?.name ?? 'Unknown',
     acknowledgedAt: a.acknowledged_at,
   }))
 

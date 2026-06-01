@@ -21,7 +21,7 @@ export default async function AdminInspectionsPage({
     .from('vehicle_inspections')
     .select(`
       id, inspection_type, inspection_date, is_locked, submitted_at, has_defects, damage_drawing,
-      driver:driver_id(first_name, last_name),
+      driver:driver_id(name),
       bus:bus_id(bus_number),
       inspection_items(id, item_name, passed)
     `, { count: 'exact' })

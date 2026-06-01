@@ -14,7 +14,7 @@ interface Snapshot {
 
 interface Employee {
   id:         string
-  full_name:  string
+  name:       string
   role:       string
   snapshots:  Snapshot[]
 }
@@ -76,7 +76,7 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
   const [expandedId, setExpandedId]     = useState<string | null>(null)
 
   const filtered = employees.filter(e =>
-    e.full_name.toLowerCase().includes(search.toLowerCase())
+    e.name.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -119,7 +119,7 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
                 className="w-full text-left px-5 py-4 flex items-center justify-between"
               >
                 <div>
-                  <div className="text-white font-medium">{emp.full_name}</div>
+                  <div className="text-white font-medium">{emp.name}</div>
                   <div className="text-gray-500 text-xs capitalize">{emp.role}</div>
                 </div>
                 {agg ? (

@@ -74,12 +74,12 @@ export async function calculatePayPeriodHoursAction(payPeriodId: string) {
     const clockIn  = new Date(shift.actual_start)
     const hasClockOut = !!shift.actual_end
 
-    const { regular_hours: reg, overtime_hours: ot, totalHours } = hasClockOut
+    const { regularHours: reg, overtimeHours: ot, totalHours } = hasClockOut
       ? calcDailyHours(clockIn, new Date(shift.actual_end!))
-      : { regular_hours: 0, overtime_hours: 0, totalHours: 0 }
+      : { regularHours: 0, overtimeHours: 0, totalHours: 0 }
 
     // Count missed breaks
-    const missedBreaks = ((shift.breaks as unknown[]) ?? []).filter((b: Record<string, unknown>) => b.status === 'missed').length
+    const missedBreaks = ((shift.breaks as unknown[]) ?? []).filter((b) => (b as Record<string, unknown>).status === 'missed').length
 
     records.push({
       employee_id:   shift.employee_id,

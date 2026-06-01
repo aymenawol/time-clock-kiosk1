@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import SafetyMeetingSchedule from "@/components/safety-meeting-schedule"
-import { getSafetyMeetingScheduleByShareToken } from "@/lib/api"
+import { createBrowserClient } from "@supabase/ssr"
 import type { SafetyMeetingSchedule as SafetyMeetingScheduleType } from "@/lib/supabase"
 
 export default function SafetyMeetingPage() {
@@ -16,9 +16,18 @@ export default function SafetyMeetingPage() {
   useEffect(() => {
     async function loadSchedule() {
       try {
-        const data = await getSafetyMeetingScheduleByShareToken(token)
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+        const { data } = await supabase
+          .from("safety_meeting_schedules")
+          .select("*")
+          .eq("share_token", token)
+          .eq("is_active", true)
+          .single()
         if (data) {
-          setSchedule(data)
+          setSchedule(data as SafetyMeetingScheduleType)
         } else {
           setError("Schedule not found or has been removed.")
         }
