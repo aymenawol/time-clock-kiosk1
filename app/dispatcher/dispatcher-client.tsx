@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { reEnableBreakAction } from './actions'
 
 interface BreakRow {
   id: string
@@ -79,6 +80,7 @@ function BreakBadge({ brk }: { brk: BreakRow | undefined; }) {
 
 export default function DispatcherClient({ initialShifts, initialBuses, availableTablets, today }: Props) {
   const router = useRouter()
+  const [, startReenable] = useTransition()
   const [shifts, setShifts] = useState<ShiftRow[]>(initialShifts)
   const [buses,  setBuses]  = useState<BusRow[]>(initialBuses)
   const [now, setNow]       = useState(new Date())
@@ -130,6 +132,13 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
     s.breaks.filter(b => ['active', 'overrun', 'missed'].includes(b.status))
       .map(b => ({ shift: s, brk: b }))
   )
+
+  function handleReEnable(breakId: string) {
+    startReenable(async () => {
+      await reEnableBreakAction(breakId)
+      router.refresh()
+    })
+  }
 
   return (
     <div className="space-y-4">
@@ -272,6 +281,14 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
                     Break {b.break_number} · Bus #{s.bus?.bus_number ?? '?'}
                     {b.actual_start && ` · Started ${formatTime(b.actual_start)}`}
                   </p>
+                  {(b.status === 'missed' || b.status === 'overrun') && (
+                    <button
+                      onClick={() => handleReEnable(b.id)}
+                      className="mt-1.5 text-[11px] font-medium px-2 py-1 rounded bg-blue-800 hover:bg-blue-700 text-blue-100"
+                    >
+                      Re-enable break
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

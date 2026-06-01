@@ -417,3 +417,25 @@ entrypoint = "./functions/health-check/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/health-check/*.html" ]
+
+# Server-to-server functions invoked by pg_cron. verify_jwt=true keeps them
+# callable only with the service-role bearer (not publicly).
+[functions.notification-processor]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/notification-processor/index.ts"
+
+[functions.wheelchair-escalation]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/wheelchair-escalation/index.ts"
+
+[functions.chat-reminder]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/chat-reminder/index.ts"
+
+[functions.break-monitor]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/break-monitor/index.ts"
