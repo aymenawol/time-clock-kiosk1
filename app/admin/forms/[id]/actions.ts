@@ -16,7 +16,7 @@ export async function reviewFormAction(
   if (!auth.ok) throw new Error(auth.error)
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('form_submissions')
     .update({
       status,
@@ -25,8 +25,29 @@ export async function reviewFormAction(
       reviewer_comments: comments || null,
     })
     .eq('id', submissionId)
+    .select('employee_id, form_type')
+    .single()
 
   if (error) throw new Error(error.message)
+
+  // Notify the submitter (in-app via queue→trigger; email via processor).
+  if (updated?.employee_id) {
+    const eventType = status === 'approved' ? 'form_approved'
+      : status === 'denied' ? 'form_denied' : 'form_returned'
+    const label = String(updated.form_type ?? 'form').replace(/_/g, ' ')
+    const admin = createSupabaseAdmin()
+    await admin.from('notification_queue').insert({
+      recipient_id: updated.employee_id,
+      event_type:   eventType,
+      channel:      'in_app',
+      payload: {
+        title:   `Form ${status}`,
+        message: `Your ${label} request was ${status}.${comments ? ` Note: ${comments}` : ''}`,
+        submission_id: submissionId,
+      },
+    })
+  }
+
   revalidatePath('/admin/forms')
   revalidatePath(`/admin/forms/${submissionId}`)
 }

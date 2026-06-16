@@ -3,6 +3,8 @@ import { getServerUserRole } from "@/lib/supabase-server"
 import Link from "next/link"
 import { AdminNav } from "./admin-nav"
 import SignOutButton from "@/components/sign-out-button"
+import NotificationBell from "@/components/notification-bell"
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const ADMIN_ROLES = ["admin", "management"]
 
@@ -18,24 +20,28 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Top nav */}
-      <header className="border-b border-gray-800 bg-gray-900 sticky top-0 z-40">
+      <header className="border-b border-border bg-card sticky top-0 z-40">
         {/* Title row */}
-        <div className="px-4 h-11 flex items-center justify-between border-b border-gray-800/50">
+        <div className="px-4 h-11 flex items-center justify-between border-b border-border/50">
           <Link
             href="/admin/employees"
-            className="flex items-center gap-2 font-bold text-white text-sm"
+            className="flex items-center gap-2 font-bold text-foreground text-sm"
           >
             <span
               className="inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold"
-              style={{ backgroundColor: "#E31E24" }}
+              style={{ backgroundColor: "#2563EB" }}
             >
               RC
             </span>
             <span>Rolecall</span>
           </Link>
-          <SignOutButton />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+          <NotificationBell />
+            <SignOutButton />
+          </div>
         </div>
         {/* Scrollable nav row */}
         <div className="overflow-x-auto scrollbar-hide">

@@ -112,30 +112,30 @@ export default function PayrollPeriodClient({ period, records }: Props) {
 
     return (
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setEditingId(null)}>
-        <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 w-full max-w-md" onClick={e => e.stopPropagation()}>
-          <h3 className="text-white font-semibold mb-1">Correct Hours — {record.employee_name}</h3>
-          <p className="text-gray-400 text-sm mb-4">{record.work_date}</p>
+        <div className="bg-card border border-border rounded-xl p-5 w-full max-w-md" onClick={e => e.stopPropagation()}>
+          <h3 className="text-foreground font-semibold mb-1">Correct Hours — {record.employee_name}</h3>
+          <p className="text-muted-foreground text-sm mb-4">{record.work_date}</p>
           <div className="grid grid-cols-3 gap-3 mb-3">
             {[['Regular', reg, setReg], ['OT', ot, setOt], ['PTO', pto, setPto]].map(([label, val, setter]) => (
               <div key={label as string}>
-                <label className="text-gray-400 text-xs block mb-1">{label as string} hrs</label>
+                <label className="text-muted-foreground text-xs block mb-1">{label as string} hrs</label>
                 <input type="number" step="0.25" min="0" value={val as string}
                   onChange={e => (setter as (v: string) => void)(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-white text-sm" />
+                  className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
               </div>
             ))}
           </div>
           <div className="mb-4">
-            <label className="text-gray-400 text-xs block mb-1">Reason (required)</label>
+            <label className="text-muted-foreground text-xs block mb-1">Reason (required)</label>
             <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm resize-none" />
+              className="w-full bg-muted border border-border rounded px-3 py-2 text-foreground text-sm resize-none" />
           </div>
           <div className="flex gap-3">
             <button onClick={handleSave} disabled={isPending}
-              className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+              className="bg-blue-600 hover:bg-blue-500 text-foreground text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
               Save Correction
             </button>
-            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-white text-sm px-4 py-2">Cancel</button>
+            <button onClick={() => setEditingId(null)} className="text-muted-foreground hover:text-foreground text-sm px-4 py-2">Cancel</button>
           </div>
         </div>
       </div>
@@ -158,14 +158,14 @@ export default function PayrollPeriodClient({ period, records }: Props) {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <a href="/admin/payroll" className="text-gray-500 text-sm hover:text-white">← Payroll</a>
-          <h1 className="text-2xl font-bold text-white mt-1">
+          <a href="/admin/payroll" className="text-muted-foreground text-sm hover:text-foreground">← Payroll</a>
+          <h1 className="text-2xl font-bold text-foreground mt-1">
             {new Date(period.period_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             {' — '}
             {new Date(period.period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </h1>
           <div className="flex items-center gap-3 mt-1">
-            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${period.status === 'closed' ? 'bg-gray-800 text-gray-400' : 'bg-green-900/40 text-green-400 border border-green-800'}`}>
+            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${period.status === 'closed' ? 'bg-muted text-muted-foreground' : 'bg-green-900/40 text-green-400 border border-green-800'}`}>
               {period.status}
             </span>
             {incompleteCount > 0 && (
@@ -177,17 +177,17 @@ export default function PayrollPeriodClient({ period, records }: Props) {
         <div className="flex flex-wrap gap-2">
           {period.status === 'open' && (
             <button onClick={handleRecalculate} disabled={isPending}
-              className="bg-blue-700 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50">
+              className="bg-blue-700 hover:bg-blue-600 text-foreground text-sm px-4 py-2 rounded-lg disabled:opacity-50">
               {isPending ? 'Working…' : 'Recalculate Hours'}
             </button>
           )}
           <button onClick={handleExport} disabled={isPending || records.length === 0}
-            className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50">
+            className="bg-gray-700 hover:bg-gray-600 text-foreground text-sm px-4 py-2 rounded-lg disabled:opacity-50">
             Export CSV
           </button>
           {period.status === 'open' && (
             <button onClick={handleClose} disabled={isPending}
-              className="bg-red-700 hover:bg-red-600 text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50">
+              className="bg-red-700 hover:bg-red-600 text-foreground text-sm px-4 py-2 rounded-lg disabled:opacity-50">
               Close Period
             </button>
           )}
@@ -196,17 +196,17 @@ export default function PayrollPeriodClient({ period, records }: Props) {
 
       {/* Summary bar */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-white">{records.length}</p>
-          <p className="text-gray-500 text-xs">Daily Records</p>
+        <div className="bg-card border border-border rounded-xl p-3 text-center">
+          <p className="text-2xl font-bold text-foreground">{records.length}</p>
+          <p className="text-muted-foreground text-xs">Daily Records</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+        <div className="bg-card border border-border rounded-xl p-3 text-center">
           <p className="text-2xl font-bold text-blue-400">{totalRegular.toFixed(1)}</p>
-          <p className="text-gray-500 text-xs">Regular Hours</p>
+          <p className="text-muted-foreground text-xs">Regular Hours</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+        <div className="bg-card border border-border rounded-xl p-3 text-center">
           <p className="text-2xl font-bold text-orange-400">{totalOT.toFixed(1)}</p>
-          <p className="text-gray-500 text-xs">Overtime Hours</p>
+          <p className="text-muted-foreground text-xs">Overtime Hours</p>
         </div>
       </div>
 
@@ -215,7 +215,7 @@ export default function PayrollPeriodClient({ period, records }: Props) {
 
       {/* Per-employee breakdown */}
       {records.length === 0 && (
-        <div className="text-center py-16 text-gray-500">
+        <div className="text-center py-16 text-muted-foreground">
           No records yet. Click &quot;Recalculate Hours&quot; to generate from shift data.
         </div>
       )}
@@ -226,44 +226,44 @@ export default function PayrollPeriodClient({ period, records }: Props) {
         const empPTO  = empRecords.reduce((s, r) => s + r.pto_hours, 0)
         const empTotal = empRecords.reduce((s, r) => s + r.total_paid_hours, 0)
         return (
-          <div key={name} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 bg-gray-800/50 flex items-center justify-between">
-              <span className="text-white font-semibold">{name}</span>
+          <div key={name} className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 bg-muted/50 flex items-center justify-between">
+              <span className="text-foreground font-semibold">{name}</span>
               <div className="flex gap-4 text-sm">
-                <span className="text-gray-400">Reg: <span className="text-blue-400 font-mono">{empReg.toFixed(1)}</span></span>
-                <span className="text-gray-400">OT: <span className="text-orange-400 font-mono">{empOT.toFixed(1)}</span></span>
-                {empPTO > 0 && <span className="text-gray-400">PTO: <span className="text-purple-400 font-mono">{empPTO.toFixed(1)}</span></span>}
-                <span className="text-gray-400">Total: <span className="text-white font-mono font-bold">{empTotal.toFixed(1)}</span></span>
+                <span className="text-muted-foreground">Reg: <span className="text-blue-400 font-mono">{empReg.toFixed(1)}</span></span>
+                <span className="text-muted-foreground">OT: <span className="text-orange-400 font-mono">{empOT.toFixed(1)}</span></span>
+                {empPTO > 0 && <span className="text-muted-foreground">PTO: <span className="text-purple-400 font-mono">{empPTO.toFixed(1)}</span></span>}
+                <span className="text-muted-foreground">Total: <span className="text-foreground font-mono font-bold">{empTotal.toFixed(1)}</span></span>
               </div>
             </div>
 
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
-                  <th className="text-left text-gray-500 px-4 py-2 font-normal text-xs">Date</th>
-                  <th className="text-right text-gray-500 px-3 py-2 font-normal text-xs">Regular</th>
-                  <th className="text-right text-gray-500 px-3 py-2 font-normal text-xs">OT</th>
-                  <th className="text-right text-gray-500 px-3 py-2 font-normal text-xs">PTO</th>
-                  <th className="text-right text-gray-500 px-3 py-2 font-normal text-xs">Total</th>
-                  <th className="text-right text-gray-500 px-3 py-2 font-normal text-xs">Missed Breaks</th>
+                <tr className="border-b border-border">
+                  <th className="text-left text-muted-foreground px-4 py-2 font-normal text-xs">Date</th>
+                  <th className="text-right text-muted-foreground px-3 py-2 font-normal text-xs">Regular</th>
+                  <th className="text-right text-muted-foreground px-3 py-2 font-normal text-xs">OT</th>
+                  <th className="text-right text-muted-foreground px-3 py-2 font-normal text-xs">PTO</th>
+                  <th className="text-right text-muted-foreground px-3 py-2 font-normal text-xs">Total</th>
+                  <th className="text-right text-muted-foreground px-3 py-2 font-normal text-xs">Missed Breaks</th>
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
               <tbody>
                 {empRecords.sort((a, b) => a.work_date.localeCompare(b.work_date)).map(r => (
-                  <tr key={r.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                    <td className="px-4 py-2 text-gray-300">
+                  <tr key={r.id} className="border-b border-border/50 hover:bg-muted/30">
+                    <td className="px-4 py-2 text-foreground">
                       {new Date(r.work_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                       {r.is_incomplete && <span className="ml-2 text-red-400 text-xs">⚠ missing</span>}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-blue-300">{r.regular_hours.toFixed(2)}</td>
                     <td className="px-3 py-2 text-right font-mono text-orange-300">{r.overtime_hours > 0 ? r.overtime_hours.toFixed(2) : '—'}</td>
                     <td className="px-3 py-2 text-right font-mono text-purple-300">{r.pto_hours > 0 ? r.pto_hours.toFixed(2) : '—'}</td>
-                    <td className="px-3 py-2 text-right font-mono text-white font-semibold">{r.total_paid_hours.toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right text-gray-400">{r.missed_breaks > 0 ? <span className="text-red-400">{r.missed_breaks}</span> : '—'}</td>
+                    <td className="px-3 py-2 text-right font-mono text-foreground font-semibold">{r.total_paid_hours.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right text-muted-foreground">{r.missed_breaks > 0 ? <span className="text-red-400">{r.missed_breaks}</span> : '—'}</td>
                     <td className="px-3 py-2 text-right">
                       {period.status === 'open' && (
-                        <button onClick={() => setEditingId(r.id)} className="text-gray-600 hover:text-gray-300 text-xs">edit</button>
+                        <button onClick={() => setEditingId(r.id)} className="text-gray-600 hover:text-foreground text-xs">edit</button>
                       )}
                     </td>
                   </tr>

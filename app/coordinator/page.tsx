@@ -11,7 +11,7 @@ export default async function CoordinatorPage() {
     .from('shifts')
     .select(`
       id, date, status, scheduled_start, scheduled_end, actual_start, actual_end,
-      radio_status, notes,
+      radio_status, notes, compliance_verdict, compliance_note,
       employee:employee_id(id, name, seniority_number),
       bus:bus_id(id, bus_number, bus_type, fuel_level, status),
       tablet:tablet_id(id, tablet_number),

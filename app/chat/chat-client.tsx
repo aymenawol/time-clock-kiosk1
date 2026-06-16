@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useTransition } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { sendMessageAction, markReadAction, confirmMessageAction, deleteMessageAction } from './actions'
+import { sendMessageAction, markReadAction, markDeliveredAction, confirmMessageAction, deleteMessageAction } from './actions'
+import { triggerEmergencyAction } from '@/app/admin/emergency/actions'
 
 interface Message {
   id: string
@@ -14,6 +15,22 @@ interface Message {
   sender_id: string
   sender_name: string
   confirmed_by: string[]  // confirmer IDs
+  delivered_by: string[]  // recipient IDs that received it
+  read_by: string[]       // reader IDs that opened it
+}
+
+// N10 — delivery status ladder for the sender's own messages.
+function StatusLadder({ msg }: { msg: Message }) {
+  const delivered = msg.delivered_by.length
+  const read = msg.read_by.length
+  const confirmed = msg.confirmed_by.length
+  let label: string
+  let cls: string
+  if (msg.requires_confirmation && confirmed > 0) { label = `✓✓ Confirmed (${confirmed})`; cls = 'text-green-400' }
+  else if (read > 0) { label = `✓✓ Read (${read})`; cls = 'text-blue-400' }
+  else if (delivered > 0) { label = `✓✓ Delivered (${delivered})`; cls = 'text-muted-foreground' }
+  else { label = '✓ Sent'; cls = 'text-gray-600' }
+  return <span className={`text-xs ${cls}`} title="Sent → Delivered → Read → Confirmed">{label}</span>
 }
 
 interface Room {
@@ -36,6 +53,7 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
   const [requireConfirm, setRequireConfirm] = useState(false)
   const [isPending, startTransition]      = useTransition()
   const [unconfirmedIds, setUnconfirmedIds] = useState<Set<string>>(new Set())
+  const [emergencyError, setEmergencyError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const activeMessages = messages[activeRoomId ?? ''] ?? []
@@ -47,13 +65,17 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [activeMessages.length])
 
-  // Mark messages as read when room is open
+  // Mark messages as delivered + read when room is open (others' messages only)
   useEffect(() => {
     if (!activeRoomId) return
-    const unread = activeMessages.filter(m => !m.is_deleted).map(m => m.id)
-    if (unread.length) markReadAction(unread)
+    const others = activeMessages.filter(m => !m.is_deleted && m.sender_id !== currentEmployeeId)
+    const ids = others.map(m => m.id)
+    if (ids.length) {
+      markReadAction(ids)
+      ids.forEach(id => { void markDeliveredAction(id) })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRoomId])
+  }, [activeRoomId, activeMessages.length])
 
   // Compute which messages this user hasn't confirmed
   useEffect(() => {
@@ -82,7 +104,7 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
           ...prev,
           [m.room_id]: [
             ...(prev[m.room_id] ?? []),
-            { ...m, sender_name: 'Loading…', confirmed_by: [] },
+            { ...m, sender_name: 'Loading…', confirmed_by: [], delivered_by: [], read_by: [] },
           ],
         }))
       })
@@ -101,8 +123,36 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
           const next = { ...prev }
           for (const [roomId, msgs] of Object.entries(next)) {
             next[roomId] = msgs.map(m =>
-              m.id === c.message_id
+              m.id === c.message_id && !m.confirmed_by.includes(c.confirmer_id)
                 ? { ...m, confirmed_by: [...m.confirmed_by, c.confirmer_id] }
+                : m
+            )
+          }
+          return next
+        })
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_deliveries' }, payload => {
+        const d = payload.new as { message_id: string; recipient_id: string }
+        setMessages(prev => {
+          const next = { ...prev }
+          for (const [roomId, msgs] of Object.entries(next)) {
+            next[roomId] = msgs.map(m =>
+              m.id === d.message_id && !m.delivered_by.includes(d.recipient_id)
+                ? { ...m, delivered_by: [...m.delivered_by, d.recipient_id] }
+                : m
+            )
+          }
+          return next
+        })
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_reads' }, payload => {
+        const r = payload.new as { message_id: string; reader_id: string }
+        setMessages(prev => {
+          const next = { ...prev }
+          for (const [roomId, msgs] of Object.entries(next)) {
+            next[roomId] = msgs.map(m =>
+              m.id === r.message_id && !m.read_by.includes(r.reader_id)
+                ? { ...m, read_by: [...m.read_by, r.reader_id] }
                 : m
             )
           }
@@ -127,14 +177,26 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
+  // N10 — broadcast an emergency alert (admin only). Creates an active
+  // emergency_event; drivers/operators acknowledge it from their dashboards.
+  function handleSendEmergency() {
+    setEmergencyError(null)
+    const message = window.prompt('Emergency alert message to broadcast to all field staff:')
+    if (!message?.trim()) return
+    startTransition(async () => {
+      const res = await triggerEmergencyAction('custom', message.trim())
+      if (res?.error) setEmergencyError(res.error)
+    })
+  }
+
   return (
-    <div className="flex h-[calc(100vh-56px)] bg-gray-950">
+    <div className="flex h-[calc(100vh-56px)] bg-background">
       {/* Sidebar: room list */}
-      <div className="w-64 border-r border-gray-800 flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
-          <span className="text-white font-semibold text-sm">Rooms</span>
+      <div className="w-64 border-r border-border flex flex-col">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <span className="text-foreground font-semibold text-sm">Rooms</span>
           {unconfirmedIds.size > 0 && (
-            <span className="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+            <span className="bg-red-600 text-foreground text-xs font-bold px-2 py-0.5 rounded-full">
               {unconfirmedIds.size}
             </span>
           )}
@@ -149,12 +211,12 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
               <button
                 key={room.id}
                 onClick={() => setActiveRoomId(room.id)}
-                className={`w-full text-left px-4 py-3 border-b border-gray-800/50 transition-colors ${isActive ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}
+                className={`w-full text-left px-4 py-3 border-b border-border/50 transition-colors ${isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-card hover:text-foreground'}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm">{room.name}</span>
                   {roomUnconfirmed > 0 && (
-                    <span className="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                    <span className="bg-red-600 text-foreground text-xs font-bold px-1.5 py-0.5 rounded-full">
                       {roomUnconfirmed}
                     </span>
                   )}
@@ -185,13 +247,13 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
                   <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-md ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
                       {!isOwn && (
-                        <span className="text-gray-500 text-xs px-1">{msg.sender_name}</span>
+                        <span className="text-muted-foreground text-xs px-1">{msg.sender_name}</span>
                       )}
                       <div className={`rounded-2xl px-4 py-2.5 ${
-                        msg.is_deleted          ? 'bg-gray-800 text-gray-500 italic' :
+                        msg.is_deleted          ? 'bg-muted text-muted-foreground italic' :
                         msg.message_type === 'emergency_alert' ? 'bg-red-900 text-red-100 border border-red-700' :
-                        isOwn                   ? 'bg-blue-700 text-white' :
-                                                  'bg-gray-800 text-white'
+                        isOwn                   ? 'bg-blue-700 text-foreground' :
+                                                  'bg-muted text-foreground'
                       }`}>
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                       </div>
@@ -203,7 +265,7 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
                           {needsConfirm && (
                             <button
                               onClick={() => startTransition(() => { void confirmMessageAction(msg.id) })}
-                              className="text-xs bg-green-800 hover:bg-green-700 text-white px-2 py-0.5 rounded-full"
+                              className="text-xs bg-green-800 hover:bg-green-700 text-foreground px-2 py-0.5 rounded-full"
                             >
                               Confirm Read
                             </button>
@@ -218,6 +280,7 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
                         <span className="text-gray-600 text-xs">
                           {new Date(msg.sent_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                         </span>
+                        {isOwn && !msg.is_deleted && <StatusLadder msg={msg} />}
                         {isAdmin && !msg.is_deleted && (
                           <button
                             onClick={() => { if (confirm('Remove this message?')) startTransition(() => { void deleteMessageAction(msg.id) }) }}
@@ -235,7 +298,20 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
             </div>
 
             {/* Input area */}
-            <div className="border-t border-gray-800 p-4">
+            <div className="border-t border-border p-4">
+              {isAdmin && (
+                <div className="mb-2">
+                  <button
+                    type="button"
+                    onClick={handleSendEmergency}
+                    disabled={isPending}
+                    className="text-xs bg-red-700 hover:bg-red-600 text-foreground px-3 py-1.5 rounded-lg font-semibold disabled:opacity-50"
+                  >
+                    🚨 Send Emergency Alert
+                  </button>
+                  {emergencyError && <p className="text-red-400 text-xs mt-1">{emergencyError}</p>}
+                </div>
+              )}
               {canManage && (
                 <div className="mb-2 flex items-center gap-2">
                   <input
@@ -245,7 +321,7 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
                     onChange={e => setRequireConfirm(e.target.checked)}
                     className="rounded"
                   />
-                  <label htmlFor="req-confirm" className="text-gray-400 text-xs cursor-pointer">
+                  <label htmlFor="req-confirm" className="text-muted-foreground text-xs cursor-pointer">
                     Require confirmation from all recipients
                   </label>
                 </div>
@@ -257,12 +333,12 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message… (Enter to send, Shift+Enter for newline)"
                   rows={2}
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white text-sm resize-none placeholder-gray-600 focus:outline-none focus:border-gray-500"
+                  className="flex-1 bg-muted border border-border rounded-xl px-4 py-2 text-foreground text-sm resize-none placeholder-gray-600 focus:outline-none focus:border-gray-500"
                 />
                 <button
                   onClick={handleSend}
                   disabled={isPending || !draft.trim()}
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-5 rounded-xl font-semibold text-sm disabled:opacity-40 transition-colors"
+                  className="bg-blue-600 hover:bg-blue-500 text-foreground px-5 rounded-xl font-semibold text-sm disabled:opacity-40 transition-colors"
                 >
                   Send
                 </button>

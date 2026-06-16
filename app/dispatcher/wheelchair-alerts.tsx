@@ -137,11 +137,11 @@ export default function WheelchairAlertsPanel() {
           }`}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-white font-medium text-sm">{r.passenger_name}</div>
-                <div className="text-gray-400 text-xs mt-0.5">
+                <div className="text-foreground font-medium text-sm">{r.passenger_name}</div>
+                <div className="text-muted-foreground text-xs mt-0.5">
                   {r.airline_name} · Flight {r.flight_number} · Bus {r.bus_number}
                 </div>
-                <div className="text-gray-500 text-xs">Driver: {r.driver_name}</div>
+                <div className="text-muted-foreground text-xs">Driver: {r.driver_name}</div>
                 <div className="text-gray-600 text-xs">
                   {new Date(r.submitted_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                 </div>
@@ -158,14 +158,14 @@ export default function WheelchairAlertsPanel() {
                   <>
                     <button
                       onClick={() => { setResponding(r.id); setResponseText('') }}
-                      className="text-xs bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded"
+                      className="text-xs bg-gray-700 hover:bg-gray-600 text-foreground px-2 py-1 rounded"
                     >
                       Respond
                     </button>
                     <button
                       onClick={() => handleResolve(r.id)}
                       disabled={isPending}
-                      className="text-xs bg-green-800 hover:bg-green-700 text-white px-2 py-1 rounded"
+                      className="text-xs bg-green-800 hover:bg-green-700 text-foreground px-2 py-1 rounded"
                     >
                       Resolve
                     </button>
@@ -180,16 +180,16 @@ export default function WheelchairAlertsPanel() {
                   value={responseText}
                   onChange={e => setResponseText(e.target.value)}
                   placeholder="Type your response to the driver…"
-                  className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
+                  className="flex-1 bg-muted border border-gray-600 rounded-lg px-3 py-2 text-foreground text-sm"
                 />
                 <button
                   onClick={() => handleRespond(r.id)}
                   disabled={isPending || !responseText.trim()}
-                  className="bg-blue-700 hover:bg-blue-600 text-white text-sm px-3 py-2 rounded-lg"
+                  className="bg-blue-700 hover:bg-blue-600 text-foreground text-sm px-3 py-2 rounded-lg"
                 >
                   Send
                 </button>
-                <button onClick={() => setResponding(null)} className="text-gray-500 hover:text-gray-300 text-sm px-2">
+                <button onClick={() => setResponding(null)} className="text-muted-foreground hover:text-foreground text-sm px-2">
                   ×
                 </button>
               </div>

@@ -70,8 +70,8 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
     return (
       <div className="text-center py-20">
         <p className="text-3xl mb-3">🔋</p>
-        <p className="text-gray-400">No active shift today.</p>
-        <button onClick={() => router.back()} className="mt-4 text-gray-500 text-sm hover:text-gray-300">← Back</button>
+        <p className="text-muted-foreground">No active shift today.</p>
+        <button onClick={() => router.back()} className="mt-4 text-muted-foreground text-sm hover:text-foreground">← Back</button>
       </div>
     )
   }
@@ -80,13 +80,13 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
     return (
       <div className="text-center py-20">
         <p className="text-5xl mb-4">✅</p>
-        <h2 className="text-xl font-bold text-white mb-2">End of Shift Submitted</h2>
-        <p className="text-gray-400 text-sm mb-6">
+        <h2 className="text-xl font-bold text-foreground mb-2">End of Shift Submitted</h2>
+        <p className="text-muted-foreground text-sm mb-6">
           {bus ? `Bus #${bus.bus_number}` : 'Bus'} status has been updated.
         </p>
         <button
           onClick={() => router.push('/driver')}
-          className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg text-sm"
+          className="bg-blue-600 hover:bg-blue-500 text-foreground px-6 py-2 rounded-lg text-sm"
         >
           Back to Dashboard
         </button>
@@ -97,10 +97,10 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
   return (
     <div className="space-y-6">
       <div>
-        <button onClick={() => router.back()} className="text-gray-500 text-sm hover:text-gray-300 mb-2">← Back</button>
-        <h1 className="text-2xl font-bold text-white">End of Shift</h1>
+        <button onClick={() => router.back()} className="text-muted-foreground text-sm hover:text-foreground mb-2">← Back</button>
+        <h1 className="text-2xl font-bold text-foreground">End of Shift</h1>
         {bus && (
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Bus #{bus.bus_number} — {bus.bus_type}
           </p>
         )}
@@ -111,14 +111,14 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
       )}
 
       {/* Fuel / Battery Input */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-300">
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">
           {isEV ? 'Battery Level' : 'Fuel Level'}
         </h2>
 
         {isEV ? (
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Battery % *</label>
+            <label className="block text-xs text-muted-foreground mb-1">Battery % *</label>
             <input
               type="number"
               min="0"
@@ -126,7 +126,7 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
               value={evBattery}
               onChange={e => setEvBattery(e.target.value)}
               placeholder="0–100"
-              className="w-full bg-gray-950 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm"
+              className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm"
             />
             {!isNaN(evPct) && evPct >= 0 && (
               <p className={`text-xs mt-1.5 ${evPct >= 50 ? 'text-green-400' : 'text-yellow-400'}`}>
@@ -136,7 +136,7 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
           </div>
         ) : (
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Fuel Level *</label>
+            <label className="block text-xs text-muted-foreground mb-1">Fuel Level *</label>
             <div className="grid grid-cols-2 gap-2">
               {DIESEL_LABELS.map(label => (
                 <button
@@ -144,8 +144,8 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
                   onClick={() => setDieselLabel(label)}
                   className={`border rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     dieselLabel === label
-                      ? 'bg-blue-700 border-blue-500 text-white'
-                      : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500'
+                      ? 'bg-blue-700 border-blue-500 text-foreground'
+                      : 'bg-card border-border text-muted-foreground hover:border-gray-500'
                   }`}
                 >
                   {label}
@@ -157,11 +157,11 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
       </div>
 
       {/* Bus Status */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-300">Bus Status After Shift</h2>
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Bus Status After Shift</h2>
         {isEV && !isNaN(evPct) && evPct >= 0 && (
-          <p className="text-xs text-gray-500">
-            EV auto-classification: <span className="text-gray-300">{evAutoStatus === 'ready' ? 'Ready' : 'Charge Required'}</span>. Override below if needed.
+          <p className="text-xs text-muted-foreground">
+            EV auto-classification: <span className="text-foreground">{evAutoStatus === 'ready' ? 'Ready' : 'Charge Required'}</span>. Override below if needed.
           </p>
         )}
         <div className="space-y-2">
@@ -172,7 +172,7 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
               className={`w-full border rounded-lg px-4 py-3 text-sm text-left transition-colors ${
                 statusSubmitted === opt.value
                   ? opt.color + ' ring-2 ring-offset-1 ring-offset-gray-900 ring-white/30'
-                  : 'bg-gray-950 border-gray-700 text-gray-400 hover:border-gray-500'
+                  : 'bg-background border-border text-muted-foreground hover:border-gray-500'
               }`}
             >
               {opt.label}
@@ -182,21 +182,21 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
       </div>
 
       {/* Notes */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-        <label className="block text-xs text-gray-500 mb-1">Notes (optional)</label>
+      <div className="bg-card border border-border rounded-xl p-4">
+        <label className="block text-xs text-muted-foreground mb-1">Notes (optional)</label>
         <textarea
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={3}
           placeholder="Any issues, damage, or comments…"
-          className="w-full bg-gray-950 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm resize-none"
+          className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm resize-none"
         />
       </div>
 
       <button
         onClick={handleSubmit}
         disabled={isPending}
-        className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-xl text-sm"
+        className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground font-semibold rounded-xl text-sm"
       >
         {isPending ? 'Submitting…' : 'Submit End of Shift'}
       </button>

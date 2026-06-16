@@ -23,7 +23,7 @@ interface Props {
 const STATUS_COLOR: Record<string, string> = {
   active:    'bg-blue-900 text-blue-300',
   completed: 'bg-green-900 text-green-300',
-  scheduled: 'bg-gray-700 text-gray-400',
+  scheduled: 'bg-gray-700 text-muted-foreground',
   cancelled: 'bg-red-900 text-red-400',
 }
 
@@ -73,25 +73,25 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Sign-In Sheets</h1>
-          <p className="text-gray-500 text-sm">{totalCount} shift{totalCount !== 1 ? 's' : ''} · {dateFilter}</p>
+          <h1 className="text-2xl font-bold text-foreground">Sign-In Sheets</h1>
+          <p className="text-muted-foreground text-sm">{totalCount} shift{totalCount !== 1 ? 's' : ''} · {dateFilter}</p>
         </div>
         <div className="flex items-center gap-2">
           <input
             type="date"
             value={date}
             onChange={e => handleDateChange(e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-1.5 text-sm"
+            className="bg-card border border-border text-foreground rounded-lg px-3 py-1.5 text-sm"
           />
           <button
             onClick={exportCSV}
-            className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-3 py-1.5 rounded-lg border border-gray-700"
+            className="bg-muted hover:bg-gray-700 text-foreground text-sm px-3 py-1.5 rounded-lg border border-border"
           >
             ↓ Export CSV
           </button>
           <button
             onClick={handlePrint}
-            className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-3 py-1.5 rounded-lg border border-gray-700"
+            className="bg-muted hover:bg-gray-700 text-foreground text-sm px-3 py-1.5 rounded-lg border border-border"
           >
             🖨 Print
           </button>
@@ -100,15 +100,15 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
 
       {/* Table */}
       {shifts.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-10 text-center">
-          <p className="text-gray-500">No shifts found for {dateFilter}.</p>
+        <div className="bg-card border border-border rounded-xl p-10 text-center">
+          <p className="text-muted-foreground">No shifts found for {dateFilter}.</p>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800 text-gray-500 text-xs uppercase tracking-wide">
+                <tr className="border-b border-border text-muted-foreground text-xs uppercase tracking-wide">
                   <th className="text-left px-4 py-3">Sen#</th>
                   <th className="text-left px-4 py-3">Name</th>
                   <th className="text-left px-4 py-3">Scheduled</th>
@@ -120,36 +120,36 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
                   <th className="text-left px-4 py-3">Radio</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-border">
                 {shifts.map(s => (
-                  <tr key={s.id} className="hover:bg-gray-800/40">
-                    <td className="px-4 py-3 text-gray-500 text-xs">{s.employee?.seniority_number ?? '—'}</td>
-                    <td className="px-4 py-3 text-white font-medium">
+                  <tr key={s.id} className="hover:bg-muted/40">
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{s.employee?.seniority_number ?? '—'}</td>
+                    <td className="px-4 py-3 text-foreground font-medium">
                       {s.employee ? s.employee.name : '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 tabular-nums">
+                    <td className="px-4 py-3 text-muted-foreground tabular-nums">
                       {s.scheduled_start ?? '—'} – {s.scheduled_end ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 tabular-nums">
+                    <td className="px-4 py-3 text-muted-foreground tabular-nums">
                       {s.actual_start ? new Date(s.actual_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 tabular-nums">
+                    <td className="px-4 py-3 text-muted-foreground tabular-nums">
                       {s.actual_end ? new Date(s.actual_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-400">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {s.bus ? `#${s.bus.bus_number} ${s.bus.bus_type}` : '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-400">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {s.tablet?.tablet_number ?? '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[s.status] ?? 'bg-gray-800 text-gray-500'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[s.status] ?? 'bg-muted text-muted-foreground'}`}>
                         {s.status}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {s.radio_status ? (
-                        <span className="text-xs text-gray-400">{s.radio_status}</span>
+                        <span className="text-xs text-muted-foreground">{s.radio_status}</span>
                       ) : (
                         <span className="text-gray-700">—</span>
                       )}
@@ -165,14 +165,14 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
-          <p className="text-gray-500">
+          <p className="text-muted-foreground">
             Page {page} of {totalPages}
           </p>
           <div className="flex gap-2">
             {page > 1 && (
               <button
                 onClick={() => router.push(`/admin/sign-in-sheets?date=${dateFilter}&page=${page - 1}`)}
-                className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg"
+                className="bg-muted hover:bg-gray-700 text-foreground px-3 py-1.5 rounded-lg"
               >
                 ← Prev
               </button>
@@ -180,7 +180,7 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
             {page < totalPages && (
               <button
                 onClick={() => router.push(`/admin/sign-in-sheets?date=${dateFilter}&page=${page + 1}`)}
-                className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg"
+                className="bg-muted hover:bg-gray-700 text-foreground px-3 py-1.5 rounded-lg"
               >
                 Next →
               </button>

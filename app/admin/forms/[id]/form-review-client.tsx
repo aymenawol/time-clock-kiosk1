@@ -25,12 +25,12 @@ export default function FormReviewClient({ submission }: Props) {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <a href="/admin/forms" className="text-sm text-gray-500 hover:text-gray-300 mb-4 block">← All Forms</a>
+      <a href="/admin/forms" className="text-sm text-muted-foreground hover:text-foreground mb-4 block">← All Forms</a>
 
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-white">{FORM_TYPE_LABELS[submission.form_type]}</h1>
-          <p className="text-gray-400 text-sm mt-0.5">
+          <h1 className="text-xl font-bold text-foreground">{FORM_TYPE_LABELS[submission.form_type]}</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             {submission.employees?.name ?? submission.employee_id} ·{' '}
             Submitted {new Date(submission.submitted_at).toLocaleString()}
             {submission.version > 1 && <> · Resubmission v{submission.version}</>}
@@ -42,12 +42,12 @@ export default function FormReviewClient({ submission }: Props) {
       </div>
 
       {/* Payload display */}
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6">
-        <h2 className="text-sm font-semibold text-gray-300 mb-3">Form Data</h2>
+      <div className="bg-card border border-border rounded-lg p-4 mb-6">
+        <h2 className="text-sm font-semibold text-foreground mb-3">Form Data</h2>
         <dl className="space-y-2">
           {Object.entries(payload).map(([key, val]) => (
             <div key={key} className="grid grid-cols-3 gap-2">
-              <dt className="text-gray-500 text-xs col-span-1 capitalize">{key.replace(/_/g, ' ')}</dt>
+              <dt className="text-muted-foreground text-xs col-span-1 capitalize">{key.replace(/_/g, ' ')}</dt>
               <dd className="text-gray-200 text-xs col-span-2 break-words">
                 {Array.isArray(val) ? val.join(', ') : typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val ?? '—')}
               </dd>
@@ -58,15 +58,15 @@ export default function FormReviewClient({ submission }: Props) {
 
       {/* Review actions */}
       {['submitted','under_review'].includes(submission.status) && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-300">Review Decision</h2>
+        <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-foreground">Review Decision</h2>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Comments (optional)</label>
+            <label className="block text-xs text-muted-foreground mb-1">Comments (optional)</label>
             <textarea
               rows={3}
               value={comments}
               onChange={e => setComments(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
+              className="w-full bg-muted border border-border rounded px-3 py-2 text-foreground text-sm"
             />
           </div>
 
@@ -78,7 +78,7 @@ export default function FormReviewClient({ submission }: Props) {
               <button
                 disabled={pending}
                 onClick={() => act(() => approveResignationAction(submission.id, comments))}
-                className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded disabled:opacity-50"
+                className="px-4 py-2 bg-green-700 hover:bg-green-600 text-foreground text-sm rounded disabled:opacity-50"
               >
                 Approve Resignation
               </button>
@@ -86,7 +86,7 @@ export default function FormReviewClient({ submission }: Props) {
               <button
                 disabled={pending}
                 onClick={() => act(() => reviewFormAction(submission.id, 'approved', comments))}
-                className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded disabled:opacity-50"
+                className="px-4 py-2 bg-green-700 hover:bg-green-600 text-foreground text-sm rounded disabled:opacity-50"
               >
                 Approve
               </button>
@@ -94,14 +94,14 @@ export default function FormReviewClient({ submission }: Props) {
             <button
               disabled={pending}
               onClick={() => act(() => reviewFormAction(submission.id, 'denied', comments))}
-              className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white text-sm rounded disabled:opacity-50"
+              className="px-4 py-2 bg-red-700 hover:bg-red-600 text-foreground text-sm rounded disabled:opacity-50"
             >
               Deny
             </button>
             <button
               disabled={pending}
               onClick={() => act(() => reviewFormAction(submission.id, 'returned', comments))}
-              className="px-4 py-2 bg-yellow-700 hover:bg-yellow-600 text-white text-sm rounded disabled:opacity-50"
+              className="px-4 py-2 bg-yellow-700 hover:bg-yellow-600 text-foreground text-sm rounded disabled:opacity-50"
             >
               Return for Revision
             </button>
@@ -111,11 +111,11 @@ export default function FormReviewClient({ submission }: Props) {
 
       {/* Show existing decision */}
       {!['submitted','under_review'].includes(submission.status) && submission.reviewer_comments && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-gray-300 mb-2">Reviewer Comments</h2>
-          <p className="text-gray-300 text-sm whitespace-pre-wrap">{submission.reviewer_comments}</p>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-foreground mb-2">Reviewer Comments</h2>
+          <p className="text-foreground text-sm whitespace-pre-wrap">{submission.reviewer_comments}</p>
           {submission.reviewed_at && (
-            <p className="text-gray-500 text-xs mt-2">Reviewed {new Date(submission.reviewed_at).toLocaleString()}</p>
+            <p className="text-muted-foreground text-xs mt-2">Reviewed {new Date(submission.reviewed_at).toLocaleString()}</p>
           )}
         </div>
       )}

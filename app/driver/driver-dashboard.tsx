@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { radioCodeAction } from './actions'
+import { useDebouncedRefresh } from '@/lib/use-debounced-refresh'
 
 interface Break {
   id: string
@@ -64,6 +65,7 @@ function formatCountdown(secs: number | null) {
 
 export default function DriverDashboard({ employee, shift, otBanner }: { employee: Employee | null; shift: Shift | null; otBanner?: OtBanner | null }) {
   const router = useRouter()
+  const debouncedRefresh = useDebouncedRefresh()
   const [currentShift, setCurrentShift] = useState<Shift | null>(shift)
   const [isPending, startTransition] = useTransition()
   const [radioCode, setRadioCode] = useState(shift?.radio_status ?? '')
@@ -133,7 +135,7 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
     )
     const ch = supabase
       .channel('driver-breaks')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'breaks' }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'breaks', filter: `shift_id=eq.${currentShift?.id ?? ''}` }, debouncedRefresh)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'shifts' }, payload => {
         if (payload.new.id === currentShift?.id) {
           setCurrentShift(prev => prev ? { ...prev, ...payload.new } : prev)
@@ -141,7 +143,7 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
       })
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [router, currentShift?.id])
+  }, [debouncedRefresh, currentShift?.id])
 
   const b1 = currentShift?.breaks.find(b => b.break_number === 1) ?? null
   const b2 = currentShift?.breaks.find(b => b.break_number === 2) ?? null
@@ -191,7 +193,7 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
   if (!employee) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-400">No employee profile found for your account.</p>
+        <p className="text-muted-foreground">No employee profile found for your account.</p>
         <p className="text-gray-600 text-sm mt-2">Contact your supervisor.</p>
       </div>
     )
@@ -222,18 +224,18 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
 
       {/* Greeting */}
       <div>
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-foreground">
           Hello, {employee.name}!
         </h1>
-        <p className="text-gray-500 text-sm">
+        <p className="text-muted-foreground text-sm">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
       </div>
 
       {/* No shift card */}
       {!currentShift && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center">
-          <p className="text-gray-400">No active shift today.</p>
+        <div className="bg-card border border-border rounded-xl p-5 text-center">
+          <p className="text-muted-foreground">No active shift today.</p>
           <p className="text-gray-600 text-sm mt-1">See your dispatcher to be signed in.</p>
         </div>
       )}
@@ -258,7 +260,7 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
               </p>
               <button
                 onClick={() => handleBreakAction(activeBreak)}
-                className="mt-4 bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-8 py-3 rounded-xl text-lg"
+                className="mt-4 bg-yellow-600 hover:bg-yellow-500 text-foreground font-bold px-8 py-3 rounded-xl text-lg"
               >
                 End Break
               </button>
@@ -267,39 +269,39 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
 
           {/* Bus card */}
           {currentShift.bus && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <div className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-xs uppercase">Assigned Bus</p>
-                  <p className="text-3xl font-bold text-white mt-0.5">#{currentShift.bus.bus_number}</p>
+                  <p className="text-muted-foreground text-xs uppercase">Assigned Bus</p>
+                  <p className="text-3xl font-bold text-foreground mt-0.5">#{currentShift.bus.bus_number}</p>
                 </div>
                 <div className="text-right">
                   <span className={`text-xs px-2 py-1 rounded font-semibold ${
-                    currentShift.bus.bus_type === 'EV' ? 'bg-teal-900 text-teal-300' : 'bg-gray-800 text-gray-400'
+                    currentShift.bus.bus_type === 'EV' ? 'bg-teal-900 text-teal-300' : 'bg-muted text-muted-foreground'
                   }`}>{currentShift.bus.bus_type}</span>
                   {currentShift.bus.fuel_level != null && (
                     <div className="mt-2">
-                      <p className="text-gray-500 text-xs">{currentShift.bus.bus_type === 'EV' ? 'Charge' : 'Fuel'}</p>
-                      <p className="text-white text-lg font-bold">{currentShift.bus.fuel_level.toFixed(0)}%</p>
+                      <p className="text-muted-foreground text-xs">{currentShift.bus.bus_type === 'EV' ? 'Charge' : 'Fuel'}</p>
+                      <p className="text-foreground text-lg font-bold">{currentShift.bus.fuel_level.toFixed(0)}%</p>
                     </div>
                   )}
                 </div>
               </div>
               {currentShift.tablet && (
-                <p className="text-gray-500 text-sm mt-2">Tablet: {currentShift.tablet.tablet_number}</p>
+                <p className="text-muted-foreground text-sm mt-2">Tablet: {currentShift.tablet.tablet_number}</p>
               )}
             </div>
           )}
 
           {/* Shift times */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 grid grid-cols-2 gap-4 text-sm">
+          <div className="bg-card border border-border rounded-xl p-4 grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-gray-500 text-xs">Scheduled Start</p>
-              <p className="text-white font-medium">{currentShift.scheduled_start ?? '—'}</p>
+              <p className="text-muted-foreground text-xs">Scheduled Start</p>
+              <p className="text-foreground font-medium">{currentShift.scheduled_start ?? '—'}</p>
             </div>
             <div>
-              <p className="text-gray-500 text-xs">Scheduled End</p>
-              <p className="text-white font-medium">{currentShift.scheduled_end ?? '—'}</p>
+              <p className="text-muted-foreground text-xs">Scheduled End</p>
+              <p className="text-foreground font-medium">{currentShift.scheduled_end ?? '—'}</p>
             </div>
           </div>
 
@@ -308,8 +310,8 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
             <div className="grid grid-cols-2 gap-3">
               {[b1, b2].map((brk, i) => {
                 if (!brk) return (
-                  <div key={i} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 text-center opacity-40">
-                    <p className="text-gray-500 text-xs">Break {i + 1}</p>
+                  <div key={i} className="bg-card/50 border border-border rounded-xl p-4 text-center opacity-40">
+                    <p className="text-muted-foreground text-xs">Break {i + 1}</p>
                     <p className="text-gray-600 text-sm">Not scheduled</p>
                   </div>
                 )
@@ -321,16 +323,16 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
                 const isDone       = ['completed','missed'].includes(brk.status) || windowMissed
                 return (
                   <div key={brk.id} className={`border rounded-xl p-4 text-center ${
-                    isDone ? 'border-gray-800 bg-gray-900/30 opacity-60' :
+                    isDone ? 'border-border bg-card/30 opacity-60' :
                     canStart ? 'border-blue-700 bg-blue-950/30' :
-                    'border-gray-800 bg-gray-900'
+                    'border-border bg-card'
                   }`}>
-                    <p className="text-gray-400 text-xs">Break {brk.break_number}</p>
-                    <p className="text-white font-semibold text-sm capitalize mt-0.5">
+                    <p className="text-muted-foreground text-xs">Break {brk.break_number}</p>
+                    <p className="text-foreground font-semibold text-sm capitalize mt-0.5">
                       {windowMissed ? 'missed' : brk.status}
                     </p>
                     {brk.window_open && !isDone && !canStart && (
-                      <p className="text-gray-500 text-xs mt-1">
+                      <p className="text-muted-foreground text-xs mt-1">
                         Opens {new Date(brk.window_open).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     )}
@@ -338,7 +340,7 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
                       <button
                         onClick={() => handleBreakAction(brk)}
                         disabled={isPending}
-                        className="mt-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-1.5 rounded-lg w-full"
+                        className="mt-2 bg-blue-600 hover:bg-blue-500 text-foreground text-sm font-medium px-4 py-1.5 rounded-lg w-full"
                       >
                         Start Break
                       </button>
@@ -351,14 +353,14 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
 
           {/* Radio codes */}
           <div>
-            <p className="text-gray-500 text-xs uppercase tracking-wide mb-2">Radio Code</p>
+            <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">Radio Code</p>
             <div className="grid grid-cols-2 gap-2">
               {RADIO_CODES.map(rc => (
                 <button
                   key={rc.code}
                   onClick={() => sendRadio(rc.code)}
                   disabled={isPending}
-                  className={`border text-white text-sm font-semibold py-2.5 rounded-lg ${rc.color} ${
+                  className={`border text-foreground text-sm font-semibold py-2.5 rounded-lg ${rc.color} ${
                     radioCode === rc.code ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-950' : ''
                   }`}
                 >
@@ -386,9 +388,9 @@ export default function DriverDashboard({ employee, shift, otBanner }: { employe
 
 function NavTile({ href, label, emoji, highlight }: { href: string; label: string; emoji: string; highlight?: boolean }) {
   return (
-    <a href={href} className={`border rounded-xl p-4 text-center block transition-colors ${highlight ? 'bg-orange-950/40 border-orange-700 hover:border-orange-500' : 'bg-gray-900 border-gray-800 hover:border-gray-600'}`}>
+    <a href={href} className={`border rounded-xl p-4 text-center block transition-colors ${highlight ? 'bg-orange-950/40 border-orange-700 hover:border-orange-500' : 'bg-card border-border hover:border-gray-600'}`}>
       <div className="text-2xl mb-1">{emoji}</div>
-      <div className={`text-xs ${highlight ? 'text-orange-300 font-semibold' : 'text-gray-400'}`}>{label}</div>
+      <div className={`text-xs ${highlight ? 'text-orange-300 font-semibold' : 'text-muted-foreground'}`}>{label}</div>
     </a>
   )
 }

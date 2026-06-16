@@ -11,7 +11,7 @@ export default async function BoardLayout({ children }: { children: React.ReactN
   if (!BOARD_ROLES.includes(role)) redirect('/unauthorized')
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground overflow-hidden">
       {children}
     </div>
   )

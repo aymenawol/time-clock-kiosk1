@@ -54,8 +54,8 @@ export default async function WheelchairPage() {
             ♿
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">10-51 Wheelchair Request</h1>
-            <p className="text-gray-400 text-sm">Submit to dispatch for wheelchair assist</p>
+            <h1 className="text-2xl font-bold text-foreground">10-51 Wheelchair Request</h1>
+            <p className="text-muted-foreground text-sm">Submit to dispatch for wheelchair assist</p>
           </div>
         </div>
       </div>

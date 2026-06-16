@@ -38,12 +38,12 @@ const DEPARTMENTS = [
 ]
 
 const INPUT_CLS =
-  "w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-600"
+  "w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-600"
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-400 mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-muted-foreground mb-1.5">{label}</label>
       {children}
     </div>
   )
@@ -140,12 +140,12 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
       <div className="flex items-center gap-3">
         <Link
           href="/admin/employees"
-          className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Employees
         </Link>
-        <h1 className="text-xl font-bold text-white">{employee.name}</h1>
-        <span className="text-xs text-gray-500 font-mono">ID {employee.employee_id}</span>
+        <h1 className="text-xl font-bold text-foreground">{employee.name}</h1>
+        <span className="text-xs text-muted-foreground font-mono">ID {employee.employee_id}</span>
       </div>
 
       {/* Balances summary card */}
@@ -157,10 +157,10 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
         ].map((b) => (
           <div
             key={b.label}
-            className="bg-gray-900 rounded-xl border border-gray-800 px-4 py-3 text-center"
+            className="bg-card rounded-xl border border-border px-4 py-3 text-center"
           >
-            <div className="text-2xl font-bold text-white">{b.value}</div>
-            <div className="text-xs text-gray-500 mt-1">{b.label}</div>
+            <div className="text-2xl font-bold text-foreground">{b.value}</div>
+            <div className="text-xs text-muted-foreground mt-1">{b.label}</div>
           </div>
         ))}
       </div>
@@ -168,7 +168,7 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
       {/* Edit form */}
       <form
         onSubmit={handleSave}
-        className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-5"
+        className="bg-card rounded-2xl p-6 border border-border space-y-5"
       >
         <div className="grid grid-cols-2 gap-4">
           <Field label="Full Name *">
@@ -272,8 +272,8 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
           </Field>
         </div>
 
-        <hr className="border-gray-800" />
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">
+        <hr className="border-border" />
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
           Leave Balances (hours)
         </p>
         <div className="grid grid-cols-3 gap-4">
@@ -323,15 +323,15 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link
             href="/admin/employees"
-            className="px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 transition-colors"
+            className="px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-700 transition-colors"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={isPending}
-            className="px-6 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
-            style={{ backgroundColor: "#E31E24" }}
+            className="px-6 py-2 rounded-xl text-sm font-semibold text-foreground disabled:opacity-50 transition-opacity"
+            style={{ backgroundColor: "#2563EB" }}
           >
             {isPending ? "Saving…" : "Save Changes"}
           </button>
@@ -339,13 +339,13 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
       </form>
 
       {/* Password reset section */}
-      <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
+      <div className="bg-card rounded-2xl p-6 border border-border space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Password Reset</h2>
+          <h2 className="text-sm font-semibold text-foreground">Password Reset</h2>
           <button
             type="button"
             onClick={() => setShowPwReset(!showPwReset)}
-            className="text-xs text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors"
+            className="text-xs text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors"
           >
             {showPwReset ? "Cancel" : "Reset Password"}
           </button>
@@ -382,8 +382,8 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
               type="button"
               onClick={handlePasswordReset}
               disabled={isPending}
-              className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
-              style={{ backgroundColor: "#E31E24" }}
+              className="px-5 py-2 rounded-xl text-sm font-semibold text-foreground disabled:opacity-50 transition-opacity"
+              style={{ backgroundColor: "#2563EB" }}
             >
               {isPending ? "Resetting…" : "Set New Password"}
             </button>

@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import type { BusStatus } from '@/lib/supabase'
+import { failValidation } from '@/lib/actions/result'
+import { CreateBusSchema, UpdateBusSchema } from '@/lib/schemas/bus'
 
 async function requireAdminRole() {
   const { user } = await import('@/lib/supabase-server').then(m => m.getServerUser())
@@ -22,6 +24,8 @@ export async function createBusAction(data: {
   notes?: string
 }) {
   await requireAdminRole()
+  const parsed = CreateBusSchema.safeParse(data)
+  if (!parsed.success) return failValidation(parsed.error)
   const supabase = createSupabaseAdmin()
   const { error } = await supabase.from('buses').insert({
     bus_number:      data.bus_number.trim().toUpperCase(),
@@ -51,8 +55,10 @@ export async function updateBusAction(
   }>
 ) {
   await requireAdminRole()
+  const parsed = UpdateBusSchema.safeParse(data)
+  if (!parsed.success) return failValidation(parsed.error)
   const supabase = createSupabaseAdmin()
-  const { error } = await supabase.from('buses').update(data).eq('id', id)
+  const { error } = await supabase.from('buses').update(parsed.data).eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/admin/buses')
   revalidatePath(`/admin/buses/${id}`)

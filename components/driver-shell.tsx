@@ -137,46 +137,40 @@ export default function DriverShell({
   const stationaryFor = useRef(0) // seconds continuously below threshold
   const lastMotionTs  = useRef(0)
 
-  // ── Motion lock ────────────────────────────────────────────────────────────
+  // ── Motion lock (GPS-speed driven) ───────────────────────────────────────────
+  // Uses real vehicle speed from the Geolocation API (m/s → mph) rather than the
+  // old accelerometer-magnitude proxy (which compared an m/s² value to an m/s
+  // threshold — a category error that mis-fired). coords.speed is null on devices
+  // without GPS speed, which safely reads as 0 (no false lock).
   useEffect(() => {
-    if (isMotionLockExempt || typeof window === 'undefined') return
+    if (isMotionLockExempt || typeof navigator === 'undefined' || !navigator.geolocation) return
 
-    const THRESHOLD_MS = MS_PER_KMH * MOTION_SPEED_MPH_THRESHOLD * 1000 / 3.6  // ~2.24 m/s
-    const handler = (e: DeviceMotionEvent) => {
-      const acc = e.acceleration
-      if (!acc) return
-      const magnitude = Math.sqrt(
-        (acc.x ?? 0) ** 2 + (acc.y ?? 0) ** 2 + (acc.z ?? 0) ** 2
-      )
-      const now    = Date.now()
-      const deltaS = (now - lastMotionTs.current) / 1000
-      lastMotionTs.current = now
+    let lastTs = Date.now()
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const now = Date.now()
+        const deltaS = Math.min((now - lastTs) / 1000, 5) // cap gaps so a long pause can't insta-toggle
+        lastTs = now
 
-      // crude speed proxy: sustained acceleration above ~0.7 g
-      const moving = magnitude > MPH_TO_MS * MOTION_SPEED_MPH_THRESHOLD
+        const mph = pos.coords.speed != null && pos.coords.speed >= 0
+          ? pos.coords.speed * 2.23694
+          : 0
+        const moving = mph > MOTION_SPEED_MPH_THRESHOLD
 
-      if (moving) {
-        movingFor.current    += deltaS
-        stationaryFor.current = 0
-      } else {
-        stationaryFor.current += deltaS
-        movingFor.current      = 0
-      }
+        if (moving) { movingFor.current += deltaS; stationaryFor.current = 0 }
+        else        { stationaryFor.current += deltaS; movingFor.current = 0 }
 
-      if (!locked && movingFor.current >= MOTION_LOCK_SECONDS) {
-        setLocked(true)
-        movingFor.current = 0
-      }
-      if (locked && stationaryFor.current >= MOTION_UNLOCK_SECONDS) {
-        setLocked(false)
-        stationaryFor.current = 0
-      }
-    }
-
-    window.addEventListener('devicemotion', handler)
-    return () => window.removeEventListener('devicemotion', handler)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locked, isMotionLockExempt])
+        setLocked(prev => {
+          if (!prev && movingFor.current >= MOTION_LOCK_SECONDS)        { movingFor.current = 0;    return true }
+          if (prev  && stationaryFor.current >= MOTION_UNLOCK_SECONDS)  { stationaryFor.current = 0; return false }
+          return prev
+        })
+      },
+      () => { /* geolocation error → leave unlocked (fail-safe) */ },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+    )
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [isMotionLockExempt])
 
   // ── Online / offline ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -233,24 +227,38 @@ export default function DriverShell({
       await deleteQueued('pending_breaks', item.key)
     }
 
-    // 3. Counting sheet rows
-    const countingRows = await getAllQueued('pending_counting_sheet_rows')
-    for (const item of countingRows) {
-      const d = item.data as Record<string, unknown>
-      const { error } = await supabase.from('counting_sheet_rows').upsert(d)
-      if (!error) {
-        await deleteQueued('pending_counting_sheet_rows', item.key)
+    // 3. Counting sheets (header + rows) → real tables counting_sheets / counting_rows
+    const countingSheets = await getAllQueued('pending_counting_sheet_rows')
+    for (const item of countingSheets) {
+      const d = item.data as { sheet: Record<string, unknown>; rows: Record<string, unknown>[] }
+      if (!d?.sheet) { await deleteQueued('pending_counting_sheet_rows', item.key); continue }
+      const { data: created, error } = await supabase
+        .from('counting_sheets').insert(d.sheet).select('id').single()
+      if (error || !created) continue // keep queued, retry next sync
+      if (d.rows?.length) {
+        const { error: rowsErr } = await supabase
+          .from('counting_rows')
+          .insert(d.rows.map(r => ({ ...r, sheet_id: created.id })))
+        if (rowsErr) continue
       }
+      await deleteQueued('pending_counting_sheet_rows', item.key)
     }
 
-    // 4. Inspections
+    // 4. Inspections (header + items) → vehicle_inspections / inspection_items
     const inspections = await getAllQueued('pending_inspections')
     for (const item of inspections) {
-      const d = item.data as Record<string, unknown>
-      const { error } = await supabase.from('inspection_reports').upsert(d)
-      if (!error) {
-        await deleteQueued('pending_inspections', item.key)
+      const d = item.data as { inspection: Record<string, unknown>; items: Record<string, unknown>[] }
+      if (!d?.inspection) { await deleteQueued('pending_inspections', item.key); continue }
+      const { data: created, error } = await supabase
+        .from('vehicle_inspections').insert(d.inspection).select('id').single()
+      if (error || !created) continue
+      if (d.items?.length) {
+        const { error: itemsErr } = await supabase
+          .from('inspection_items')
+          .insert(d.items.map(it => ({ ...it, inspection_id: created.id })))
+        if (itemsErr) continue
       }
+      await deleteQueued('pending_inspections', item.key)
     }
 
     setSyncStatus('done')

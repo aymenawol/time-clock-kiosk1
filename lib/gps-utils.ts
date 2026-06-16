@@ -60,6 +60,28 @@ export function calcETA(
   return Math.round(seconds / 60)
 }
 
+/**
+ * N9 — finds the terminal the bus is closest to and the ETA to it. Used for the
+ * fleet ETA column. Returns null when no terminals or no usable speed.
+ */
+export function calcNearestTerminalEta(
+  positions: PositionSample[],
+  terminals: Terminal[],
+): { terminal: Terminal; etaMin: number } | null {
+  if (positions.length === 0 || terminals.length === 0) return null
+  const latest = positions[0]
+  let nearest: Terminal | null = null
+  let nearestDist = Infinity
+  for (const t of terminals) {
+    const d = haversineMeters(latest.lat, latest.lng, t.lat, t.lng)
+    if (d < nearestDist) { nearestDist = d; nearest = t }
+  }
+  if (!nearest) return null
+  const etaMin = calcETA(positions, nearest)
+  if (etaMin == null) return null
+  return { terminal: nearest, etaMin }
+}
+
 // ─────────────────────────────────────────────────────────────
 // Congestion detection
 // ─────────────────────────────────────────────────────────────

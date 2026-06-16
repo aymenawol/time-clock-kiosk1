@@ -50,6 +50,8 @@ export default async function ChatPage() {
     sender_id: string
     sender_name: string
     confirmed_by: string[]
+    delivered_by: string[]
+    read_by: string[]
   }[]> = {}
 
   await Promise.all(rooms.map(async (room) => {
@@ -58,7 +60,9 @@ export default async function ChatPage() {
       .select(`
         id, content, message_type, requires_confirmation, sent_at, is_deleted, sender_id,
         employees!sender_id(name),
-        chat_confirmations(confirmer_id)
+        chat_confirmations(confirmer_id),
+        chat_deliveries(recipient_id),
+        chat_reads(reader_id)
       `)
       .eq('room_id', room.id)
       .order('sent_at', { ascending: true })
@@ -74,6 +78,8 @@ export default async function ChatPage() {
       sender_id: string
       employees: { name: string } | null
       chat_confirmations: { confirmer_id: string }[]
+      chat_deliveries: { recipient_id: string }[]
+      chat_reads: { reader_id: string }[]
     }
 
     initialMessages[room.id] = ((msgs ?? []) as unknown as RawMsg[]).map((m) => ({
@@ -86,12 +92,14 @@ export default async function ChatPage() {
       sender_id:             m.sender_id,
       sender_name:           m.employees?.name ?? 'Unknown',
       confirmed_by:          (m.chat_confirmations ?? []).map((c: { confirmer_id: string }) => c.confirmer_id),
+      delivered_by:          (m.chat_deliveries ?? []).map((d: { recipient_id: string }) => d.recipient_id),
+      read_by:               (m.chat_reads ?? []).map((r: { reader_id: string }) => r.reader_id),
     }))
   }))
 
   if (rooms.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center text-gray-500">
+      <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">
         You have not been added to any chat rooms yet.
       </div>
     )

@@ -20,14 +20,14 @@ export default async function DriverFormsNewPage() {
 
   return (
     <div className="p-6 max-w-xl mx-auto">
-      <a href="/driver/forms" className="text-sm text-gray-500 hover:text-gray-300 mb-4 block">← My Forms</a>
-      <h1 className="text-2xl font-bold text-white mb-6">New Form</h1>
+      <a href="/driver/forms" className="text-sm text-muted-foreground hover:text-foreground mb-4 block">← My Forms</a>
+      <h1 className="text-2xl font-bold text-foreground mb-6">New Form</h1>
       <div className="space-y-3">
         {types.map(type => (
           <Link key={type} href={`/driver/forms/new/${type}`}
-            className="block bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-lg p-4 transition-colors">
-            <p className="text-white font-medium">{FORM_TYPE_LABELS[type]}</p>
-            <p className="text-gray-500 text-sm mt-0.5">{FORM_DESCRIPTIONS[type]}</p>
+            className="block bg-card border border-border hover:border-gray-600 rounded-lg p-4 transition-colors">
+            <p className="text-foreground font-medium">{FORM_TYPE_LABELS[type]}</p>
+            <p className="text-muted-foreground text-sm mt-0.5">{FORM_DESCRIPTIONS[type]}</p>
           </Link>
         ))}
       </div>

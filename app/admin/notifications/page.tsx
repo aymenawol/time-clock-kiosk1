@@ -46,8 +46,8 @@ export default async function NotificationsPage() {
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Notification Log</h1>
-        <p className="text-gray-400 text-sm mt-1">SMS, push, and in-app delivery records</p>
+        <h1 className="text-2xl font-bold text-foreground">Notification Log</h1>
+        <p className="text-muted-foreground text-sm mt-1">SMS, push, and in-app delivery records</p>
       </div>
       <NotificationsClient logs={logs} />
     </div>

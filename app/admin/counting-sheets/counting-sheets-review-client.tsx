@@ -54,17 +54,17 @@ export default function CountingSheetsReviewClient({
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Counting Sheets</h1>
+        <h1 className="text-xl font-bold text-foreground">Counting Sheets</h1>
         <input
           type="date"
           value={dateFilter}
           onChange={(e) => handleDateChange(e.target.value)}
-          className="bg-gray-900 border border-gray-700 rounded-lg text-white px-3 py-2 text-sm"
+          className="bg-card border border-border rounded-lg text-foreground px-3 py-2 text-sm"
         />
       </div>
 
       {sheets.length === 0 && (
-        <p className="text-gray-500 text-sm">No counting sheets for this date.</p>
+        <p className="text-muted-foreground text-sm">No counting sheets for this date.</p>
       )}
 
       {sheets.map((sheet) => {
@@ -73,48 +73,48 @@ export default function CountingSheetsReviewClient({
         const isExpanded = expanded === sheet.id
 
         return (
-          <div key={sheet.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div key={sheet.id} className="bg-card border border-border rounded-xl overflow-hidden">
             <button
-              className="w-full text-left p-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
+              className="w-full text-left p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
               onClick={() => setExpanded(isExpanded ? null : sheet.id)}
             >
               <div className="flex items-center gap-4">
                 <div>
-                  <p className="text-white font-semibold">
+                  <p className="text-foreground font-semibold">
                     {sheet.driver ? sheet.driver.name : 'Unknown'}
                     {sheet.driver?.seniority_number ? (
-                      <span className="text-gray-500 text-xs ml-2">#{sheet.driver.seniority_number}</span>
+                      <span className="text-muted-foreground text-xs ml-2">#{sheet.driver.seniority_number}</span>
                     ) : null}
                   </p>
-                  <p className="text-gray-400 text-sm">Bus {sheet.bus?.bus_number ?? '—'} · {sheet.bus?.bus_type ?? ''}</p>
+                  <p className="text-muted-foreground text-sm">Bus {sheet.bus?.bus_number ?? '—'} · {sheet.bus?.bus_type ?? ''}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-gray-400 text-xs">Total Riders</p>
-                  <p className="text-white font-bold text-lg">{grand}</p>
+                  <p className="text-muted-foreground text-xs">Total Riders</p>
+                  <p className="text-foreground font-bold text-lg">{grand}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                   sheet.status === 'submitted' ? 'bg-green-900 text-green-300' :
                   sheet.status === 'in_progress' ? 'bg-yellow-900 text-yellow-300' :
-                  'bg-gray-800 text-gray-400'
+                  'bg-muted text-muted-foreground'
                 }`}>
                   {sheet.status.replace('_', ' ')}
                 </span>
                 {sheet.submitted_at && (
-                  <p className="text-gray-500 text-xs">
+                  <p className="text-muted-foreground text-xs">
                     {new Date(sheet.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 )}
-                <span className="text-gray-500 text-lg">{isExpanded ? '▲' : '▼'}</span>
+                <span className="text-muted-foreground text-lg">{isExpanded ? '▲' : '▼'}</span>
               </div>
             </button>
 
             {isExpanded && (
-              <div className="border-t border-gray-800 p-4 overflow-x-auto">
+              <div className="border-t border-border p-4 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-gray-500 text-xs uppercase">
+                    <tr className="text-muted-foreground text-xs uppercase">
                       <th className="text-left py-1.5 pr-4">Departure</th>
                       <th className="text-right py-1.5 pr-3">RAC</th>
                       <th className="text-right py-1.5 pr-3">T1</th>
@@ -128,7 +128,7 @@ export default function CountingSheetsReviewClient({
                     {sheet.counting_rows
                       .sort((a, b) => a.row_order - b.row_order)
                       .map((row, i) => (
-                        <tr key={row.id ?? i} className="border-t border-gray-800/50 text-gray-300">
+                        <tr key={row.id ?? i} className="border-t border-border/50 text-foreground">
                           <td className="py-1.5 pr-4 font-mono">{row.departure_time || '—'}</td>
                           <td className="text-right pr-3">{row.rac}</td>
                           <td className="text-right pr-3">{row.t1}</td>
@@ -138,8 +138,8 @@ export default function CountingSheetsReviewClient({
                           <td className="text-right">{row.term3_east}</td>
                         </tr>
                       ))}
-                    <tr className="border-t-2 border-gray-700 text-white font-semibold">
-                      <td className="py-2 pr-4 text-xs uppercase text-gray-400">Totals</td>
+                    <tr className="border-t-2 border-border text-foreground font-semibold">
+                      <td className="py-2 pr-4 text-xs uppercase text-muted-foreground">Totals</td>
                       <td className="text-right pr-3">{totals.rac}</td>
                       <td className="text-right pr-3">{totals.t1}</td>
                       <td className="text-right pr-3">{totals.t3}</td>

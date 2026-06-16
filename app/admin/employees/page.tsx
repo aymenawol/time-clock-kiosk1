@@ -1,61 +1,59 @@
-import { getAllEmployeesAction } from "./actions"
+import { getEmployeesPageAction, EMPLOYEES_PAGE_SIZE, type EmployeeSort } from "./actions"
 import EmployeeDirectoryClient from "./employee-directory-client"
 import Link from "next/link"
-import type { Employee } from "@/lib/supabase"
 
-// Category display config
-const ROLE_CATEGORIES = [
-  { roles: ["driver"],              label: "Drivers / Operators" },
-  { roles: ["dispatcher"],          label: "Dispatchers" },
-  { roles: ["coordinator"],         label: "Coordinators" },
-  { roles: ["supervisor"],          label: "Supervisors" },
-  { roles: ["technician"],          label: "Technicians" },
-  { roles: ["fueler_washer"],       label: "Fuelers & Washers" },
-  { roles: ["payroll"],             label: "Payroll" },
-  { roles: ["management"],          label: "Management" },
-  { roles: ["admin"],               label: "Administrators" },
-]
+export const dynamic = "force-dynamic"
 
-export default async function EmployeesPage() {
-  const result = await getAllEmployeesAction()
-  const employees: Employee[] = result.success ? result.data : []
+const SORTS: EmployeeSort[] = ["seniority", "hire_date", "name"]
 
-  // Bucket employees by role category
-  const categorized = ROLE_CATEGORIES.map((cat) => ({
-    ...cat,
-    employees: employees.filter((e) => cat.roles.includes(e.role ?? "")),
-  })).filter((cat) => cat.employees.length > 0)
+export default async function EmployeesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    search?: string
+    role?: string
+    status?: string
+    sort?: string
+    page?: string
+  }>
+}) {
+  const params = await searchParams
 
-  // Employees without a role go in an "Unassigned" bucket
-  const unassigned = employees.filter((e) => !e.role)
-  if (unassigned.length > 0) {
-    categorized.push({ roles: [], label: "Unassigned", employees: unassigned })
+  const query = {
+    search: params.search ?? "",
+    role: params.role ?? "all",
+    status: params.status ?? "all",
+    sort: (SORTS.includes(params.sort as EmployeeSort) ? params.sort : "seniority") as EmployeeSort,
+    page: Math.max(1, parseInt(params.page ?? "1", 10) || 1),
   }
 
-  const stats = {
-    total: employees.length,
-    active: employees.filter((e) => e.status === "active").length,
-    onLeave: employees.filter((e) => e.status === "on_leave").length,
-    terminated: employees.filter((e) => e.status === "terminated").length,
-  }
+  const result = await getEmployeesPageAction(query)
+
+  const employees = result.success ? result.data.employees : []
+  const total = result.success ? result.data.total : 0
+  const page = result.success ? result.data.page : query.page
+  const pageSize = result.success ? result.data.pageSize : EMPLOYEES_PAGE_SIZE
+  const stats = result.success
+    ? result.data.stats
+    : { total: 0, active: 0, onLeave: 0, terminated: 0 }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Employee Directory</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
+          <h1 className="text-xl font-bold text-foreground">Employee Directory</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             {stats.total} total · {stats.active} active · {stats.onLeave} on leave ·{" "}
             {stats.terminated} terminated
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <EmployeeDirectoryClient employees={employees} exportOnly />
+          <EmployeeDirectoryClient exportOnly />
           <Link
             href="/admin/employees/new"
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-white"
-            style={{ backgroundColor: "#E31E24" }}
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-foreground"
+            style={{ backgroundColor: "#2563EB" }}
           >
             + Add Employee
           </Link>
@@ -69,8 +67,14 @@ export default async function EmployeesPage() {
         </div>
       )}
 
-      {/* Categories */}
-      <EmployeeDirectoryClient employees={employees} categorized={categorized} />
+      {/* Directory table (server-paginated) */}
+      <EmployeeDirectoryClient
+        employees={employees}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        query={query}
+      />
     </div>
   )
 }

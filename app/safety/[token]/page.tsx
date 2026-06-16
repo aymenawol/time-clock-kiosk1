@@ -67,7 +67,7 @@ export default function SafetyMeetingPage() {
     <div className="min-h-screen bg-gray-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <header className="bg-[#E31E24] text-white p-4 rounded-t-xl mb-0">
+        <header className="bg-[#2563EB] text-foreground p-4 rounded-t-xl mb-0">
           <h1 className="text-2xl font-bold">Safety Meeting Schedule</h1>
         </header>
 

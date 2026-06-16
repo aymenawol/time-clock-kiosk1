@@ -48,17 +48,17 @@ export default function NotificationsClient({ logs: initial }: { logs: Notificat
     <div>
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-          <div className="text-white font-bold text-2xl">{logs.length}</div>
-          <div className="text-gray-500 text-sm">Total notifications</div>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <div className="text-foreground font-bold text-2xl">{logs.length}</div>
+          <div className="text-muted-foreground text-sm">Total notifications</div>
         </div>
         <div className="bg-green-950/40 border border-green-800 rounded-xl p-4 text-center">
           <div className="text-green-400 font-bold text-2xl">{logs.length - totalFailed}</div>
-          <div className="text-gray-500 text-sm">Delivered</div>
+          <div className="text-muted-foreground text-sm">Delivered</div>
         </div>
         <div className="bg-red-950/40 border border-red-800 rounded-xl p-4 text-center">
           <div className="text-red-400 font-bold text-2xl">{totalFailed}</div>
-          <div className="text-gray-500 text-sm">Failed</div>
+          <div className="text-muted-foreground text-sm">Failed</div>
         </div>
       </div>
 
@@ -68,38 +68,38 @@ export default function NotificationsClient({ logs: initial }: { logs: Notificat
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search recipient or event…"
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm w-56"
+          className="bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm w-56"
         />
         <select
           value={filterChannel}
           onChange={e => setFilterChannel(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+          className="bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm"
         >
           <option value="all">All channels</option>
           <option value="sms">SMS</option>
           <option value="push">Push / Email</option>
           <option value="in_app">In-App</option>
         </select>
-        <label className="flex items-center gap-2 text-gray-400 text-sm cursor-pointer">
+        <label className="flex items-center gap-2 text-muted-foreground text-sm cursor-pointer">
           <input type="checkbox" checked={filterFailed} onChange={e => setFilterFailed(e.target.checked)} />
           Failures only
         </label>
         <div className="ml-auto">
           <button
             onClick={exportCsv}
-            className="bg-gray-800 hover:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg border border-gray-700"
+            className="bg-muted hover:bg-gray-700 text-foreground text-sm px-4 py-2 rounded-lg border border-border"
           >
             Export CSV
           </button>
         </div>
       </div>
 
-      <div className="text-gray-500 text-xs mb-2">{filtered.length} records</div>
+      <div className="text-muted-foreground text-xs mb-2">{filtered.length} records</div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-800 text-gray-400 text-xs">
+            <tr className="border-b border-border text-muted-foreground text-xs">
               <th className="text-left px-4 py-3">Recipient</th>
               <th className="text-left px-4 py-3">Event</th>
               <th className="text-left px-4 py-3">Channel</th>
@@ -111,23 +111,23 @@ export default function NotificationsClient({ logs: initial }: { logs: Notificat
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center text-gray-500 py-10">No records</td>
+                <td colSpan={6} className="text-center text-muted-foreground py-10">No records</td>
               </tr>
             )}
             {filtered.slice(0, 500).map(l => (
-              <tr key={l.id} className="border-b border-gray-800/50 hover:bg-gray-800/20">
-                <td className="px-4 py-2.5 text-white">{l.recipient_name}</td>
-                <td className="px-4 py-2.5 text-gray-400 text-xs">{l.event_type.replace(/_/g, ' ')}</td>
+              <tr key={l.id} className="border-b border-border/50 hover:bg-muted/20">
+                <td className="px-4 py-2.5 text-foreground">{l.recipient_name}</td>
+                <td className="px-4 py-2.5 text-muted-foreground text-xs">{l.event_type.replace(/_/g, ' ')}</td>
                 <td className="px-4 py-2.5">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     l.channel === 'sms'    ? 'bg-green-900 text-green-300' :
                     l.channel === 'push'   ? 'bg-blue-900 text-blue-300'  :
-                                            'bg-gray-800 text-gray-400'
+                                            'bg-muted text-muted-foreground'
                   }`}>
                     {l.channel}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-gray-500 text-xs">
+                <td className="px-4 py-2.5 text-muted-foreground text-xs">
                   {new Date(l.sent_at).toLocaleString('en-US', { hour12: false })}
                 </td>
                 <td className="px-4 py-2.5">

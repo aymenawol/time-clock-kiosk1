@@ -55,28 +55,28 @@ export default function OnboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <div
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-            style={{ backgroundColor: '#E31E24' }}
+            style={{ backgroundColor: '#2563EB' }}
           >
-            <span className="text-white text-2xl font-bold">RC</span>
+            <span className="text-foreground text-2xl font-bold">RC</span>
           </div>
-          <h1 className="text-white text-2xl font-bold">
+          <h1 className="text-foreground text-2xl font-bold">
             Welcome{userName ? `, ${userName.split(' ')[0]}` : ''}!
           </h1>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Set your password to complete your Rolecall account
           </p>
         </div>
 
-        <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800 shadow-2xl">
+        <div className="bg-card rounded-2xl p-8 border border-border shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
                 New Password
               </label>
               <input
@@ -85,11 +85,11 @@ export default function OnboardPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="Minimum 8 characters"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
                 Confirm Password
               </label>
               <input
@@ -98,7 +98,7 @@ export default function OnboardPage() {
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 placeholder="Repeat password"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
               />
             </div>
 
@@ -111,8 +111,8 @@ export default function OnboardPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-white font-semibold transition-opacity disabled:opacity-60"
-              style={{ backgroundColor: '#E31E24' }}
+              className="w-full py-3 rounded-xl text-foreground font-semibold transition-opacity disabled:opacity-60"
+              style={{ backgroundColor: '#2563EB' }}
             >
               {loading ? 'Setting up…' : 'Set Password & Continue'}
             </button>

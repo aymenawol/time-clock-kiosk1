@@ -21,41 +21,41 @@ export default function AdminFormsClient({ submissions }: Props) {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-6">Form Submissions</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Form Submissions</h1>
 
       {/* Filters */}
       <div className="flex gap-3 mb-5">
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}
-          className="bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-white text-sm">
+          className="bg-card border border-border rounded px-3 py-1.5 text-foreground text-sm">
           <option value={ALL}>All Types</option>
           {(Object.entries(FORM_TYPE_LABELS) as [FormType, string][]).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
         </select>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}
-          className="bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-white text-sm">
+          className="bg-card border border-border rounded px-3 py-1.5 text-foreground text-sm">
           <option value={ALL}>All Statuses</option>
           {(['submitted','under_review','approved','denied','returned'] as FormStatus[]).map(s => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-        <span className="ml-auto text-gray-500 text-sm self-center">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+        <span className="ml-auto text-muted-foreground text-sm self-center">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">No submissions found.</div>
+        <div className="text-center py-12 text-muted-foreground">No submissions found.</div>
       ) : (
         <div className="space-y-2">
           {filtered.map(sub => (
             <Link key={sub.id} href={`/admin/forms/${sub.id}`}
-              className="block bg-gray-900 border border-gray-800 rounded-lg p-4 hover:border-gray-700 transition-colors">
+              className="block bg-card border border-border rounded-lg p-4 hover:border-border transition-colors">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-white text-sm font-medium">{sub.employees?.name ?? sub.employee_id}</span>
-                    <span className="text-gray-400 text-xs">{FORM_TYPE_LABELS[sub.form_type]}</span>
+                    <span className="text-foreground text-sm font-medium">{sub.employees?.name ?? sub.employee_id}</span>
+                    <span className="text-muted-foreground text-xs">{FORM_TYPE_LABELS[sub.form_type]}</span>
                   </div>
-                  <p className="text-gray-500 text-xs">
+                  <p className="text-muted-foreground text-xs">
                     Submitted {new Date(sub.submitted_at).toLocaleDateString()}
                     {sub.reviewed_at && <> · Reviewed {new Date(sub.reviewed_at).toLocaleDateString()}</>}
                     {sub.version > 1 && <> · v{sub.version}</>}

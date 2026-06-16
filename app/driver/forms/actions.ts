@@ -4,9 +4,16 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient, getServerUser } from '@/lib/supabase-server'
 import { FormType } from '@/lib/supabase'
 
+const VALID_FORM_TYPES: FormType[] = ['time_off', 'bid_vacation_change', 'incident_report', 'fmla_conversion', 'resignation']
+
 export async function submitFormAction(formType: FormType, payload: Record<string, any>) {
   const { user } = await getServerUser()
   if (!user) throw new Error('Unauthorized')
+
+  // Validate untrusted input before it lands in form_submissions.
+  if (!VALID_FORM_TYPES.includes(formType)) throw new Error('Invalid form type')
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Invalid form data')
+  if (JSON.stringify(payload).length > 20_000) throw new Error('Form data is too large')
 
   const supabase = await createSupabaseServerClient()
 

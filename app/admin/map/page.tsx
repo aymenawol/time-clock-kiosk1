@@ -48,9 +48,9 @@ export default async function MapPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)]">
-      <div className="px-6 py-3 border-b border-gray-800 bg-gray-950 flex items-center gap-4">
-        <h1 className="text-white font-bold text-lg">Live GPS Map</h1>
-        <span className="text-gray-500 text-sm">Harry Reid International Airport</span>
+      <div className="px-6 py-3 border-b border-border bg-background flex items-center gap-4">
+        <h1 className="text-foreground font-bold text-lg">Live GPS Map</h1>
+        <span className="text-muted-foreground text-sm">Harry Reid International Airport</span>
       </div>
       <div className="flex-1 overflow-hidden">
         <MapClient initialBuses={initialBuses as unknown as Parameters<typeof MapClient>[0]['initialBuses']} apiKey={apiKey} />

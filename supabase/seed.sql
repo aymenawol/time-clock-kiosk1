@@ -11,11 +11,5 @@ SET
 	pin = EXCLUDED.pin,
 	is_active = EXCLUDED.is_active;
 
-INSERT INTO vehicles (vehicle_number, vehicle_type, is_active)
-VALUES
-	('BUS-01', 'bus', TRUE),
-	('BUS-02', 'bus', TRUE)
-ON CONFLICT (vehicle_number) DO UPDATE
-SET
-	vehicle_type = EXCLUDED.vehicle_type,
-	is_active = EXCLUDED.is_active;
+-- Legacy `vehicles` seed removed: the table was dropped in migration
+-- 20260601000005_v2_phase11_drop_legacy_tables.sql (replaced by `buses`).

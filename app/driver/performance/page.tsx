@@ -31,8 +31,8 @@ export default async function DriverPerformancePage() {
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">My Performance</h1>
-        <p className="text-gray-400 text-sm mt-1">Your last 90 days</p>
+        <h1 className="text-2xl font-bold text-foreground">My Performance</h1>
+        <p className="text-muted-foreground text-sm mt-1">Your last 90 days</p>
       </div>
       <PerformanceClient employees={[{ id: emp.id, name: emp.name, role: emp.role, snapshots: snapshots ?? [] }]} />
     </div>

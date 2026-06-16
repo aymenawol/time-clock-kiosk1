@@ -107,16 +107,16 @@ export default function NewEmployeePage() {
       <div className="flex items-center gap-3">
         <Link
           href="/admin/employees"
-          className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Employees
         </Link>
-        <h1 className="text-xl font-bold text-white">Add Employee</h1>
+        <h1 className="text-xl font-bold text-foreground">Add Employee</h1>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-5"
+        className="bg-card rounded-2xl p-6 border border-border space-y-5"
       >
         {/* Identity */}
         <div className="grid grid-cols-2 gap-4">
@@ -174,8 +174,8 @@ export default function NewEmployeePage() {
         </div>
 
         {/* Contact */}
-        <hr className="border-gray-800" />
-        <p className="text-xs text-gray-500">
+        <hr className="border-border" />
+        <p className="text-xs text-muted-foreground">
           An invite email will be sent so the employee can set their own password.
         </p>
         <div className="grid grid-cols-2 gap-4">
@@ -201,7 +201,7 @@ export default function NewEmployeePage() {
         </div>
 
         {/* Employment details */}
-        <hr className="border-gray-800" />
+        <hr className="border-border" />
         <div className="grid grid-cols-3 gap-4">
           <Field label="Hire Date">
             <input
@@ -232,8 +232,8 @@ export default function NewEmployeePage() {
         </div>
 
         {/* Leave balances */}
-        <hr className="border-gray-800" />
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">
+        <hr className="border-border" />
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
           Leave Balances (hours)
         </p>
         <div className="grid grid-cols-3 gap-4">
@@ -284,15 +284,15 @@ export default function NewEmployeePage() {
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link
             href="/admin/employees"
-            className="px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 transition-colors"
+            className="px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-700 transition-colors"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={isPending}
-            className="px-6 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
-            style={{ backgroundColor: "#E31E24" }}
+            className="px-6 py-2 rounded-xl text-sm font-semibold text-foreground disabled:opacity-50 transition-opacity"
+            style={{ backgroundColor: "#2563EB" }}
           >
             {isPending ? "Sending Invite…" : "Create & Send Invite"}
           </button>
@@ -303,7 +303,7 @@ export default function NewEmployeePage() {
 }
 
 const INPUT_CLS =
-  "w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-600"
+  "w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-600"
 
 function Field({
   label,
@@ -314,7 +314,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-400 mb-1.5">
+      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
         {label}
       </label>
       {children}

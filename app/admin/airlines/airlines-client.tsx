@@ -38,10 +38,10 @@ export default function AirlinesClient({ airlines: initial }: { airlines: Airlin
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
-        <p className="text-gray-400 text-sm">{airlines.length} airlines configured</p>
+        <p className="text-muted-foreground text-sm">{airlines.length} airlines configured</p>
         <button
           onClick={openNew}
-          className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          className="bg-blue-700 hover:bg-blue-600 text-foreground px-4 py-2 rounded-lg text-sm font-medium"
         >
           + Add Airline
         </button>
@@ -49,49 +49,49 @@ export default function AirlinesClient({ airlines: initial }: { airlines: Airlin
 
       {/* Form */}
       {editing !== null && (
-        <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 mb-6">
-          <h3 className="text-white font-semibold mb-4">{editing.id ? 'Edit Airline' : 'New Airline'}</h3>
+        <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+          <h3 className="text-foreground font-semibold mb-4">{editing.id ? 'Edit Airline' : 'New Airline'}</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Airline Name *</label>
+              <label className="block text-xs text-muted-foreground mb-1">Airline Name *</label>
               <input
                 value={editing.name ?? ''}
                 onChange={e => setEditing(p => ({ ...p!, name: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Terminal *</label>
+              <label className="block text-xs text-muted-foreground mb-1">Terminal *</label>
               <input
                 value={editing.terminal ?? ''}
                 onChange={e => setEditing(p => ({ ...p!, terminal: e.target.value }))}
                 placeholder="e.g. T-1, T-3, RAC"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Phone</label>
+              <label className="block text-xs text-muted-foreground mb-1">Phone</label>
               <input
                 value={editing.phone ?? ''}
                 onChange={e => setEditing(p => ({ ...p!, phone: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Wheelchair Contact</label>
+              <label className="block text-xs text-muted-foreground mb-1">Wheelchair Contact</label>
               <input
                 value={editing.wheelchair_contact ?? ''}
                 onChange={e => setEditing(p => ({ ...p!, wheelchair_contact: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm"
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-xs text-gray-400 mb-1">Notes</label>
+              <label className="block text-xs text-muted-foreground mb-1">Notes</label>
               <textarea
                 value={editing.notes ?? ''}
                 onChange={e => setEditing(p => ({ ...p!, notes: e.target.value }))}
                 rows={2}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm resize-none"
+                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm resize-none"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -101,7 +101,7 @@ export default function AirlinesClient({ airlines: initial }: { airlines: Airlin
                 checked={editing.is_active ?? true}
                 onChange={e => setEditing(p => ({ ...p!, is_active: e.target.checked }))}
               />
-              <label htmlFor="is-active" className="text-gray-300 text-sm">Active</label>
+              <label htmlFor="is-active" className="text-foreground text-sm">Active</label>
             </div>
           </div>
 
@@ -111,11 +111,11 @@ export default function AirlinesClient({ airlines: initial }: { airlines: Airlin
             <button
               onClick={handleSave}
               disabled={isPending || !editing.name?.trim() || !editing.terminal?.trim()}
-              className="bg-green-700 hover:bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-40"
+              className="bg-green-700 hover:bg-green-600 text-foreground px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-40"
             >
               {isPending ? 'Saving…' : 'Save'}
             </button>
-            <button onClick={closeForm} className="text-gray-500 hover:text-gray-300 text-sm px-3">
+            <button onClick={closeForm} className="text-muted-foreground hover:text-foreground text-sm px-3">
               Cancel
             </button>
           </div>
@@ -123,10 +123,10 @@ export default function AirlinesClient({ airlines: initial }: { airlines: Airlin
       )}
 
       {/* Table */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-800 text-gray-400 text-xs">
+            <tr className="border-b border-border text-muted-foreground text-xs">
               <th className="text-left px-4 py-3">Airline</th>
               <th className="text-left px-4 py-3">Terminal</th>
               <th className="text-left px-4 py-3">Phone</th>
@@ -137,13 +137,13 @@ export default function AirlinesClient({ airlines: initial }: { airlines: Airlin
           </thead>
           <tbody>
             {airlines.map(a => (
-              <tr key={a.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                <td className="px-4 py-3 text-white font-medium">{a.name}</td>
-                <td className="px-4 py-3 text-gray-400">{a.terminal}</td>
-                <td className="px-4 py-3 text-gray-400">{a.phone || '—'}</td>
-                <td className="px-4 py-3 text-gray-400">{a.wheelchair_contact || '—'}</td>
+              <tr key={a.id} className="border-b border-border/50 hover:bg-muted/30">
+                <td className="px-4 py-3 text-foreground font-medium">{a.name}</td>
+                <td className="px-4 py-3 text-muted-foreground">{a.terminal}</td>
+                <td className="px-4 py-3 text-muted-foreground">{a.phone || '—'}</td>
+                <td className="px-4 py-3 text-muted-foreground">{a.wheelchair_contact || '—'}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${a.is_active ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-500'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${a.is_active ? 'bg-green-900 text-green-300' : 'bg-muted text-muted-foreground'}`}>
                     {a.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
@@ -151,7 +151,7 @@ export default function AirlinesClient({ airlines: initial }: { airlines: Airlin
                   <div className="flex items-center gap-2 justify-end">
                     <button
                       onClick={() => openEdit(a)}
-                      className="text-gray-400 hover:text-white text-xs"
+                      className="text-muted-foreground hover:text-foreground text-xs"
                     >
                       Edit
                     </button>

@@ -9,15 +9,23 @@ import { ShiftBidCycle, ShiftBidSlot } from '@/lib/supabase'
 export async function createCycleAction(formData: FormData) {
   const { user } = await getServerUser()
   if (!user) throw new Error('Unauthorized')
+  if (!['admin', 'management'].includes((user.app_metadata?.role as string) ?? '')) throw new Error('Forbidden')
+
+  const name      = ((formData.get('name') as string) ?? '').trim()
+  const startDate = ((formData.get('start_date') as string) ?? '').trim()
+  const endDate   = ((formData.get('end_date') as string) ?? '').trim()
+  if (!name) throw new Error('Cycle name is required')
+  if (!startDate || !endDate) throw new Error('Start and end dates are required')
+  if (endDate < startDate) throw new Error('End date must be on or after the start date')
 
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('shift_bid_cycles')
     .insert({
-      name:                  formData.get('name') as string,
+      name,
       description:           (formData.get('description') as string) || null,
-      start_date:            formData.get('start_date') as string,
-      end_date:              formData.get('end_date') as string,
+      start_date:            startDate,
+      end_date:              endDate,
       submission_open_at:    (formData.get('submission_open_at') as string) || null,
       submission_close_at:   (formData.get('submission_close_at') as string) || null,
       status:                'draft',
@@ -33,6 +41,7 @@ export async function createCycleAction(formData: FormData) {
 export async function updateCycleStatusAction(cycleId: string, status: ShiftBidCycle['status']) {
   const { user } = await getServerUser()
   if (!user) throw new Error('Unauthorized')
+  if (!['admin', 'management'].includes((user.app_metadata?.role as string) ?? '')) throw new Error('Forbidden')
 
   const supabase = await createSupabaseServerClient()
   const extra = status === 'awarded' ? { awarded_at: new Date().toISOString(), awarded_by: user.id } : {}
@@ -47,6 +56,13 @@ export async function updateCycleStatusAction(cycleId: string, status: ShiftBidC
 export async function addSlotAction(cycleId: string, formData: FormData) {
   const { user } = await getServerUser()
   if (!user) throw new Error('Unauthorized')
+  if (!['admin', 'management'].includes((user.app_metadata?.role as string) ?? '')) throw new Error('Forbidden')
+
+  const bidNumber = Number(formData.get('bid_number'))
+  if (!Number.isFinite(bidNumber) || bidNumber <= 0) throw new Error('A valid bid number is required')
+  if (!formData.get('shift_start') || !formData.get('shift_end') || !formData.get('report_time')) {
+    throw new Error('Shift start, shift end, and report times are required')
+  }
 
   const supabase = await createSupabaseServerClient()
   const days = ['sun','mon','tue','wed','thu','fri','sat']
@@ -55,7 +71,7 @@ export async function addSlotAction(cycleId: string, formData: FormData) {
 
   const { error } = await supabase.from('shift_bid_slots').insert({
     cycle_id:    cycleId,
-    bid_number:  Number(formData.get('bid_number')),
+    bid_number:  bidNumber,
     shift_start: formData.get('shift_start') as string,
     shift_end:   formData.get('shift_end') as string,
     report_time: formData.get('report_time') as string,
@@ -71,6 +87,7 @@ export async function addSlotAction(cycleId: string, formData: FormData) {
 export async function deleteSlotAction(cycleId: string, slotId: string) {
   const { user } = await getServerUser()
   if (!user) throw new Error('Unauthorized')
+  if (!['admin', 'management'].includes((user.app_metadata?.role as string) ?? '')) throw new Error('Forbidden')
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from('shift_bid_slots').delete().eq('id', slotId)
@@ -86,6 +103,7 @@ export async function deleteSlotAction(cycleId: string, slotId: string) {
 export async function runAwardEngineAction(cycleId: string) {
   const { user } = await getServerUser()
   if (!user) throw new Error('Unauthorized')
+  if (!['admin', 'management'].includes((user.app_metadata?.role as string) ?? '')) throw new Error('Forbidden')
 
   const supabase = await createSupabaseServerClient()
 
@@ -184,6 +202,7 @@ export async function overrideAwardAction(
 ) {
   const { user } = await getServerUser()
   if (!user) throw new Error('Unauthorized')
+  if (!['admin', 'management'].includes((user.app_metadata?.role as string) ?? '')) throw new Error('Forbidden')
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase

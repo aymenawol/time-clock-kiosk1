@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseAdmin } from "@/lib/supabase-admin"
 import { createSupabaseServerClient } from "@/lib/supabase-server"
-import type { EmployeeRole, EmployeeStatus } from "@/lib/supabase"
+import type { Employee, EmployeeRole, EmployeeStatus } from "@/lib/supabase"
+import { type ActionResult, ok, fail, failValidation } from "@/lib/actions/result"
+import { CreateEmployeeSchema, InviteEmployeeSchema, UpdateEmployeeSchema } from "@/lib/schemas/employee"
 
 // ── Shared role guard ────────────────────────────────────────────────────────
 
@@ -51,9 +53,7 @@ export interface UpdateEmployeeInput {
   fmla_balance?: number
 }
 
-export type ActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string }
+export type { ActionResult }
 
 // ── Create Employee ──────────────────────────────────────────────────────────
 
@@ -65,6 +65,9 @@ export async function createEmployeeAction(
   } catch (e: any) {
     return { success: false, error: e.message }
   }
+
+  const parsed = CreateEmployeeSchema.safeParse(input)
+  if (!parsed.success) return failValidation(parsed.error)
 
   const admin = createSupabaseAdmin()
 
@@ -156,6 +159,9 @@ export async function inviteEmployeeAction(
     return { success: false, error: e.message }
   }
 
+  const parsed = InviteEmployeeSchema.safeParse(input)
+  if (!parsed.success) return failValidation(parsed.error)
+
   const admin = createSupabaseAdmin()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ""
 
@@ -236,6 +242,10 @@ export async function updateEmployeeAction(
     return { success: false, error: e.message }
   }
 
+  const parsed = UpdateEmployeeSchema.safeParse(input)
+  if (!parsed.success) return failValidation(parsed.error)
+  const updates = parsed.data
+
   const admin = createSupabaseAdmin()
 
   // Fetch current record to get auth_user_id
@@ -249,12 +259,13 @@ export async function updateEmployeeAction(
     return { success: false, error: "Employee not found" }
   }
 
-  // Update the employees table
+  // Update the employees table — allow-listed fields only (no mass-assignment).
+  // is_active is only touched when status is actually being changed.
   const { error: updateError } = await admin
     .from("employees")
     .update({
-      ...input,
-      is_active: input.status !== "terminated",
+      ...updates,
+      ...(updates.status ? { is_active: updates.status !== "terminated" } : {}),
     })
     .eq("id", employeeId)
 
@@ -263,19 +274,19 @@ export async function updateEmployeeAction(
   }
 
   // If role changed, sync it to auth user's app_metadata and profiles table
-  if (input.role && input.role !== existing.role && existing.auth_user_id) {
+  if (updates.role && updates.role !== existing.role && existing.auth_user_id) {
     await admin.auth.admin.updateUserById(existing.auth_user_id, {
-      app_metadata: { role: input.role },
+      app_metadata: { role: updates.role },
     })
     await admin
       .from("profiles")
-      .update({ role: input.role })
+      .update({ role: updates.role })
       .eq("id", existing.auth_user_id)
   }
 
   // If status changed to terminated, ban the auth account (blocks login)
-  if (input.status && existing.auth_user_id) {
-    const banned = input.status === "terminated"
+  if (updates.status && existing.auth_user_id) {
+    const banned = updates.status === "terminated"
     await admin.auth.admin.updateUserById(existing.auth_user_id, {
       ban_duration: banned ? "876600h" : "none", // ~100 years = effectively banned
     })
@@ -350,6 +361,121 @@ export async function getAllEmployeesAction() {
 
   if (error) return { success: false as const, error: error.message }
   return { success: true as const, data: data ?? [] }
+}
+
+// ── Get Employees Page (server-side pagination + projection + counts) ────────
+
+/** Columns the directory table actually renders — projected to avoid `select('*')`. */
+const DIRECTORY_COLUMNS =
+  "id, employee_id, name, email, department, shift, seniority_number, hire_date, role, status, pto_balance, vacation_balance, fmla_balance"
+
+export const EMPLOYEES_PAGE_SIZE = 25
+
+export type EmployeeSort = "seniority" | "hire_date" | "name"
+
+export interface EmployeeQuery {
+  search?: string
+  role?: string
+  status?: string
+  sort?: EmployeeSort
+  page?: number
+}
+
+/** Subset of Employee returned by the directory listing (projected columns only). */
+export type DirectoryEmployee = Pick<
+  Employee,
+  | "id"
+  | "employee_id"
+  | "name"
+  | "email"
+  | "department"
+  | "shift"
+  | "seniority_number"
+  | "hire_date"
+  | "role"
+  | "status"
+  | "pto_balance"
+  | "vacation_balance"
+  | "fmla_balance"
+>
+
+export interface EmployeesPage {
+  employees: DirectoryEmployee[]
+  total: number
+  page: number
+  pageSize: number
+  stats: { total: number; active: number; onLeave: number; terminated: number }
+}
+
+export async function getEmployeesPageAction(
+  query: EmployeeQuery = {}
+): Promise<ActionResult<EmployeesPage>> {
+  try {
+    await requireAdminRole()
+  } catch (e: any) {
+    return fail(e.message)
+  }
+
+  const admin = createSupabaseAdmin()
+
+  const page = Math.max(1, Math.floor(query.page ?? 1))
+  const from = (page - 1) * EMPLOYEES_PAGE_SIZE
+  const to = from + EMPLOYEES_PAGE_SIZE - 1
+
+  let q = admin.from("employees").select(DIRECTORY_COLUMNS, { count: "exact" })
+
+  // Free-text search across name / employee_id / email. Strip characters that
+  // would break PostgREST's `or` grammar before interpolating.
+  const term = (query.search ?? "").trim().replace(/[,()%*\\]/g, "")
+  if (term) {
+    q = q.or(`name.ilike.%${term}%,employee_id.ilike.%${term}%,email.ilike.%${term}%`)
+  }
+  if (query.role && query.role !== "all") q = q.eq("role", query.role)
+  if (query.status && query.status !== "all") q = q.eq("status", query.status)
+
+  // Default sort encodes the domain rule: seniority → hire date → name.
+  if (query.sort === "name") {
+    q = q.order("name", { ascending: true })
+  } else if (query.sort === "hire_date") {
+    q = q
+      .order("hire_date", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true })
+  } else {
+    q = q
+      .order("seniority_number", { ascending: true, nullsFirst: false })
+      .order("hire_date", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true })
+  }
+
+  const { data, count, error } = await q.range(from, to)
+  if (error) return fail(error.message)
+
+  // Header stats — global (unaffected by the active filters). Bounded COUNT-only
+  // queries (head: true → no rows transferred), one per status bucket.
+  const countFor = (status?: string) => {
+    let c = admin.from("employees").select("id", { count: "exact", head: true })
+    if (status) c = c.eq("status", status)
+    return c
+  }
+  const [tot, act, leave, term2] = await Promise.all([
+    countFor(),
+    countFor("active"),
+    countFor("on_leave"),
+    countFor("terminated"),
+  ])
+
+  return ok({
+    employees: (data ?? []) as unknown as DirectoryEmployee[],
+    total: count ?? 0,
+    page,
+    pageSize: EMPLOYEES_PAGE_SIZE,
+    stats: {
+      total: tot.count ?? 0,
+      active: act.count ?? 0,
+      onLeave: leave.count ?? 0,
+      terminated: term2.count ?? 0,
+    },
+  })
 }
 
 // ── Export Employees CSV ─────────────────────────────────────────────────────

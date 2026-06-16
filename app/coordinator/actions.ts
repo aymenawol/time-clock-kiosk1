@@ -21,3 +21,30 @@ export async function saveShiftNotesAction(shiftId: string, notes: string): Prom
   if (error) return { error: error.message }
   return {}
 }
+
+/**
+ * N12 — record the coordinator/supervisor OK/X compliance verdict for a shift.
+ * Restricted-scope roles get exactly this monitor capability.
+ */
+export async function saveComplianceVerdictAction(
+  shiftId: string,
+  verdict: 'ok' | 'flag',
+  note: string
+): Promise<{ error?: string }> {
+  const auth = await requireRole('coordinator', 'supervisor', 'admin', 'management')
+  if (!auth.ok) return { error: auth.error }
+  if (verdict !== 'ok' && verdict !== 'flag') return { error: 'Invalid verdict.' }
+
+  const supabase = createSupabaseAdmin()
+  const { error } = await supabase
+    .from('shifts')
+    .update({
+      compliance_verdict: verdict,
+      compliance_note:    note.trim() || null,
+      compliance_by:      auth.user.id,
+      compliance_at:      new Date().toISOString(),
+    })
+    .eq('id', shiftId)
+  if (error) return { error: error.message }
+  return {}
+}

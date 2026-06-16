@@ -114,3 +114,57 @@ export function buildPayrollCSV(rows: PayrollRow[]): string {
 export function shouldRaiseFatigueAlert(totalHours: number): boolean {
   return totalHours >= 10
 }
+
+// ─────────────────────────────────────────────────────────────
+// N8 — weekly fatigue / OT thresholds (spec: flag >8h/day or >5 days/week)
+// ─────────────────────────────────────────────────────────────
+
+/** Days/week beyond which a consecutive_days fatigue alert is raised. */
+export const WEEKLY_DAYS_LIMIT = 5
+/** Weekly OT hours beyond which an ot_threshold fatigue alert is raised. */
+export const WEEKLY_OT_ALERT_HOURS = 10
+
+/**
+ * ISO-8601 week key (e.g. "2026-W23") for an ISO date string. Weeks start
+ * Monday; pure and deterministic so it is unit-testable.
+ */
+export function isoWeekKey(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  const day = (d.getUTCDay() + 6) % 7 // Mon=0..Sun=6
+  // Move to the Thursday of this week (ISO weeks are defined by their Thursday).
+  d.setUTCDate(d.getUTCDate() - day + 3)
+  const year = d.getUTCFullYear()
+  const firstThursday = new Date(Date.UTC(year, 0, 4))
+  const firstDay = (firstThursday.getUTCDay() + 6) % 7
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDay + 3)
+  const week = 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 24 * 3600 * 1000))
+  return `${year}-W${String(week).padStart(2, '0')}`
+}
+
+/** Count distinct work days per ISO week. */
+export function daysWorkedByWeek(workDates: string[]): Record<string, number> {
+  const weeks: Record<string, Set<string>> = {}
+  for (const date of workDates) {
+    const wk = isoWeekKey(date)
+    ;(weeks[wk] ??= new Set()).add(date)
+  }
+  const out: Record<string, number> = {}
+  for (const [wk, set] of Object.entries(weeks)) out[wk] = set.size
+  return out
+}
+
+/** Largest number of distinct days worked in any single ISO week. */
+export function maxDaysInAnyWeek(workDates: string[]): number {
+  const counts = Object.values(daysWorkedByWeek(workDates))
+  return counts.length ? Math.max(...counts) : 0
+}
+
+/** Total OT hours per ISO week from daily records. */
+export function weeklyOtHours(records: { work_date: string; overtime_hours: number }[]): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const r of records) {
+    const wk = isoWeekKey(r.work_date)
+    out[wk] = (out[wk] ?? 0) + (r.overtime_hours || 0)
+  }
+  return out
+}

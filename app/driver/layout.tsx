@@ -4,6 +4,8 @@ import { getServerUser } from '@/lib/supabase-server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import DriverShell from '@/components/driver-shell'
 import SignOutButton from '@/components/sign-out-button'
+import NotificationBell from '@/components/notification-bell'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export default async function DriverLayout({ children }: { children: React.ReactNode }) {
   const { user } = await getServerUser()
@@ -37,40 +39,45 @@ export default async function DriverLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <nav className="bg-gray-900 border-b border-gray-800 px-4 h-12 flex items-center gap-1 overflow-x-auto scrollbar-hide">
-        <Link href="/driver" className="font-bold text-sm text-white/90 whitespace-nowrap px-2 py-1 rounded-lg">My Dashboard</Link>
-        <Link href="/driver/counting-sheet" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+    <div className="min-h-screen bg-background text-foreground">
+      <nav className="bg-card border-b border-border px-4 h-12 flex items-center gap-1 overflow-x-auto scrollbar-hide">
+        <Link href="/driver" className="font-bold text-sm text-foreground/90 whitespace-nowrap px-2 py-1 rounded-lg">My Dashboard</Link>
+        <Link href="/driver/counting-sheet" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Counting Sheet
         </Link>
-        <Link href="/driver/inspection/pre_trip" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+        <Link href="/driver/inspection/pre_trip" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Pre-Trip
         </Link>
-        <Link href="/driver/inspection/post_trip" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+        <Link href="/driver/inspection/post_trip" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Post-Trip
         </Link>
         <Link href="/driver/10-51" className="text-sm text-orange-400 hover:text-orange-300 font-semibold transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           10-51
         </Link>
-        <Link href="/driver/lost-found" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+        <Link href="/driver/lost-found" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Lost &amp; Found
         </Link>
-        <Link href="/driver/bids" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+        <Link href="/driver/bids" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Bids
         </Link>
-        <Link href="/driver/overtime" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+        <Link href="/driver/overtime" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Overtime
         </Link>
-        <Link href="/driver/forms" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+        <Link href="/driver/forms" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Forms
         </Link>
-        <Link href="/driver/safety-meetings" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+        <Link href="/driver/safety-meetings" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Safety
         </Link>
-        <Link href="/driver/performance" className="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+        <Link href="/driver/performance" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
           Performance
         </Link>
-        <div className="ml-auto pl-4 flex-shrink-0">
+        <Link href="/balances" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
+          My Balances
+        </Link>
+        <div className="ml-auto pl-4 flex-shrink-0 flex items-center gap-2">
+          <ThemeToggle />
+          <NotificationBell />
           <SignOutButton />
         </div>
       </nav>

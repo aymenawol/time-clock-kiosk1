@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { isPositionStale, minutesSinceLastPosition } from '@/lib/gps-utils'
 import { calcETA, type PositionSample } from '@/lib/gps-utils'
 import { TERMINALS } from '@/lib/terminals'
+import { busStatusColor, busStatusLabel } from '@/lib/constants/bus-status'
 
 // ─────────────────────────────── Types ───────────────────────────────
 
@@ -47,27 +48,7 @@ interface Props {
 
 // ─────────────────────────────── Constants ───────────────────────────────
 
-const STATUS_COLORS: Record<string, string> = {
-  'available':     'border-green-700 bg-green-950/20',
-  'in_service':    'border-blue-700 bg-blue-950/20',
-  'charging':      'border-teal-700 bg-teal-950/20',
-  'fueling':       'border-orange-700 bg-orange-950/20',
-  'washing':       'border-cyan-700 bg-cyan-950/20',
-  'maintenance':   'border-yellow-700 bg-yellow-950/20',
-  'safety_hold':   'border-red-800 bg-red-950/20',
-  'out_of_service':'border-gray-700 bg-gray-900/40',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  'available':      'Available',
-  'in_service':     'In Service',
-  'charging':       'Charging',
-  'fueling':        'Fueling',
-  'washing':        'Washing',
-  'maintenance':    'Maintenance',
-  'safety_hold':    'Safety Hold',
-  'out_of_service': 'OOS',
-}
+// Bus-status colors/labels come from the canonical map in lib/constants/bus-status.
 
 const RADIO_LABELS: Record<string, string> = {
   '10-8': 'In Service', '10-39': 'On Break', '10-37': 'Fueling/Wash',
@@ -157,18 +138,18 @@ export default function DispatchBoardClient({
   return (
     <div className="flex flex-col h-screen select-none">
       {/* ── Top Bar ── */}
-      <header className="flex items-center gap-4 bg-gray-900 border-b border-gray-800 px-4 h-10 shrink-0">
-        <div className="text-lg font-bold text-white tracking-widest uppercase">
+      <header className="flex items-center gap-4 bg-card border-b border-border px-4 h-10 shrink-0">
+        <div className="text-lg font-bold text-foreground tracking-widest uppercase">
           <MilitaryClock />
         </div>
-        <span className="text-gray-500 text-sm">
+        <span className="text-muted-foreground text-sm">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
         </span>
 
         <div className="ml-auto flex items-center gap-5 text-sm">
-          <span className="text-gray-400">Drivers Active: <span className="text-white font-bold">{activeDriverCount}</span></span>
-          <span className="text-gray-400">Available Buses: <span className="text-green-400 font-bold">{availableBusCount}</span></span>
-          <span className="text-gray-400">OOS: <span className="text-red-400 font-bold">{oosBusCount}</span></span>
+          <span className="text-muted-foreground">Drivers Active: <span className="text-foreground font-bold">{activeDriverCount}</span></span>
+          <span className="text-muted-foreground">Available Buses: <span className="text-green-400 font-bold">{availableBusCount}</span></span>
+          <span className="text-muted-foreground">OOS: <span className="text-red-400 font-bold">{oosBusCount}</span></span>
           {unresolvedAlerts.length > 0 && (
             <span className="text-red-400 font-bold animate-pulse">
               ⚠ {unresolvedAlerts.length} Fatigue Alert{unresolvedAlerts.length > 1 ? 's' : ''}
@@ -176,10 +157,10 @@ export default function DispatchBoardClient({
           )}
         </div>
 
-        <a href="/admin/map" className="ml-4 text-xs text-gray-500 hover:text-gray-300 border border-gray-700 px-2 py-1 rounded">
+        <a href="/admin/map" className="ml-4 text-xs text-muted-foreground hover:text-foreground border border-border px-2 py-1 rounded">
           GPS Map →
         </a>
-        <a href="/dispatcher" className="text-xs text-gray-500 hover:text-gray-300 border border-gray-700 px-2 py-1 rounded">
+        <a href="/dispatcher" className="text-xs text-muted-foreground hover:text-foreground border border-border px-2 py-1 rounded">
           Dispatcher ←
         </a>
       </header>
@@ -200,7 +181,7 @@ export default function DispatchBoardClient({
               const shift  = shifts.find(s => s.bus_id === bus.id && s.status === 'active')
               const pos    = positions[bus.id]
               const stale  = pos ? isPositionStale(pos.recorded_at) : false
-              const colorCls = STATUS_COLORS[bus.status] ?? 'border-gray-700 bg-gray-900'
+              const colorCls = busStatusColor(bus.status)
               const isSelected = selectedBusId === bus.id
 
               return (
@@ -213,18 +194,18 @@ export default function DispatchBoardClient({
                 >
                   {/* Bus number + type */}
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-white text-base">#{bus.bus_number}</span>
+                    <span className="font-bold text-foreground text-base">#{bus.bus_number}</span>
                     <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
-                      bus.bus_type === 'EV' ? 'bg-teal-900 text-teal-300' : 'bg-gray-800 text-gray-400'
+                      bus.bus_type === 'EV' ? 'bg-teal-900 text-teal-300' : 'bg-muted text-muted-foreground'
                     }`}>{bus.bus_type}</span>
                   </div>
 
                   {/* Status */}
-                  <p className="text-xs text-gray-400 truncate">{STATUS_LABEL[bus.status] ?? bus.status}</p>
+                  <p className="text-xs text-muted-foreground truncate">{busStatusLabel(bus.status)}</p>
 
                   {/* Driver */}
                   {shift?.employee ? (
-                    <p className="text-xs text-gray-300 truncate mt-0.5">
+                    <p className="text-xs text-foreground truncate mt-0.5">
                       {shift.employee.name}
                     </p>
                   ) : (
@@ -239,7 +220,7 @@ export default function DispatchBoardClient({
                   {/* Fuel/Battery */}
                   {bus.fuel_level != null && (
                     <div className="mt-1.5">
-                      <div className="h-1 rounded bg-gray-800 overflow-hidden">
+                      <div className="h-1 rounded bg-muted overflow-hidden">
                         <div
                           className={`h-full rounded ${
                             (bus.fuel_level ?? 0) < 25 ? 'bg-red-500' :
@@ -267,30 +248,30 @@ export default function DispatchBoardClient({
         </div>
 
         {/* Right sidebar: selected bus detail + alerts */}
-        <div className="w-72 bg-gray-900 border-l border-gray-800 flex flex-col overflow-hidden shrink-0">
+        <div className="w-72 bg-card border-l border-border flex flex-col overflow-hidden shrink-0">
           {/* Selected bus detail */}
           {selectedBus && (
-            <div className="p-3 border-b border-gray-800">
+            <div className="p-3 border-b border-border">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-white">Bus #{selectedBus.bus_number}</span>
-                <button onClick={() => setSelectedBusId(null)} className="text-gray-600 hover:text-white text-xs">✕</button>
+                <span className="font-bold text-foreground">Bus #{selectedBus.bus_number}</span>
+                <button onClick={() => setSelectedBusId(null)} className="text-gray-600 hover:text-foreground text-xs">✕</button>
               </div>
 
               {selectedShift?.employee && (
-                <p className="text-gray-300 text-sm">
+                <p className="text-foreground text-sm">
                   {selectedShift.employee.name}
                 </p>
               )}
 
               {selectedPosition && (
                 <>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     Speed: {selectedPosition.speed != null ? `${selectedPosition.speed.toFixed(0)} km/h` : '—'} &nbsp;
                     Heading: {selectedPosition.heading != null ? `${selectedPosition.heading.toFixed(0)}°` : '—'}
                   </p>
 
                   <div className="mt-2 space-y-0.5">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">ETAs</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">ETAs</p>
                     {TERMINALS.map(t => {
                       const history = posHistoryRef.current[selectedBus.id] ?? []
                       const samples: PositionSample[] = history.map(p => ({
@@ -298,7 +279,7 @@ export default function DispatchBoardClient({
                       }))
                       const eta = calcETA(samples, t)
                       return (
-                        <p key={t.id} className="text-xs text-gray-300">
+                        <p key={t.id} className="text-xs text-foreground">
                           {t.name}: {eta != null ? `~${eta} min` : '—'}
                         </p>
                       )
@@ -326,7 +307,7 @@ export default function DispatchBoardClient({
 
           {/* Fatigue / alert feed */}
           <div className="flex-1 overflow-y-auto p-3">
-            <p className="text-gray-500 text-xs uppercase tracking-wide font-semibold mb-2">
+            <p className="text-muted-foreground text-xs uppercase tracking-wide font-semibold mb-2">
               Active Alerts ({unresolvedAlerts.length})
             </p>
             {unresolvedAlerts.length === 0 && (
@@ -338,7 +319,7 @@ export default function DispatchBoardClient({
                   {a.alert_type.replace(/_/g, ' ')}
                 </p>
                 {a.employees && (
-                  <p className="text-gray-300 text-xs">{a.employees.name}</p>
+                  <p className="text-foreground text-xs">{a.employees.name}</p>
                 )}
                 <p className="text-gray-600 text-xs">{new Date(a.triggered_at).toLocaleTimeString()}</p>
                 <a href="/admin/fatigue" className="text-red-400 text-xs hover:text-red-300">Review →</a>

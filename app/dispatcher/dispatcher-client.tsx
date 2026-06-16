@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { reEnableBreakAction } from './actions'
+import { useDebouncedRefresh } from '@/lib/use-debounced-refresh'
 
 interface BreakRow {
   id: string
@@ -46,7 +47,7 @@ interface Props {
 }
 
 const BREAK_STATUS_COLOR: Record<string, string> = {
-  pending:   'text-gray-500',
+  pending:   'text-muted-foreground',
   active:    'text-yellow-400 animate-pulse',
   completed: 'text-green-400',
   missed:    'text-red-500',
@@ -67,7 +68,7 @@ function formatTime(ts: string | null) {
 
 function BreakBadge({ brk }: { brk: BreakRow | undefined; }) {
   if (!brk) return <span className="text-gray-700 text-xs">—</span>
-  const color = BREAK_STATUS_COLOR[brk.status] ?? 'text-gray-400'
+  const color = BREAK_STATUS_COLOR[brk.status] ?? 'text-muted-foreground'
   const label = brk.status === 'active'
     ? `${brk.break_number === 1 ? 'B1' : 'B2'} ⏱`
     : brk.status === 'completed'
@@ -80,6 +81,7 @@ function BreakBadge({ brk }: { brk: BreakRow | undefined; }) {
 
 export default function DispatcherClient({ initialShifts, initialBuses, availableTablets, today }: Props) {
   const router = useRouter()
+  const debouncedRefresh = useDebouncedRefresh()
   const [, startReenable] = useTransition()
   const [shifts, setShifts] = useState<ShiftRow[]>(initialShifts)
   const [buses,  setBuses]  = useState<BusRow[]>(initialBuses)
@@ -100,13 +102,10 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
 
     const shiftsChannel = supabase
       .channel('dispatcher-shifts')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => {
-        // Re-fetch on any change (simplest and correct approach)
-        router.refresh()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'breaks' }, () => {
-        router.refresh()
-      })
+      // Scope shifts to today + debounce so a burst of break/shift changes
+      // collapses into one refetch instead of a per-event storm.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts', filter: `date=eq.${today}` }, debouncedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'breaks' }, debouncedRefresh)
       .subscribe()
 
     const busChannel = supabase
@@ -120,7 +119,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
       supabase.removeChannel(shiftsChannel)
       supabase.removeChannel(busChannel)
     }
-  }, [router])
+  }, [debouncedRefresh, today])
 
   const activeShifts    = shifts.filter(s => s.status === 'active')
   const scheduledShifts = shifts.filter(s => s.status === 'scheduled')
@@ -145,8 +144,8 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
       {/* Header bar */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Dispatch Dashboard</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-foreground">Dispatch Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
             {now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} &nbsp;·&nbsp;
             {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
@@ -154,7 +153,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
         <div className="flex gap-2">
           <button
             onClick={() => router.push('/dispatcher/sign-in')}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg"
+            className="bg-blue-600 hover:bg-blue-500 text-foreground text-sm font-medium px-4 py-2 rounded-lg"
           >
             + Sign In Driver
           </button>
@@ -173,16 +172,16 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* Active drivers grid */}
         <div className="xl:col-span-2 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
             Active Drivers ({activeShifts.length})
           </h2>
           {activeShifts.length === 0 ? (
             <p className="text-gray-600 text-sm">No active shifts yet today.</p>
           ) : (
-            <div className="overflow-auto rounded-lg border border-gray-800">
+            <div className="overflow-auto rounded-lg border border-border">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-900 text-gray-500 text-xs uppercase">
+                  <tr className="bg-card text-muted-foreground text-xs uppercase">
                     <th className="px-3 py-2 text-left">Driver</th>
                     <th className="px-3 py-2 text-left">Bus</th>
                     <th className="px-3 py-2 text-left">Tablet</th>
@@ -192,13 +191,13 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
                     <th className="px-3 py-2 text-left">Radio</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-border">
                   {activeShifts.map(s => {
                     const b1 = s.breaks.find(b => b.break_number === 1)
                     const b2 = s.breaks.find(b => b.break_number === 2)
                     return (
-                      <tr key={s.id} className="hover:bg-gray-900/50">
-                        <td className="px-3 py-2 text-white font-medium">
+                      <tr key={s.id} className="hover:bg-card/50">
+                        <td className="px-3 py-2 text-foreground font-medium">
                           {s.employee?.name}
                           {s.employee?.seniority_number && (
                             <span className="text-gray-600 text-xs ml-1">#{s.employee.seniority_number}</span>
@@ -206,14 +205,14 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
                         </td>
                         <td className="px-3 py-2">
                           {s.bus ? (
-                            <span className="text-white">
+                            <span className="text-foreground">
                               #{s.bus.bus_number}
-                              <span className="text-gray-500 text-xs ml-1">{s.bus.bus_type}</span>
+                              <span className="text-muted-foreground text-xs ml-1">{s.bus.bus_type}</span>
                             </span>
                           ) : <span className="text-gray-600">—</span>}
                         </td>
-                        <td className="px-3 py-2 text-gray-400">{s.tablet?.tablet_number ?? '—'}</td>
-                        <td className="px-3 py-2 text-gray-400">{formatTime(s.actual_start)}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{s.tablet?.tablet_number ?? '—'}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{formatTime(s.actual_start)}</td>
                         <td className="px-3 py-2 text-center"><BreakBadge brk={b1 as any} /></td>
                         <td className="px-3 py-2 text-center"><BreakBadge brk={b2 as any} /></td>
                         <td className="px-3 py-2">
@@ -235,12 +234,12 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
 
           {scheduledShifts.length > 0 && (
             <details className="mt-2">
-              <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-300">
+              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
                 {scheduledShifts.length} scheduled (not yet started)
               </summary>
               <div className="mt-2 space-y-1">
                 {scheduledShifts.map(s => (
-                  <div key={s.id} className="flex gap-3 text-xs text-gray-500 border border-gray-800 rounded px-3 py-1.5">
+                  <div key={s.id} className="flex gap-3 text-xs text-muted-foreground border border-border rounded px-3 py-1.5">
                     <span>{s.employee?.name}</span>
                     <span>·</span>
                     <span>{s.scheduled_start ?? '—'}</span>
@@ -254,7 +253,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
 
         {/* Right panel: break alerts */}
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
             Break Alerts {breakAlerts.length > 0 && `(${breakAlerts.length})`}
           </h2>
           {breakAlerts.length === 0 ? (
@@ -268,7 +267,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
                   'border-yellow-800 bg-yellow-950/20'
                 }`}>
                   <div className="flex justify-between items-start">
-                    <span className="text-white font-medium text-xs">
+                    <span className="text-foreground font-medium text-xs">
                       {s.employee?.name}
                     </span>
                     <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
@@ -277,7 +276,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
                       'bg-yellow-900 text-yellow-300'
                     }`}>{b.status}</span>
                   </div>
-                  <p className="text-gray-500 text-xs mt-0.5">
+                  <p className="text-muted-foreground text-xs mt-0.5">
                     Break {b.break_number} · Bus #{s.bus?.bus_number ?? '?'}
                     {b.actual_start && ` · Started ${formatTime(b.actual_start)}`}
                   </p>
@@ -296,7 +295,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
 
           {/* Available buses mini-list */}
           <div className="mt-4">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Ready Buses ({readyBuses})
             </h2>
             <div className="grid grid-cols-4 gap-1">
@@ -317,7 +316,7 @@ export default function DispatcherClient({ initialShifts, initialBuses, availabl
 function Pill({ label, value, color }: { label: string; value: number; color: string }) {
   const colors: Record<string, string> = {
     blue:  'bg-blue-900/40 text-blue-300 border-blue-800',
-    gray:  'bg-gray-800 text-gray-400 border-gray-700',
+    gray:  'bg-muted text-muted-foreground border-border',
     green: 'bg-green-900/40 text-green-300 border-green-800',
     teal:  'bg-teal-900/40 text-teal-300 border-teal-800',
     red:   'bg-red-900/40 text-red-300 border-red-800 animate-pulse',

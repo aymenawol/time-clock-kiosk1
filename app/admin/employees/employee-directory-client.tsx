@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
-import type { Employee, EmployeeRole } from "@/lib/supabase"
 import {
   toggleEmployeeStatusAction,
   exportEmployeesCSVAction,
+  type DirectoryEmployee,
+  type EmployeeSort,
 } from "./actions"
 
 const STATUS_BADGE: Record<string, string> = {
@@ -26,32 +28,87 @@ const ROLE_LABEL: Record<string, string> = {
   payroll: "Payroll",
 }
 
-interface Category {
-  label: string
-  roles: string[]
-  employees: Employee[]
+interface Query {
+  search: string
+  role: string
+  status: string
+  sort: EmployeeSort
 }
 
 interface Props {
-  employees: Employee[]
-  categorized?: Category[]
+  employees?: DirectoryEmployee[]
+  total?: number
+  page?: number
+  pageSize?: number
+  query?: Query
   exportOnly?: boolean
 }
 
 export default function EmployeeDirectoryClient({
-  employees,
-  categorized,
+  employees = [],
+  total = 0,
+  page = 1,
+  pageSize = 25,
+  query,
   exportOnly,
 }: Props) {
-  const [search, setSearch] = useState("")
-  const [filterRole, setFilterRole] = useState<string>("all")
-  const [filterStatus, setFilterStatus] = useState<string>("all")
-  const [sortBy, setSortBy] = useState<"seniority" | "hire_date" | "name">("seniority")
+  const router = useRouter()
+  const role = query?.role ?? "all"
+  const status = query?.status ?? "all"
+  const sort = query?.sort ?? "seniority"
+
+  const [searchInput, setSearchInput] = useState(query?.search ?? "")
   const [isPending, startTransition] = useTransition()
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Export CSV ──────────────────────────────────────────────────────────
+  // Keep the input in sync when the URL changes externally (e.g. back/forward).
+  useEffect(() => {
+    setSearchInput(query?.search ?? "")
+  }, [query?.search])
+
+  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current) }, [])
+
+  // ── URL helpers ───────────────────────────────────────────────────────────
+  const buildUrl = useCallback(
+    (overrides: Partial<Query & { page: number }>) => {
+      const next = {
+        search: searchInput,
+        role,
+        status,
+        sort,
+        page: 1,
+        ...overrides,
+      }
+      const sp = new URLSearchParams()
+      if (next.search) sp.set("search", next.search)
+      if (next.role && next.role !== "all") sp.set("role", next.role)
+      if (next.status && next.status !== "all") sp.set("status", next.status)
+      if (next.sort && next.sort !== "seniority") sp.set("sort", next.sort)
+      if (next.page && next.page > 1) sp.set("page", String(next.page))
+      const qs = sp.toString()
+      return qs ? `/admin/employees?${qs}` : "/admin/employees"
+    },
+    [searchInput, role, status, sort]
+  )
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value)
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => {
+      // buildUrl reads searchInput via closure; recompute from the latest value.
+      const sp = new URLSearchParams()
+      if (value) sp.set("search", value)
+      if (role !== "all") sp.set("role", role)
+      if (status !== "all") sp.set("status", status)
+      if (sort !== "seniority") sp.set("sort", sort)
+      const qs = sp.toString()
+      router.push(qs ? `/admin/employees?${qs}` : "/admin/employees")
+    }, 350)
+  }
+
+  // ── Export CSV (full directory, not just the current page) ──────────────────
   const handleExportCSV = () => {
     startTransition(async () => {
       const result = await exportEmployeesCSVAction()
@@ -70,73 +127,40 @@ export default function EmployeeDirectoryClient({
   }
 
   // ── Toggle status ───────────────────────────────────────────────────────
-  const handleToggleStatus = (emp: Employee) => {
+  const handleToggleStatus = (emp: DirectoryEmployee) => {
     const newStatus = emp.status === "terminated" ? "active" : "terminated"
     setTogglingId(emp.id)
     startTransition(async () => {
       const result = await toggleEmployeeStatusAction(emp.id, newStatus)
       setTogglingId(null)
       if (result.success) {
-        setToast({
-          message: `${emp.name} set to ${newStatus}.`,
-          type: "success",
-        })
+        setToast({ message: `${emp.name} set to ${newStatus}.`, type: "success" })
+        router.refresh()
       } else {
         setToast({ message: result.error, type: "error" })
       }
     })
   }
 
-  // ── If exportOnly, just render the CSV button ───────────────────────────
+  // ── exportOnly variant: just the CSV button (rendered in the page header) ───
   if (exportOnly) {
     return (
       <button
         onClick={handleExportCSV}
         disabled={isPending}
-        className="px-4 py-2 rounded-xl text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors disabled:opacity-50"
+        className="px-4 py-2 rounded-xl text-sm font-medium text-foreground bg-muted hover:bg-gray-700 transition-colors disabled:opacity-50"
       >
         Export CSV
       </button>
     )
   }
 
-  // ── Filter + sort ───────────────────────────────────────────────────────
-  const filterEmployee = (e: Employee) => {
-    const matchesSearch =
-      search === "" ||
-      e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.employee_id.includes(search) ||
-      (e.email ?? "").toLowerCase().includes(search.toLowerCase())
-
-    const matchesRole = filterRole === "all" || e.role === filterRole
-    const matchesStatus = filterStatus === "all" || e.status === filterStatus
-
-    return matchesSearch && matchesRole && matchesStatus
-  }
-
-  const sortEmployees = (a: Employee, b: Employee) => {
-    if (sortBy === "seniority") {
-      if (a.seniority_number != null && b.seniority_number != null)
-        return a.seniority_number - b.seniority_number
-      if (a.seniority_number != null) return -1
-      if (b.seniority_number != null) return 1
-      // Fall back to hire date
-    }
-    if (sortBy === "hire_date" || sortBy === "seniority") {
-      if (a.hire_date && b.hire_date)
-        return a.hire_date.localeCompare(b.hire_date)
-      if (a.hire_date) return -1
-      if (b.hire_date) return 1
-    }
-    return a.name.localeCompare(b.name)
-  }
-
-  const allRoles = Array.from(
-    new Set(employees.map((e) => e.role).filter(Boolean) as EmployeeRole[])
-  ).sort()
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const rangeEnd = Math.min(page * pageSize, total)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Toast */}
       {toast && (
         <div
@@ -147,42 +171,39 @@ export default function EmployeeDirectoryClient({
           }`}
         >
           <span>{toast.message}</span>
-          <button
-            onClick={() => setToast(null)}
-            className="ml-3 opacity-60 hover:opacity-100"
-          >
+          <button onClick={() => setToast(null)} className="ml-3 opacity-60 hover:opacity-100">
             ✕
           </button>
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 bg-gray-900 rounded-xl p-4 border border-gray-800">
+      <div className="flex flex-wrap gap-3 bg-card rounded-xl p-4 border border-border">
         <input
           type="text"
           placeholder="Search name, ID, or email…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 min-w-48 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-600"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="flex-1 min-w-48 px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-600"
         />
 
         <select
-          value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-red-600"
+          value={role}
+          onChange={(e) => router.push(buildUrl({ role: e.target.value, page: 1 }))}
+          className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-red-600"
         >
           <option value="all">All roles</option>
-          {allRoles.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABEL[r] ?? r}
+          {Object.entries(ROLE_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
             </option>
           ))}
         </select>
 
         <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-red-600"
+          value={status}
+          onChange={(e) => router.push(buildUrl({ status: e.target.value, page: 1 }))}
+          className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-red-600"
         >
           <option value="all">All statuses</option>
           <option value="active">Active</option>
@@ -191,11 +212,9 @@ export default function EmployeeDirectoryClient({
         </select>
 
         <select
-          value={sortBy}
-          onChange={(e) =>
-            setSortBy(e.target.value as "seniority" | "hire_date" | "name")
-          }
-          className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-red-600"
+          value={sort}
+          onChange={(e) => router.push(buildUrl({ sort: e.target.value as EmployeeSort, page: 1 }))}
+          className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-red-600"
         >
           <option value="seniority">Sort: Seniority</option>
           <option value="hire_date">Sort: Hire Date</option>
@@ -203,26 +222,46 @@ export default function EmployeeDirectoryClient({
         </select>
       </div>
 
-      {/* Category sections */}
-      {categorized?.map((cat) => {
-        const visible = cat.employees
-          .filter(filterEmployee)
-          .sort(sortEmployees)
-        if (visible.length === 0) return null
+      {/* Table */}
+      {employees.length === 0 ? (
+        <div className="rounded-xl border border-border bg-background px-4 py-10 text-center text-sm text-muted-foreground">
+          No employees match the current filters.
+        </div>
+      ) : (
+        <EmployeeTable
+          employees={employees}
+          onToggle={handleToggleStatus}
+          togglingId={togglingId}
+        />
+      )}
 
-        return (
-          <section key={cat.label} className="space-y-2">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 px-1">
-              {cat.label} ({visible.length})
-            </h2>
-            <EmployeeTable
-              employees={visible}
-              onToggle={handleToggleStatus}
-              togglingId={togglingId}
-            />
-          </section>
-        )
-      })}
+      {/* Pagination */}
+      <div className="flex items-center justify-between text-sm">
+        <p className="text-muted-foreground">
+          {total === 0 ? "No results" : `Showing ${rangeStart}–${rangeEnd} of ${total}`}
+        </p>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => router.push(buildUrl({ page: page - 1 }))}
+              className="bg-muted hover:bg-gray-700 text-foreground px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ← Prev
+            </button>
+            <span className="text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => router.push(buildUrl({ page: page + 1 }))}
+              className="bg-muted hover:bg-gray-700 text-foreground px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next →
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -234,16 +273,17 @@ function EmployeeTable({
   onToggle,
   togglingId,
 }: {
-  employees: Employee[]
-  onToggle: (e: Employee) => void
+  employees: DirectoryEmployee[]
+  onToggle: (e: DirectoryEmployee) => void
   togglingId: string | null
 }) {
   return (
-    <div className="rounded-xl border border-gray-800 overflow-hidden">
+    <div className="rounded-xl border border-border overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-900 text-gray-400 text-xs uppercase tracking-wide">
+          <tr className="bg-card text-muted-foreground text-xs uppercase tracking-wide">
             <th className="text-left px-4 py-3 font-medium">Employee</th>
+            <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Role</th>
             <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Dept / Shift</th>
             <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Seniority</th>
             <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Balances</th>
@@ -251,39 +291,38 @@ function EmployeeTable({
             <th className="text-right px-4 py-3 font-medium">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-800 bg-gray-950">
+        <tbody className="divide-y divide-border bg-background">
           {employees.map((emp) => (
-            <tr key={emp.id} className="hover:bg-gray-900 transition-colors">
+            <tr key={emp.id} className="hover:bg-card transition-colors">
               {/* Name + ID */}
               <td className="px-4 py-3">
-                <div className="font-medium text-white">{emp.name}</div>
-                <div className="text-xs text-gray-500 mt-0.5">
+                <div className="font-medium text-foreground">{emp.name}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
                   ID {emp.employee_id}
-                  {emp.email && (
-                    <span className="ml-2 hidden sm:inline">{emp.email}</span>
-                  )}
+                  {emp.email && <span className="ml-2 hidden sm:inline">{emp.email}</span>}
                 </div>
               </td>
 
+              {/* Role */}
+              <td className="px-4 py-3 text-foreground hidden sm:table-cell text-xs">
+                {emp.role ? ROLE_LABEL[emp.role] ?? emp.role : <span className="text-gray-600">—</span>}
+              </td>
+
               {/* Dept / Shift */}
-              <td className="px-4 py-3 text-gray-300 hidden sm:table-cell">
-                {emp.department && (
-                  <div className="text-xs">{emp.department}</div>
-                )}
-                {emp.shift && (
-                  <div className="text-xs text-gray-500">{emp.shift}</div>
-                )}
+              <td className="px-4 py-3 text-foreground hidden sm:table-cell">
+                {emp.department && <div className="text-xs">{emp.department}</div>}
+                {emp.shift && <div className="text-xs text-muted-foreground">{emp.shift}</div>}
               </td>
 
               {/* Seniority / Hire date */}
-              <td className="px-4 py-3 text-gray-300 hidden md:table-cell">
+              <td className="px-4 py-3 text-foreground hidden md:table-cell">
                 {emp.seniority_number != null ? (
                   <span className="font-mono text-xs">#{emp.seniority_number}</span>
                 ) : (
                   <span className="text-gray-600">—</span>
                 )}
                 {emp.hire_date && (
-                  <div className="text-xs text-gray-500 mt-0.5">
+                  <div className="text-xs text-muted-foreground mt-0.5">
                     {new Date(emp.hire_date).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "short",
@@ -295,10 +334,10 @@ function EmployeeTable({
 
               {/* Balances */}
               <td className="px-4 py-3 hidden lg:table-cell">
-                <div className="text-xs text-gray-400 space-y-0.5">
-                  <div>PTO: <span className="text-white">{emp.pto_balance}h</span></div>
-                  <div>Vac: <span className="text-white">{emp.vacation_balance}h</span></div>
-                  <div>FMLA: <span className="text-white">{emp.fmla_balance}h</span></div>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <div>PTO: <span className="text-foreground">{emp.pto_balance}h</span></div>
+                  <div>Vac: <span className="text-foreground">{emp.vacation_balance}h</span></div>
+                  <div>FMLA: <span className="text-foreground">{emp.fmla_balance}h</span></div>
                 </div>
               </td>
 
@@ -306,7 +345,7 @@ function EmployeeTable({
               <td className="px-4 py-3">
                 <span
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    STATUS_BADGE[emp.status] ?? "bg-gray-800 text-gray-400"
+                    STATUS_BADGE[emp.status] ?? "bg-muted text-muted-foreground"
                   }`}
                 >
                   {emp.status.replace("_", " ")}
@@ -318,7 +357,7 @@ function EmployeeTable({
                 <div className="flex items-center justify-end gap-2">
                   <Link
                     href={`/admin/employees/${emp.id}`}
-                    className="text-xs text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-2.5 py-1 rounded-lg transition-colors"
+                    className="text-xs text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-700 px-2.5 py-1 rounded-lg transition-colors"
                   >
                     Edit
                   </Link>

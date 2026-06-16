@@ -106,11 +106,11 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
                 Emergency Active — {TYPE_LABELS[activeEvent.event_type as EventType] ?? activeEvent.event_type}
               </span>
             </div>
-            <span className="text-gray-500 text-xs">
+            <span className="text-muted-foreground text-xs">
               {new Date(activeEvent.triggered_at).toLocaleString('en-US', { hour12: false })}
             </span>
           </div>
-          <p className="text-white text-base mb-6 whitespace-pre-wrap">{activeEvent.message}</p>
+          <p className="text-foreground text-base mb-6 whitespace-pre-wrap">{activeEvent.message}</p>
 
           {ackStatus && (
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -132,7 +132,7 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
               </summary>
               <div className="mt-2 grid grid-cols-2 gap-1 max-h-48 overflow-y-auto">
                 {ackStatus.unacknowledged.map(e => (
-                  <div key={e.id} className="text-gray-400 text-xs px-2 py-1 bg-gray-900 rounded">
+                  <div key={e.id} className="text-muted-foreground text-xs px-2 py-1 bg-card rounded">
                     {e.name}
                   </div>
                 ))}
@@ -143,23 +143,23 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
           {!confirmResolve ? (
             <button
               onClick={() => setConfirmResolve(true)}
-              className="bg-green-700 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+              className="bg-green-700 hover:bg-green-600 text-foreground font-bold px-6 py-3 rounded-xl transition-colors"
             >
               Resolve Emergency
             </button>
           ) : (
             <div className="flex items-center gap-3">
-              <span className="text-gray-300 text-sm">Confirm resolve emergency?</span>
+              <span className="text-foreground text-sm">Confirm resolve emergency?</span>
               <button
                 onClick={handleResolve}
                 disabled={isPending}
-                className="bg-green-700 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-xl text-sm"
+                className="bg-green-700 hover:bg-green-600 text-foreground font-semibold px-4 py-2 rounded-xl text-sm"
               >
                 Yes, Resolve
               </button>
               <button
                 onClick={() => setConfirmResolve(false)}
-                className="text-gray-500 hover:text-gray-300 text-sm"
+                className="text-muted-foreground hover:text-foreground text-sm"
               >
                 Cancel
               </button>
@@ -170,12 +170,12 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
 
       {/* Trigger form */}
       {!activeEvent && (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-          <h2 className="text-white font-semibold text-lg mb-5">Trigger Emergency Alert</h2>
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <h2 className="text-foreground font-semibold text-lg mb-5">Trigger Emergency Alert</h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Event Type</label>
+              <label className="block text-sm text-muted-foreground mb-2">Event Type</label>
               <div className="grid grid-cols-2 gap-2">
                 {(Object.entries(TYPE_LABELS) as [EventType, string][]).map(([val, label]) => (
                   <button
@@ -184,8 +184,8 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
                     onClick={() => setEventType(val)}
                     className={`py-2.5 px-4 rounded-xl text-sm font-medium border transition-colors ${
                       eventType === val
-                        ? 'bg-red-800 border-red-600 text-white'
-                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500'
+                        ? 'bg-red-800 border-red-600 text-foreground'
+                        : 'bg-muted border-border text-muted-foreground hover:border-gray-500'
                     }`}
                   >
                     {label}
@@ -195,13 +195,13 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Message</label>
+              <label className="block text-sm text-muted-foreground mb-1">Message</label>
               <textarea
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 rows={4}
                 placeholder="Describe the emergency situation and required actions…"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-red-700 resize-none"
+                className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:border-red-700 resize-none"
               />
             </div>
 
@@ -210,7 +210,7 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
             <button
               onClick={handleTrigger}
               disabled={isPending || !message.trim()}
-              className="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-4 rounded-xl text-lg disabled:opacity-40 transition-colors"
+              className="w-full bg-red-700 hover:bg-red-600 text-foreground font-bold py-4 rounded-xl text-lg disabled:opacity-40 transition-colors"
             >
               {isPending ? 'Activating…' : '⚠ Trigger Emergency Alert'}
             </button>

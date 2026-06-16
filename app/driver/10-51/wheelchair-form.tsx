@@ -103,15 +103,15 @@ export default function WheelchairForm({ employeeId, activeShift, airlines }: Pr
             <p className="text-red-200 mb-4">
               Your request has been escalated. No response was received from dispatch within 5 minutes.
             </p>
-            <p className="text-white font-bold text-lg">Please call dispatch directly.</p>
+            <p className="text-foreground font-bold text-lg">Please call dispatch directly.</p>
           </div>
         ) : dispatchResponse ? (
           <div className="bg-green-950/50 border border-green-700 rounded-xl p-6">
             <div className="text-green-400 font-bold mb-2">Dispatcher Response</div>
-            <p className="text-white">{dispatchResponse}</p>
+            <p className="text-foreground">{dispatchResponse}</p>
             <span className={`inline-block mt-3 text-xs px-2 py-1 rounded-full font-semibold ${
               status === 'resolved'     ? 'bg-green-800 text-green-200' :
-              status === 'acknowledged' ? 'bg-blue-800 text-blue-200'  : 'bg-gray-800 text-gray-300'
+              status === 'acknowledged' ? 'bg-blue-800 text-blue-200'  : 'bg-muted text-foreground'
             }`}>
               Status: {status}
             </span>
@@ -120,11 +120,11 @@ export default function WheelchairForm({ employeeId, activeShift, airlines }: Pr
           <div className="bg-yellow-950/50 border border-yellow-700 rounded-xl p-6 text-center">
             <div className="text-yellow-400 font-bold text-lg mb-2">Request Submitted</div>
             <p className="text-yellow-200 mb-3">Waiting for dispatcher to respond…</p>
-            <p className="text-gray-400 text-sm">For {passengerName} — Flight {flightNumber}</p>
+            <p className="text-muted-foreground text-sm">For {passengerName} — Flight {flightNumber}</p>
             {status === 'acknowledged' && (
               <p className="text-blue-300 mt-3 text-sm">✓ Dispatcher acknowledged your request</p>
             )}
-            <div className="mt-4 text-gray-500 text-xs">
+            <div className="mt-4 text-muted-foreground text-xs">
               If no response within 5 minutes, you will be notified to call dispatch.
             </div>
           </div>
@@ -134,7 +134,7 @@ export default function WheelchairForm({ employeeId, activeShift, airlines }: Pr
             setSubmitted(null); setStatus(null); setDispatchResponse(null)
             setPassengerName(''); setAirlineId(''); setFlightNumber(''); setQuery('')
           }}
-          className="text-gray-400 hover:text-white text-sm underline"
+          className="text-muted-foreground hover:text-foreground text-sm underline"
         >
           Submit another request
         </button>
@@ -156,50 +156,50 @@ export default function WheelchairForm({ employeeId, activeShift, airlines }: Pr
       )}
 
       <div>
-        <label className="block text-sm text-gray-400 mb-1">Bus Number</label>
-        <div className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white">{busNumber}</div>
+        <label className="block text-sm text-muted-foreground mb-1">Bus Number</label>
+        <div className="bg-muted border border-border rounded-xl px-4 py-3 text-foreground">{busNumber}</div>
       </div>
 
       <div>
-        <label className="block text-sm text-gray-400 mb-1">Passenger Name</label>
+        <label className="block text-sm text-muted-foreground mb-1">Passenger Name</label>
         <input
           value={passengerName}
           onChange={e => setPassengerName(e.target.value)}
           required
           placeholder="Full name"
-          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-gray-500"
+          className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:border-gray-500"
         />
       </div>
 
       <div>
-        <label className="block text-sm text-gray-400 mb-1">Airline</label>
+        <label className="block text-sm text-muted-foreground mb-1">Airline</label>
         <input
           value={query}
           onChange={e => { setQuery(e.target.value); setAirlineId('') }}
           placeholder="Search airline…"
-          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-gray-500 mb-1"
+          className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:border-gray-500 mb-1"
         />
         {query && !airlineId && (
-          <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+          <div className="bg-muted border border-border rounded-xl overflow-hidden max-h-48 overflow-y-auto">
             {filteredAirlines.length === 0 ? (
-              <div className="px-4 py-3 text-gray-500 text-sm">No airlines match</div>
+              <div className="px-4 py-3 text-muted-foreground text-sm">No airlines match</div>
             ) : (
               filteredAirlines.map(a => (
                 <button
                   key={a.id}
                   type="button"
                   onClick={() => { setAirlineId(a.id); setQuery(a.name) }}
-                  className="w-full text-left px-4 py-3 text-white hover:bg-gray-700 text-sm border-b border-gray-700/50 last:border-0"
+                  className="w-full text-left px-4 py-3 text-foreground hover:bg-gray-700 text-sm border-b border-border/50 last:border-0"
                 >
                   {a.name}
-                  <span className="text-gray-500 ml-2 text-xs">Terminal {a.terminal}</span>
+                  <span className="text-muted-foreground ml-2 text-xs">Terminal {a.terminal}</span>
                 </button>
               ))
             )}
           </div>
         )}
         {selectedAirline && airlineId && (
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-muted-foreground mt-1">
             Terminal {selectedAirline.terminal}
             {selectedAirline.wheelchair_contact && (
               <span className="ml-2">Contact: {selectedAirline.wheelchair_contact}</span>
@@ -209,13 +209,13 @@ export default function WheelchairForm({ employeeId, activeShift, airlines }: Pr
       </div>
 
       <div>
-        <label className="block text-sm text-gray-400 mb-1">Flight Number</label>
+        <label className="block text-sm text-muted-foreground mb-1">Flight Number</label>
         <input
           value={flightNumber}
           onChange={e => setFlightNumber(e.target.value)}
           required
           placeholder="e.g. WN 1234"
-          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-gray-500"
+          className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:border-gray-500"
         />
       </div>
 
@@ -224,7 +224,7 @@ export default function WheelchairForm({ employeeId, activeShift, airlines }: Pr
       <button
         type="submit"
         disabled={isPending || !airlineId || !passengerName.trim() || !flightNumber.trim()}
-        className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-4 rounded-xl text-lg disabled:opacity-40 transition-colors"
+        className="w-full bg-orange-600 hover:bg-orange-500 text-foreground font-bold py-4 rounded-xl text-lg disabled:opacity-40 transition-colors"
       >
         {isPending ? 'Submitting…' : 'Submit 10-51 Request'}
       </button>

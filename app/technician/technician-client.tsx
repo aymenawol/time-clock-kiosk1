@@ -122,14 +122,14 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Open Defects</h1>
+        <h1 className="text-2xl font-bold text-foreground">Open Defects</h1>
         <div className="flex items-center gap-2">
           <span className="bg-red-950 text-red-300 border border-red-800 text-sm font-semibold px-3 py-1 rounded-full">
             {initialRepairNotes.length} open
           </span>
           <button
             onClick={() => setShowForm(v => !v)}
-            className="bg-blue-700 hover:bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg"
+            className="bg-blue-700 hover:bg-blue-600 text-foreground text-sm px-3 py-1.5 rounded-lg"
           >
             + Log Defect
           </button>
@@ -140,11 +140,11 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
 
       {/* Add defect form */}
       {showForm && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-300">Log New Defect</h2>
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-foreground">Log New Defect</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Bus *</label>
+              <label className="text-xs text-muted-foreground block mb-1">Bus *</label>
               <select value={form.bus_id} onChange={e => setForm(p => ({...p, bus_id: e.target.value}))} className={SEL}>
                 <option value="">Select bus…</option>
                 {buses.map(b => (
@@ -153,7 +153,7 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Category</label>
+              <label className="text-xs text-muted-foreground block mb-1">Category</label>
               <input
                 value={form.defect_category}
                 onChange={e => setForm(p => ({...p, defect_category: e.target.value}))}
@@ -162,7 +162,7 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Item</label>
+              <label className="text-xs text-muted-foreground block mb-1">Item</label>
               <input
                 value={form.defect_item}
                 onChange={e => setForm(p => ({...p, defect_item: e.target.value}))}
@@ -172,7 +172,7 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Notes *</label>
+            <label className="text-xs text-muted-foreground block mb-1">Notes *</label>
             <textarea
               value={form.notes}
               onChange={e => setForm(p => ({...p, notes: e.target.value}))}
@@ -182,8 +182,8 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
             />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setShowForm(false)} className="text-sm text-gray-500 hover:text-gray-300 px-3 py-1.5">Cancel</button>
-            <button onClick={handleAddNote} disabled={isPending} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg">
+            <button onClick={() => setShowForm(false)} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+            <button onClick={handleAddNote} disabled={isPending} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground text-sm px-4 py-1.5 rounded-lg">
               {isPending ? 'Saving…' : 'Log Defect'}
             </button>
           </div>
@@ -192,7 +192,7 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
 
       {/* No defects */}
       {initialRepairNotes.length === 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-10 text-center">
+        <div className="bg-card border border-border rounded-xl p-10 text-center">
           <p className="text-green-400 font-semibold text-lg">All Clear!</p>
           <p className="text-gray-600 text-sm mt-1">No open defects.</p>
         </div>
@@ -200,29 +200,29 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
 
       {/* Defects grouped by bus */}
       {Object.entries(byBus).map(([busId, group]) => (
-        <div key={busId} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <div className="px-4 py-3 bg-gray-800/60 flex items-center justify-between">
+        <div key={busId} className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 bg-muted/60 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-white font-bold">
+              <span className="text-foreground font-bold">
                 {group.bus ? `Bus #${group.bus.bus_number}` : 'Unknown Bus'}
               </span>
               {group.bus && (
-                <span className="text-gray-500 text-xs">{group.bus.bus_type} — {group.bus.status}</span>
+                <span className="text-muted-foreground text-xs">{group.bus.bus_type} — {group.bus.status}</span>
               )}
             </div>
             <span className="text-red-400 text-sm font-medium">{group.notes.length} defect{group.notes.length > 1 ? 's' : ''}</span>
           </div>
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-border">
             {group.notes.map(note => (
               <div key={note.id} className="px-4 py-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
                     {(note.defect_category || note.defect_item) && (
-                      <p className="text-xs text-gray-500 mb-0.5">
+                      <p className="text-xs text-muted-foreground mb-0.5">
                         {[note.defect_category, note.defect_item].filter(Boolean).join(' / ')}
                       </p>
                     )}
-                    <p className="text-white text-sm">{note.notes}</p>
+                    <p className="text-foreground text-sm">{note.notes}</p>
                     <p className="text-gray-600 text-xs mt-1">
                       {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       {note.inspection && (
@@ -235,14 +235,14 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
                         {(photoUrlsMap[note.id] ?? []).map((url, i) => (
                           <a key={i} href={url} target="_blank" rel="noreferrer">
                             <img src={url} alt={`Repair photo ${i + 1}`}
-                              className="w-16 h-16 object-cover rounded-lg border border-gray-700 hover:opacity-80" />
+                              className="w-16 h-16 object-cover rounded-lg border border-border hover:opacity-80" />
                           </a>
                         ))}
                       </div>
                     )}
                     {/* Photo upload */}
                     <label className={`mt-2 inline-flex items-center gap-1.5 text-xs cursor-pointer ${
-                      uploadingId === note.id ? 'text-gray-600 pointer-events-none' : 'text-gray-500 hover:text-gray-300'
+                      uploadingId === note.id ? 'text-gray-600 pointer-events-none' : 'text-muted-foreground hover:text-foreground'
                     }`}>
                       <input
                         type="file"
@@ -271,5 +271,5 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
   )
 }
 
-const INP = 'w-full bg-gray-950 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm disabled:opacity-50 placeholder-gray-700'
-const SEL = 'w-full bg-gray-950 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm'
+const INP = 'w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm disabled:opacity-50 placeholder-gray-700'
+const SEL = 'w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm'

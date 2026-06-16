@@ -47,8 +47,8 @@ export default async function DriverLostFoundPage() {
             🔎
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Lost & Found</h1>
-            <p className="text-gray-400 text-sm">Report an item found on your bus</p>
+            <h1 className="text-2xl font-bold text-foreground">Lost & Found</h1>
+            <p className="text-muted-foreground text-sm">Report an item found on your bus</p>
           </div>
         </div>
       </div>

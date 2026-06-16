@@ -10,8 +10,34 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  /* N2 spec: brand primary is Rolecall BLUE (not red). */
+  --primary: oklch(0.546 0.215 262.9);
   --primary-foreground: oklch(0.985 0 0);
+
+  /* ── N2 semantic operational ramps (light) ───────────────────────────────
+     Each ramp: solid (fg-on-light / icon) · surface (tinted bg) · border.
+     green=ok/ready · amber=warn/break/fuel-wash · red=danger/OOS/missed
+     purple=hazard · blue=in_service/info · gray=salvage/neutral. */
+  --brand: oklch(0.546 0.215 262.9);
+  --brand-fg: oklch(0.985 0 0);
+  --ok: oklch(0.62 0.17 150);
+  --ok-surface: oklch(0.96 0.04 150);
+  --ok-border: oklch(0.85 0.09 150);
+  --warn: oklch(0.72 0.16 70);
+  --warn-surface: oklch(0.96 0.05 75);
+  --warn-border: oklch(0.86 0.1 75);
+  --danger: oklch(0.6 0.23 27);
+  --danger-surface: oklch(0.96 0.04 27);
+  --danger-border: oklch(0.85 0.1 27);
+  --hazard: oklch(0.55 0.24 300);
+  --hazard-surface: oklch(0.96 0.04 300);
+  --hazard-border: oklch(0.85 0.1 300);
+  --info: oklch(0.546 0.215 262.9);
+  --info-surface: oklch(0.96 0.04 263);
+  --info-border: oklch(0.85 0.09 263);
+  --neutral: oklch(0.55 0 0);
+  --neutral-surface: oklch(0.96 0 0);
+  --neutral-border: oklch(0.88 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -42,12 +68,37 @@
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
+  /* Cards/popovers sit slightly above the near-black background so tokenized
+     surfaces keep the gray-900-on-gray-950 elevation the UI was designed with. */
+  --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
+  --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  /* N2 spec: brand primary is Rolecall BLUE (not red), brighter on dark. */
+  --primary: oklch(0.62 0.19 262.9);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* ── N2 semantic operational ramps (dark) ──────────────────────────────── */
+  --brand: oklch(0.62 0.19 262.9);
+  --brand-fg: oklch(0.985 0 0);
+  --ok: oklch(0.72 0.17 150);
+  --ok-surface: oklch(0.28 0.06 150);
+  --ok-border: oklch(0.42 0.1 150);
+  --warn: oklch(0.8 0.16 75);
+  --warn-surface: oklch(0.3 0.06 75);
+  --warn-border: oklch(0.45 0.1 75);
+  --danger: oklch(0.7 0.2 27);
+  --danger-surface: oklch(0.3 0.09 27);
+  --danger-border: oklch(0.45 0.13 27);
+  --hazard: oklch(0.7 0.2 300);
+  --hazard-surface: oklch(0.3 0.09 300);
+  --hazard-border: oklch(0.45 0.13 300);
+  --info: oklch(0.7 0.17 262.9);
+  --info-surface: oklch(0.3 0.07 263);
+  --info-border: oklch(0.45 0.11 263);
+  --neutral: oklch(0.708 0 0);
+  --neutral-surface: oklch(0.28 0 0);
+  --neutral-border: oklch(0.42 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -85,6 +136,27 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  /* N2 semantic ramps → utility classes (bg-brand, text-ok, border-hazard-border, …) */
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
+  --color-ok: var(--ok);
+  --color-ok-surface: var(--ok-surface);
+  --color-ok-border: var(--ok-border);
+  --color-warn: var(--warn);
+  --color-warn-surface: var(--warn-surface);
+  --color-warn-border: var(--warn-border);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-border: var(--danger-border);
+  --color-hazard: var(--hazard);
+  --color-hazard-surface: var(--hazard-surface);
+  --color-hazard-border: var(--hazard-border);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+  --color-info-border: var(--info-border);
+  --color-neutral: var(--neutral);
+  --color-neutral-surface: var(--neutral-surface);
+  --color-neutral-border: var(--neutral-border);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);

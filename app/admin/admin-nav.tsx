@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { href: '/admin/sign-in-sheets',  label: 'Sign-In Sheets' },
   { href: '/admin/counting-sheets', label: 'Counting Sheets' },
   { href: '/admin/inspections',     label: 'Inspections' },
+  { href: '/admin/settings',        label: 'Rules & Config' },
   { href: '/board',                 label: 'Board ↗' },
 ]
 
@@ -43,8 +44,8 @@ export function AdminNav() {
             href={item.href}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors whitespace-nowrap ${
               active
-                ? 'bg-gray-800 text-white font-medium'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800/60'
+                ? 'bg-muted text-foreground font-medium'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
             }`}
           >
             {item.label}

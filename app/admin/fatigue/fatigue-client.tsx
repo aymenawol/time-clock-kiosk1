@@ -76,7 +76,7 @@ export default function FatigueClient({ alerts }: Props) {
     <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Fatigue Monitoring</h1>
+          <h1 className="text-2xl font-bold text-foreground">Fatigue Monitoring</h1>
           {unresolved > 0 && (
             <p className="text-red-400 text-sm mt-0.5">{unresolved} unresolved alert{unresolved > 1 ? 's' : ''}</p>
           )}
@@ -87,14 +87,14 @@ export default function FatigueClient({ alerts }: Props) {
       <div className="flex flex-wrap gap-2">
         {(['unresolved', 'all', 'resolved'] as const).map(s => (
           <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${filter === s ? 'bg-white text-gray-900 border-white' : 'text-gray-400 border-gray-700 hover:text-white'}`}>
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${filter === s ? 'bg-white text-gray-900 border-white' : 'text-muted-foreground border-border hover:text-foreground'}`}>
             {s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
-        <div className="border-l border-gray-700 mx-1" />
+        <div className="border-l border-border mx-1" />
         {(['all', 'single_shift', 'consecutive_days', 'ot_threshold'] as const).map(t => (
           <button key={t} onClick={() => setTypeFilter(t)}
-            className={`px-3 py-1.5 rounded-lg text-sm border ${typeFilter === t ? 'bg-white text-gray-900 border-white' : 'text-gray-400 border-gray-700 hover:text-white'}`}>
+            className={`px-3 py-1.5 rounded-lg text-sm border ${typeFilter === t ? 'bg-white text-gray-900 border-white' : 'text-muted-foreground border-border hover:text-foreground'}`}>
             {t === 'all' ? 'All Types' : TYPE_LABEL[t]}
           </button>
         ))}
@@ -103,21 +103,21 @@ export default function FatigueClient({ alerts }: Props) {
       {/* Action modal */}
       {actionId && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setActionId(null)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <h3 className="text-white font-semibold mb-3 capitalize">{actionType} Alert</h3>
+          <div className="bg-card border border-border rounded-xl p-5 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <h3 className="text-foreground font-semibold mb-3 capitalize">{actionType} Alert</h3>
             <textarea
               value={noteText} onChange={e => setNoteText(e.target.value)}
               placeholder={actionType === 'resolve' ? 'Resolution notes…' : 'Reason for dismissal…'}
               rows={3}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm resize-none mb-3" />
+              className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm resize-none mb-3" />
             <div className="flex gap-3">
               <button onClick={handleSubmit} disabled={isPending}
-                className={`text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50 ${
+                className={`text-foreground text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50 ${
                   actionType === 'resolve' ? 'bg-green-700 hover:bg-green-600' : 'bg-yellow-700 hover:bg-yellow-600'
                 }`}>
                 {isPending ? 'Saving…' : actionType === 'resolve' ? 'Mark Resolved' : 'Dismiss'}
               </button>
-              <button onClick={() => setActionId(null)} className="text-gray-400 hover:text-white text-sm px-4 py-2">Cancel</button>
+              <button onClick={() => setActionId(null)} className="text-muted-foreground hover:text-foreground text-sm px-4 py-2">Cancel</button>
             </div>
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function FatigueClient({ alerts }: Props) {
 
       {/* Alert list */}
       {filtered.length === 0 && (
-        <p className="text-gray-500 text-center py-16">No fatigue alerts matching current filters.</p>
+        <p className="text-muted-foreground text-center py-16">No fatigue alerts matching current filters.</p>
       )}
 
       <div className="space-y-3">
@@ -134,11 +134,11 @@ export default function FatigueClient({ alerts }: Props) {
           const isDismissed = !!alert.dismissed_at
           const isActive    = !isResolved && !isDismissed
           return (
-            <div key={alert.id} className={`border rounded-xl p-4 ${TYPE_COLOR[alert.alert_type] ?? 'border-gray-700 bg-gray-900'} ${!isActive ? 'opacity-60' : ''}`}>
+            <div key={alert.id} className={`border rounded-xl p-4 ${TYPE_COLOR[alert.alert_type] ?? 'border-border bg-card'} ${!isActive ? 'opacity-60' : ''}`}>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-white font-semibold">{alert.employee_name}</span>
+                    <span className="text-foreground font-semibold">{alert.employee_name}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full border ${TYPE_COLOR[alert.alert_type]}`}>
                       {TYPE_LABEL[alert.alert_type]}
                     </span>
@@ -148,35 +148,35 @@ export default function FatigueClient({ alerts }: Props) {
 
                   {/* Context detail */}
                   {alert.shift_hours != null && (
-                    <p className="text-gray-300 text-sm">Shift duration: <span className="font-semibold">{alert.shift_hours.toFixed(1)}h</span></p>
+                    <p className="text-foreground text-sm">Shift duration: <span className="font-semibold">{alert.shift_hours.toFixed(1)}h</span></p>
                   )}
                   {alert.consecutive_count != null && (
-                    <p className="text-gray-300 text-sm">Consecutive days: <span className="font-semibold">{alert.consecutive_count}</span></p>
+                    <p className="text-foreground text-sm">Consecutive days: <span className="font-semibold">{alert.consecutive_count}</span></p>
                   )}
                   {alert.weekly_ot_hours != null && (
-                    <p className="text-gray-300 text-sm">Weekly OT hours: <span className="font-semibold">{alert.weekly_ot_hours.toFixed(1)}h</span></p>
+                    <p className="text-foreground text-sm">Weekly OT hours: <span className="font-semibold">{alert.weekly_ot_hours.toFixed(1)}h</span></p>
                   )}
 
-                  <p className="text-gray-500 text-xs mt-1">
+                  <p className="text-muted-foreground text-xs mt-1">
                     Triggered {new Date(alert.triggered_at).toLocaleString()}
                   </p>
 
                   {isResolved && alert.notes && (
-                    <p className="text-gray-400 text-xs mt-1">Resolution: {alert.notes}</p>
+                    <p className="text-muted-foreground text-xs mt-1">Resolution: {alert.notes}</p>
                   )}
                   {isDismissed && alert.dismiss_reason && (
-                    <p className="text-gray-400 text-xs mt-1">Dismissed: {alert.dismiss_reason}</p>
+                    <p className="text-muted-foreground text-xs mt-1">Dismissed: {alert.dismiss_reason}</p>
                   )}
                 </div>
 
                 {isActive && (
                   <div className="flex flex-col gap-2 shrink-0">
                     <button onClick={() => openAction(alert.id, 'resolve')}
-                      className="bg-green-800 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+                      className="bg-green-800 hover:bg-green-700 text-foreground text-xs font-semibold px-3 py-1.5 rounded-lg">
                       Resolve
                     </button>
                     <button onClick={() => openAction(alert.id, 'dismiss')}
-                      className="bg-yellow-800 hover:bg-yellow-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+                      className="bg-yellow-800 hover:bg-yellow-700 text-foreground text-xs font-semibold px-3 py-1.5 rounded-lg">
                       Dismiss
                     </button>
                   </div>

@@ -68,8 +68,8 @@ export default async function AdminLostFoundPage() {
     <div className="max-w-6xl mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Lost & Found</h1>
-          <p className="text-gray-400 text-sm mt-1">Manage found items — {items.length} total</p>
+          <h1 className="text-2xl font-bold text-foreground">Lost & Found</h1>
+          <p className="text-muted-foreground text-sm mt-1">Manage found items — {items.length} total</p>
         </div>
       </div>
       <LostFoundClient items={items} />

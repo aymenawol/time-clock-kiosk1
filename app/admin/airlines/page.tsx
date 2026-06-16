@@ -19,8 +19,8 @@ export default async function AirlinesPage() {
   return (
     <div className="max-w-5xl mx-auto py-8 px-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Airline Management</h1>
-        <p className="text-gray-400 text-sm mt-1">Configure airlines for 10-51 wheelchair request form</p>
+        <h1 className="text-2xl font-bold text-foreground">Airline Management</h1>
+        <p className="text-muted-foreground text-sm mt-1">Configure airlines for 10-51 wheelchair request form</p>
       </div>
       <AirlinesClient airlines={airlines ?? []} />
     </div>

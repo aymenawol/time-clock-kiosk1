@@ -14,7 +14,7 @@ const DEPT_LABELS: Record<SafetyMeetingDept, string> = {
 const STATUS_COLOR: Record<string, string> = {
   scheduled:  'bg-blue-900/60 text-blue-300 border-blue-700',
   completed:  'bg-green-900/60 text-green-300 border-green-700',
-  cancelled:  'bg-gray-800 text-gray-500 border-gray-700',
+  cancelled:  'bg-muted text-muted-foreground border-border',
 }
 
 interface SigninRow { id: string; employees: { name: string } | null; signed_in_at: string; attendance_status: string }
@@ -62,9 +62,9 @@ export default function AdminSafetyMeetingsClient({ meetings, signinsByMeeting }
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-white">Safety Meetings</h1>
+        <h1 className="text-2xl font-bold text-foreground">Safety Meetings</h1>
         <button onClick={() => setShowForm(v => !v)}
-          className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-sm border border-gray-700 rounded">
+          className="px-3 py-1.5 bg-muted hover:bg-gray-700 text-foreground text-sm border border-border rounded">
           {showForm ? 'Cancel' : '+ Schedule Meeting'}
         </button>
       </div>
@@ -72,69 +72,69 @@ export default function AdminSafetyMeetingsClient({ meetings, signinsByMeeting }
       {err && <p className="text-red-400 text-sm mb-4 bg-red-900/20 border border-red-800 rounded px-3 py-2">{err}</p>}
 
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-gray-900 border border-gray-700 rounded-lg p-4 mb-6 space-y-3">
-          <h2 className="text-sm font-semibold text-white">New Safety Meeting</h2>
+        <form onSubmit={handleCreate} className="bg-card border border-border rounded-lg p-4 mb-6 space-y-3">
+          <h2 className="text-sm font-semibold text-foreground">New Safety Meeting</h2>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-xs text-gray-400 mb-1">Title *</label>
-              <input name="title" required className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-white text-sm" />
+              <label className="block text-xs text-muted-foreground mb-1">Title *</label>
+              <input name="title" required className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Department *</label>
-              <select name="department" required className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-white text-sm">
+              <label className="block text-xs text-muted-foreground mb-1">Department *</label>
+              <select name="department" required className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm">
                 {(Object.entries(DEPT_LABELS) as [SafetyMeetingDept, string][]).map(([v, l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Date *</label>
-              <input name="scheduled_date" type="date" required className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-white text-sm" />
+              <label className="block text-xs text-muted-foreground mb-1">Date *</label>
+              <input name="scheduled_date" type="date" required className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Time *</label>
-              <input name="scheduled_time" type="time" required className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-white text-sm" />
+              <label className="block text-xs text-muted-foreground mb-1">Time *</label>
+              <input name="scheduled_time" type="time" required className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Location</label>
-              <input name="location" className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-white text-sm" />
+              <label className="block text-xs text-muted-foreground mb-1">Location</label>
+              <input name="location" className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
             </div>
             <div className="col-span-2">
-              <label className="block text-xs text-gray-400 mb-1">Notes</label>
-              <textarea name="notes" rows={2} className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-white text-sm" />
+              <label className="block text-xs text-muted-foreground mb-1">Notes</label>
+              <textarea name="notes" rows={2} className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
             </div>
           </div>
           <button type="submit" disabled={pending}
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded disabled:opacity-50">
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-foreground text-xs rounded disabled:opacity-50">
             Schedule Meeting
           </button>
         </form>
       )}
 
       {meetings.length === 0 ? (
-        <p className="text-gray-500 text-sm">No meetings scheduled.</p>
+        <p className="text-muted-foreground text-sm">No meetings scheduled.</p>
       ) : (
         <div className="space-y-3">
           {meetings.map(m => {
             const signins = signinsByMeeting[m.id] ?? []
             const isExpanded = expanded === m.id
             return (
-              <div key={m.id} className="bg-gray-900 border border-gray-800 rounded-lg">
+              <div key={m.id} className="bg-card border border-border rounded-lg">
                 <div className="p-4 flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <h2 className="text-white font-medium">{m.title}</h2>
+                      <h2 className="text-foreground font-medium">{m.title}</h2>
                       <span className={`px-2 py-0.5 text-xs rounded-full border ${STATUS_COLOR[m.status]}`}>{m.status}</span>
                     </div>
-                    <p className="text-gray-400 text-xs">
+                    <p className="text-muted-foreground text-xs">
                       {DEPT_LABELS[m.department]} · {m.scheduled_date} {m.scheduled_time}
                       {m.location && <> · {m.location}</>}
                     </p>
-                    <p className="text-gray-500 text-xs mt-0.5">{signins.length} sign-in{signins.length !== 1 ? 's' : ''}</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">{signins.length} sign-in{signins.length !== 1 ? 's' : ''}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => setExpanded(isExpanded ? null : m.id)}
-                      className="text-xs text-gray-400 hover:text-white">
+                      className="text-xs text-muted-foreground hover:text-foreground">
                       {isExpanded ? 'Collapse' : 'Sign-ins'}
                     </button>
                     {m.status === 'scheduled' && (
@@ -153,13 +153,13 @@ export default function AdminSafetyMeetingsClient({ meetings, signinsByMeeting }
                 </div>
 
                 {isExpanded && (
-                  <div className="border-t border-gray-800 px-4 pb-4 pt-3">
+                  <div className="border-t border-border px-4 pb-4 pt-3">
                     {signins.length === 0 ? (
-                      <p className="text-gray-500 text-sm">No sign-ins yet.</p>
+                      <p className="text-muted-foreground text-sm">No sign-ins yet.</p>
                     ) : (
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-gray-500 text-xs border-b border-gray-800">
+                          <tr className="text-muted-foreground text-xs border-b border-border">
                             <th className="text-left py-1.5 pr-4">Name</th>
                             <th className="text-left py-1.5 pr-4">Status</th>
                             <th className="text-left py-1.5">Time</th>
@@ -167,10 +167,10 @@ export default function AdminSafetyMeetingsClient({ meetings, signinsByMeeting }
                         </thead>
                         <tbody>
                           {signins.map(s => (
-                            <tr key={s.id} className="border-b border-gray-800/50">
-                              <td className="py-1.5 pr-4 text-white">{s.employees?.name ?? s.id}</td>
-                              <td className="py-1.5 pr-4 text-gray-400 capitalize">{s.attendance_status}</td>
-                              <td className="py-1.5 text-gray-500 text-xs">{new Date(s.signed_in_at).toLocaleString()}</td>
+                            <tr key={s.id} className="border-b border-border/50">
+                              <td className="py-1.5 pr-4 text-foreground">{s.employees?.name ?? s.id}</td>
+                              <td className="py-1.5 pr-4 text-muted-foreground capitalize">{s.attendance_status}</td>
+                              <td className="py-1.5 text-muted-foreground text-xs">{new Date(s.signed_in_at).toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>

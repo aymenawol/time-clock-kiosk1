@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { useDebouncedRefresh } from '@/lib/use-debounced-refresh'
 
 interface Driver  { id: string; name: string; seniority_number: number | null }
 interface BusOpt  { id: string; bus_number: string; bus_type: string; status: string; fuel_level: number | null }
@@ -25,6 +26,7 @@ interface Props {
 
 export default function SignInClient({ drivers, buses, tablets, todayShifts, today }: Props) {
   const router = useRouter()
+  const debouncedRefresh = useDebouncedRefresh()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
@@ -51,10 +53,10 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
     )
     const ch = supabase
       .channel('sign-in-sheet')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'shifts' }, () => router.refresh())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'shifts', filter: `date=eq.${today}` }, debouncedRefresh)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [router])
+  }, [debouncedRefresh, today])
 
   // ── Signature canvas ─────────────────────────────────────────────────────
   function startDraw(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
@@ -126,16 +128,16 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Sign-In Sheet — {displayDate}</h1>
-        <button onClick={() => window.print()} className="text-sm text-gray-400 hover:text-white border border-gray-700 rounded px-3 py-1">
+        <h1 className="text-xl font-bold text-foreground">Sign-In Sheet — {displayDate}</h1>
+        <button onClick={() => window.print()} className="text-sm text-muted-foreground hover:text-foreground border border-border rounded px-3 py-1">
           🖨 Print
         </button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         {/* Sign-in form */}
-        <form onSubmit={handleSubmit} className="xl:col-span-2 space-y-4 bg-gray-900 rounded-xl border border-gray-800 p-4">
-          <h2 className="font-semibold text-white text-sm">New Sign-In</h2>
+        <form onSubmit={handleSubmit} className="xl:col-span-2 space-y-4 bg-card rounded-xl border border-border p-4">
+          <h2 className="font-semibold text-foreground text-sm">New Sign-In</h2>
 
           {error   && <div className="bg-red-900/40 border border-red-600 text-red-300 rounded p-2 text-sm">{error}</div>}
           {success && <div className="bg-green-900/40 border border-green-600 text-green-300 rounded p-2 text-sm">{success}</div>}
@@ -183,11 +185,11 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
           </div>
 
           <div className="flex gap-4">
-            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
               <input type="checkbox" checked={form.has_lunch} onChange={e => setForm(p => ({...p, has_lunch: e.target.checked}))} className="rounded" />
               Has lunch
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
               <input type="checkbox" checked={form.lunch_waiver} onChange={e => setForm(p => ({...p, lunch_waiver: e.target.checked}))} className="rounded" />
               Lunch waiver
             </label>
@@ -198,11 +200,11 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
             <canvas
               ref={canvasRef}
               width={340} height={100}
-              className="w-full border border-gray-700 rounded bg-gray-950 cursor-crosshair touch-none"
+              className="w-full border border-border rounded bg-background cursor-crosshair touch-none"
               onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
               onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
             />
-            <button type="button" onClick={clearSig} className="text-xs text-gray-500 hover:text-gray-300 mt-1">Clear signature</button>
+            <button type="button" onClick={clearSig} className="text-xs text-muted-foreground hover:text-foreground mt-1">Clear signature</button>
           </div>
 
           <div>
@@ -210,21 +212,21 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
             <input value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} className={INP} placeholder="Optional…" />
           </div>
 
-          <button type="submit" disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2 rounded-lg text-sm">
+          <button type="submit" disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground font-medium py-2 rounded-lg text-sm">
             {isPending ? 'Signing in…' : 'Sign In Driver'}
           </button>
         </form>
 
         {/* Today's sign-in list */}
         <div className="xl:col-span-3 space-y-3">
-          <h2 className="font-semibold text-white text-sm">Today's Sign-Ins ({shifts.length})</h2>
+          <h2 className="font-semibold text-foreground text-sm">Today's Sign-Ins ({shifts.length})</h2>
           {shifts.length === 0 ? (
             <p className="text-gray-600 text-sm">No sign-ins yet today.</p>
           ) : (
-            <div className="overflow-auto rounded-xl border border-gray-800">
+            <div className="overflow-auto rounded-xl border border-border">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-900 text-gray-500 text-xs uppercase">
+                  <tr className="bg-card text-muted-foreground text-xs uppercase">
                     <th className="px-3 py-2 text-left">Driver</th>
                     <th className="px-3 py-2 text-left">Bus</th>
                     <th className="px-3 py-2 text-left">Tablet</th>
@@ -233,18 +235,18 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
                     <th className="px-3 py-2 text-left">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-border">
                   {shifts.map(s => (
-                    <tr key={s.id} className="hover:bg-gray-900/40">
-                      <td className="px-3 py-2 text-white">{s.employee?.name}</td>
-                      <td className="px-3 py-2 text-gray-400">{s.bus ? `#${s.bus.bus_number}` : '—'}</td>
-                      <td className="px-3 py-2 text-gray-400">{s.tablet?.tablet_number ?? '—'}</td>
-                      <td className="px-3 py-2 text-gray-400">{s.scheduled_start ?? '—'}</td>
-                      <td className="px-3 py-2 text-gray-400">{s.scheduled_end ?? '—'}</td>
+                    <tr key={s.id} className="hover:bg-card/40">
+                      <td className="px-3 py-2 text-foreground">{s.employee?.name}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{s.bus ? `#${s.bus.bus_number}` : '—'}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{s.tablet?.tablet_number ?? '—'}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{s.scheduled_start ?? '—'}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{s.scheduled_end ?? '—'}</td>
                       <td className="px-3 py-2">
                         <span className={`text-xs px-2 py-0.5 rounded ${
                           s.status === 'active'    ? 'bg-green-900 text-green-300' :
-                          s.status === 'completed' ? 'bg-gray-800 text-gray-400' :
+                          s.status === 'completed' ? 'bg-muted text-muted-foreground' :
                           s.status === 'cancelled' ? 'bg-red-900 text-red-400' :
                           'bg-blue-900 text-blue-300'
                         }`}>{s.status}</span>
@@ -263,9 +265,9 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const LBL = 'block text-xs text-gray-400 mb-1'
-const INP = 'w-full bg-gray-950 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm'
-const SEL = 'w-full bg-gray-950 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm'
+const LBL = 'block text-xs text-muted-foreground mb-1'
+const INP = 'w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm'
+const SEL = 'w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm'
 
 function getPos(
   e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,

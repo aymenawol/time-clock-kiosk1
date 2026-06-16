@@ -38,9 +38,9 @@ function badge(val: number) {
 
 function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
-      <div className="text-white font-bold text-xl">{value}</div>
-      <div className="text-gray-500 text-xs mt-0.5">{label}</div>
+    <div className="bg-card border border-border rounded-xl p-3 text-center">
+      <div className="text-foreground font-bold text-xl">{value}</div>
+      <div className="text-muted-foreground text-xs mt-0.5">{label}</div>
     </div>
   )
 }
@@ -86,7 +86,7 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search employee…"
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm w-56"
+          className="bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm w-56"
         />
         <div className="flex gap-1">
           {([30, 60, 90] as const).map(d => (
@@ -95,8 +95,8 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
               onClick={() => setPeriod(d)}
               className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
                 period === d
-                  ? 'bg-blue-700 border-blue-500 text-white'
-                  : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500'
+                  ? 'bg-blue-700 border-blue-500 text-foreground'
+                  : 'bg-card border-border text-muted-foreground hover:border-gray-500'
               }`}
             >
               {d}d
@@ -107,20 +107,20 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
 
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <p className="text-gray-500 text-center py-12">No employees found</p>
+          <p className="text-muted-foreground text-center py-12">No employees found</p>
         )}
         {filtered.map(emp => {
           const agg      = aggregateSnapshots(emp.snapshots, period)
           const expanded = expandedId === emp.id
           return (
-            <div key={emp.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+            <div key={emp.id} className="bg-card border border-border rounded-2xl overflow-hidden">
               <button
                 onClick={() => setExpandedId(expanded ? null : emp.id)}
                 className="w-full text-left px-5 py-4 flex items-center justify-between"
               >
                 <div>
-                  <div className="text-white font-medium">{emp.name}</div>
-                  <div className="text-gray-500 text-xs capitalize">{emp.role}</div>
+                  <div className="text-foreground font-medium">{emp.name}</div>
+                  <div className="text-muted-foreground text-xs capitalize">{emp.role}</div>
                 </div>
                 {agg ? (
                   <div className="flex items-center gap-3">
@@ -141,7 +141,7 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
               </button>
 
               {expanded && agg && (
-                <div className="border-t border-gray-800 px-5 py-4">
+                <div className="border-t border-border px-5 py-4">
                   <div className="grid grid-cols-4 gap-3 mb-4">
                     <MetricCard label={`Attendance (${period}d)`} value={`${agg.attendancePct}%`} />
                     <MetricCard label="Late arrivals" value={agg.lates} />
@@ -154,7 +154,7 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
 
                   {/* Trend: last 10 snapshots */}
                   <div>
-                    <p className="text-gray-500 text-xs mb-2">Recent shifts</p>
+                    <p className="text-muted-foreground text-xs mb-2">Recent shifts</p>
                     <div className="space-y-1">
                       {emp.snapshots.slice(0, 10).map((s, i) => (
                         <div key={i} className="flex items-center gap-3 text-xs">

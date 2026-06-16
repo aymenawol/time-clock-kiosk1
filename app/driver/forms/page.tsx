@@ -15,7 +15,7 @@ export default async function DriverFormsPage() {
     .single()
 
   if (!emp) {
-    return <div className="p-6 text-gray-500">Employee record not found.</div>
+    return <div className="p-6 text-muted-foreground">Employee record not found.</div>
   }
 
   const [{ data: submissions }, { data: acks }] = await Promise.all([

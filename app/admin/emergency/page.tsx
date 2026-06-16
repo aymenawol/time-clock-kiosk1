@@ -24,8 +24,8 @@ export default async function EmergencyPage() {
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Emergency Operations</h1>
-        <p className="text-gray-400 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Emergency Operations</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           Trigger a fleet-wide emergency alert. All employees see a full-screen modal until they acknowledge.
         </p>
       </div>

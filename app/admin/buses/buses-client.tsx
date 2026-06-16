@@ -13,7 +13,7 @@ const STATUS_COLUMNS: { key: BusStatus | 'shop'; label: string; statuses: BusSta
   { key: 'shop',        label: 'Shop',        statuses: ['maintenance_pmi','shopped_dvir','maintenance_repair'],       header: 'bg-red-900/40   text-red-300    border-red-700' },
   { key: 'fueling',     label: 'Fueling',     statuses: ['charging','fuel','wash','training'],                        header: 'bg-yellow-900/40 text-yellow-300 border-yellow-700' } as any,
   { key: 'safety_hold', label: 'Safety Hold', statuses: ['safety_hold'],                                              header: 'bg-purple-900/40 text-purple-300 border-purple-700' },
-  { key: 'salvage',     label: 'Salvage',     statuses: ['salvage'],                                                  header: 'bg-gray-800     text-gray-400   border-gray-700' },
+  { key: 'salvage',     label: 'Salvage',     statuses: ['salvage'],                                                  header: 'bg-muted     text-muted-foreground   border-border' },
 ]
 
 const ALL_STATUSES: { value: BusStatus; label: string }[] = [
@@ -79,15 +79,15 @@ export default function BusesClient({ initialBuses, serverError }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Fleet Status Board</h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Fleet Status Board</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {totalActive} in service · {totalReady} ready · {activeBuses.length} total active
           </p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => router.push('/admin/buses/new')}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg"
+            className="bg-blue-600 hover:bg-blue-500 text-foreground text-sm font-medium px-4 py-2 rounded-lg"
           >
             + Add Bus
           </button>
@@ -134,7 +134,7 @@ export default function BusesClient({ initialBuses, serverError }: Props) {
       {/* Inactive buses */}
       {buses.filter(b => !b.is_active).length > 0 && (
         <details className="mt-4">
-          <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-300">
+          <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
             {buses.filter(b => !b.is_active).length} inactive buses
           </summary>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
@@ -142,7 +142,7 @@ export default function BusesClient({ initialBuses, serverError }: Props) {
               <button
                 key={bus.id}
                 onClick={() => router.push(`/admin/buses/${bus.id}`)}
-                className="bg-gray-900 border border-gray-700 rounded-lg p-2 text-left text-sm text-gray-500 hover:text-gray-300"
+                className="bg-card border border-border rounded-lg p-2 text-left text-sm text-muted-foreground hover:text-foreground"
               >
                 {bus.bus_number}
               </button>
@@ -177,7 +177,7 @@ function BusCard({
         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
           bus.bus_type === 'EV'
             ? 'bg-teal-900 text-teal-300 border border-teal-700'
-            : 'bg-gray-800 text-gray-400 border border-gray-700'
+            : 'bg-muted text-muted-foreground border border-border'
         }`}>
           {bus.bus_type}
         </span>
@@ -211,9 +211,9 @@ function BusCard({
       </div>
 
       {isChangingStatus && (
-        <div className="absolute left-0 top-full z-10 mt-1 w-48 bg-gray-950 border border-gray-700 rounded-lg shadow-xl p-2">
+        <div className="absolute left-0 top-full z-10 mt-1 w-48 bg-background border border-border rounded-lg shadow-xl p-2">
           <select
-            className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded px-2 py-1"
+            className="w-full bg-card border border-border text-foreground text-sm rounded px-2 py-1"
             value={pendingStatus}
             onChange={e => onPendingChange(e.target.value)}
             autoFocus
@@ -227,11 +227,11 @@ function BusCard({
             <button
               disabled={!pendingStatus || isPending}
               onClick={() => onStatusChange(bus.id, pendingStatus as BusStatus)}
-              className="flex-1 bg-blue-600 disabled:opacity-40 text-white text-xs rounded py-1"
+              className="flex-1 bg-blue-600 disabled:opacity-40 text-foreground text-xs rounded py-1"
             >
               Apply
             </button>
-            <button onClick={onClose} className="flex-1 bg-gray-800 text-gray-300 text-xs rounded py-1">
+            <button onClick={onClose} className="flex-1 bg-muted text-foreground text-xs rounded py-1">
               Cancel
             </button>
           </div>

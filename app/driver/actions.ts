@@ -75,6 +75,45 @@ export async function radioCodeAction(
   return {}
 }
 
+// Called when a pre/post-trip inspection is submitted WITH defects: take the bus
+// out of service (DVIR shop) so it can't be reassigned with an open safety defect,
+// and alert technicians + dispatch.
+export async function flagBusOutOfServiceAction(
+  busId: string,
+  shiftId: string,
+  busNumber: string | null
+): Promise<{ error?: string }> {
+  const auth = await requireUser()
+  if (!auth.ok) return { error: auth.error }
+
+  const admin = createSupabaseAdmin()
+
+  const { error: busErr } = await admin.from('buses').update({ status: 'shopped_dvir' }).eq('id', busId)
+  if (busErr) return { error: busErr.message }
+
+  const { data: recipients } = await admin
+    .from('employees')
+    .select('id')
+    .in('role', ['technician', 'dispatcher', 'management'])
+    .eq('status', 'active')
+
+  if (recipients && recipients.length > 0) {
+    await admin.from('notification_queue').insert(recipients.map((r: { id: string }) => ({
+      recipient_id: r.id,
+      event_type: 'maintenance_reminder',
+      channel: 'in_app',
+      payload: {
+        title: 'Bus flagged for repair',
+        message: `Bus ${busNumber ?? ''} reported defects on inspection.`.trim(),
+        bus_id: busId,
+        shift_id: shiftId,
+      },
+    })))
+  }
+
+  return {}
+}
+
 export async function submitEndOfShiftAction(data: {
   shiftId: string
   busId: string | null

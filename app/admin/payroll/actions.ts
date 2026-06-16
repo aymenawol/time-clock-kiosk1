@@ -3,7 +3,33 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getServerUser } from '@/lib/supabase-server'
-import { calcDailyHours, calcWeeklyOT, shouldRaiseFatigueAlert } from '@/lib/payroll-calc'
+import {
+  calcDailyHours, calcWeeklyOT, shouldRaiseFatigueAlert,
+  maxDaysInAnyWeek, weeklyOtHours, WEEKLY_DAYS_LIMIT, WEEKLY_OT_ALERT_HOURS,
+} from '@/lib/payroll-calc'
+import { enqueueNotificationBatch } from '@/lib/notifications'
+import { failValidation } from '@/lib/actions/result'
+import { DailyHoursCorrectionSchema } from '@/lib/schemas/payroll'
+
+/** Insert a weekly fatigue alert unless an open one of the same type already exists. */
+async function raiseWeeklyFatigueAlert(
+  admin: ReturnType<typeof createSupabaseAdmin>,
+  employeeId: string,
+  alertType: 'consecutive_days' | 'ot_threshold',
+  extra: { consecutive_count?: number; weekly_ot_hours?: number }
+) {
+  const { data: existing } = await admin
+    .from('fatigue_alerts')
+    .select('id')
+    .eq('employee_id', employeeId)
+    .eq('alert_type', alertType)
+    .is('shift_id', null)
+    .is('resolved_at', null)
+    .is('dismissed_at', null)
+    .maybeSingle()
+  if (existing) return
+  await admin.from('fatigue_alerts').insert({ employee_id: employeeId, alert_type: alertType, ...extra })
+}
 
 // ─────────────────────────────────────────────────────────────
 // Create pay period
@@ -129,6 +155,21 @@ export async function calculatePayPeriodHoursAction(payPeriodId: string) {
 
   if (uErr) return { error: uErr.message }
 
+  // N8 — weekly fatigue thresholds (spec: flag >5 days/week or high weekly OT).
+  // The fatigue_alert_notify trigger fans these out to the driver + dispatch.
+  for (const [employeeId, recs] of Object.entries(empMap)) {
+    const workDates = recs.map(r => r.work_date)
+    const maxDays = maxDaysInAnyWeek(workDates)
+    if (maxDays > WEEKLY_DAYS_LIMIT) {
+      await raiseWeeklyFatigueAlert(admin, employeeId, 'consecutive_days', { consecutive_count: maxDays })
+    }
+    const otByWeek = weeklyOtHours(finalRecords.filter(r => r.employee_id === employeeId))
+    const peakWeeklyOt = Math.max(0, ...Object.values(otByWeek))
+    if (peakWeeklyOt >= WEEKLY_OT_ALERT_HOURS) {
+      await raiseWeeklyFatigueAlert(admin, employeeId, 'ot_threshold', { weekly_ot_hours: peakWeeklyOt })
+    }
+  }
+
   revalidatePath(`/admin/payroll/${payPeriodId}`)
   return { count: finalRecords.length }
 }
@@ -163,6 +204,40 @@ export async function closePayPeriodAction(payPeriodId: string) {
     .eq('id', payPeriodId)
 
   if (error) return { error: error.message }
+
+  // N8 — auto-send the closed period to payroll staff (in-app + email via processor).
+  const { data: period } = await admin
+    .from('pay_periods')
+    .select('period_start, period_end')
+    .eq('id', payPeriodId)
+    .maybeSingle()
+  const { data: totals } = await admin
+    .from('daily_hours_records')
+    .select('regular_hours, overtime_hours')
+    .eq('pay_period_id', payPeriodId)
+  const regSum = (totals ?? []).reduce((s, r) => s + (r.regular_hours || 0), 0)
+  const otSum = (totals ?? []).reduce((s, r) => s + (r.overtime_hours || 0), 0)
+  const { data: payrollStaff } = await admin
+    .from('employees')
+    .select('id')
+    .eq('status', 'active')
+    .not('auth_user_id', 'is', null)
+    .in('role', ['payroll', 'admin', 'management'])
+  if (payrollStaff?.length) {
+    await enqueueNotificationBatch(
+      payrollStaff.map((e: { id: string }) => ({
+        recipientId: e.id,
+        eventType: 'payroll_period_closed',
+        channels: ['in_app' as const],
+        payload: {
+          title: 'Pay period closed',
+          message: `Pay period ${period?.period_start ?? ''}–${period?.period_end ?? ''} closed: ${regSum.toFixed(1)} reg + ${otSum.toFixed(1)} OT hours.`,
+          pay_period_id: payPeriodId,
+        },
+      }))
+    )
+  }
+
   revalidatePath('/admin/payroll')
   revalidatePath(`/admin/payroll/${payPeriodId}`)
   return { success: true }
@@ -182,6 +257,10 @@ export async function correctDailyHoursAction(
 
   const role = user.app_metadata?.role as string
   if (!['admin', 'payroll'].includes(role)) return { error: 'Insufficient permissions' }
+
+  const parsed = DailyHoursCorrectionSchema.safeParse(updates)
+  if (!parsed.success) return failValidation(parsed.error)
+  const corrections = parsed.data
 
   const admin = createSupabaseAdmin()
 
@@ -204,13 +283,13 @@ export async function correctDailyHoursAction(
       pto_hours:      existing.pto_hours,
       fmla_hours:     existing.fmla_hours,
     },
-    changes: updates,
+    changes: corrections,
   }
 
   const { error } = await admin
     .from('daily_hours_records')
     .update({
-      ...updates,
+      ...corrections,
       audit_log: [...((existing.audit_log as unknown[]) ?? []), auditEntry],
     })
     .eq('id', recordId)
