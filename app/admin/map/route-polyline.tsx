@@ -19,8 +19,10 @@ export default function RoutePolyline({
 
   useEffect(() => {
     if (!map || path.length < 2) return
-    // google is available once <Map> has loaded the API.
-    const g = (window as unknown as { google?: typeof google }).google
+    // google is available once <Map> has loaded the API. Typed locally so the
+    // build does not depend on the ambient `google` namespace being resolvable
+    // (it ships only as a transitive type dep of @vis.gl/react-google-maps).
+    const g = (window as unknown as { google?: GoogleMapsApi }).google
     if (!g?.maps) return
 
     const line = new g.maps.Polyline({
@@ -35,4 +37,18 @@ export default function RoutePolyline({
   }, [map, path, color])
 
   return null
+}
+
+/** Minimal shape of the google.maps.Polyline surface this component uses. */
+interface GoogleMapsApi {
+  maps: {
+    Polyline: new (opts: {
+      path: { lat: number; lng: number }[]
+      geodesic?: boolean
+      strokeColor?: string
+      strokeOpacity?: number
+      strokeWeight?: number
+      map?: unknown
+    }) => { setMap: (map: unknown) => void }
+  }
 }
