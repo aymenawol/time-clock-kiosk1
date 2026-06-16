@@ -1,4 +1,5 @@
-import { getEmployeesPageAction, EMPLOYEES_PAGE_SIZE, type EmployeeSort } from "./actions"
+import { getEmployeesPageAction } from "./actions"
+import { EMPLOYEES_PAGE_SIZE, type EmployeeSort } from "./types"
 import EmployeeDirectoryClient from "./employee-directory-client"
 import Link from "next/link"
 

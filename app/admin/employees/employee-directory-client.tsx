@@ -6,9 +6,8 @@ import Link from "next/link"
 import {
   toggleEmployeeStatusAction,
   exportEmployeesCSVAction,
-  type DirectoryEmployee,
-  type EmployeeSort,
 } from "./actions"
+import type { DirectoryEmployee, EmployeeSort } from "./types"
 
 const STATUS_BADGE: Record<string, string> = {
   active: "bg-green-900 text-green-300",

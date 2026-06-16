@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { inviteEmployeeAction } from "../actions"
-import type { InviteEmployeeInput } from "../actions"
+import type { InviteEmployeeInput } from "../types"
 import type { EmployeeRole } from "@/lib/supabase"
 import Link from "next/link"
 

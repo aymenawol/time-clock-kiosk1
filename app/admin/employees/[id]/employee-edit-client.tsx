@@ -7,7 +7,7 @@ import {
   updateEmployeeAction,
   resetEmployeePasswordAction,
 } from "../actions"
-import type { UpdateEmployeeInput } from "../actions"
+import type { UpdateEmployeeInput } from "../types"
 import type { Employee, EmployeeRole, EmployeeStatus } from "@/lib/supabase"
 
 const ROLES: { value: EmployeeRole; label: string }[] = [
