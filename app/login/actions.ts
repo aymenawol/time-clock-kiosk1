@@ -20,15 +20,17 @@ export type EmployeeLoginResult =
   | { ok: true; role: string | null }
   | { ok: false; error: string }
 
-// ── Rate limiting (in-memory sliding window) ────────────────────────────────
-// Single-region deploy: a module-level map is sufficient as a brute-force speed
-// bump. (A durable DB-backed limiter is a future hardening step if Rolecall
-// scales to multiple regions / serverless instances.)
+// ── Rate limiting (durable, DB-backed, with in-memory fallback) ─────────────
+// Brute-force counter lives in Postgres (register_login_attempt RPC) so the cap
+// holds across every serverless instance. If the RPC is unavailable (e.g. the
+// migration is not yet deployed), we degrade to a per-instance in-memory window
+// so login still works and is never left completely unprotected.
 const MAX_ATTEMPTS = 5
-const WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+const WINDOW_SECS = 15 * 60 // 15 minutes
+const WINDOW_MS = WINDOW_SECS * 1000
 const attempts = new Map<string, { count: number; first: number }>()
 
-function checkRateLimit(key: string): { allowed: boolean; retryAfterMin?: number } {
+function checkRateLimitMemory(key: string): { allowed: boolean; retryAfterMin?: number } {
   const now = Date.now()
   const rec = attempts.get(key)
   if (!rec || now - rec.first > WINDOW_MS) {
@@ -43,8 +45,23 @@ function checkRateLimit(key: string): { allowed: boolean; retryAfterMin?: number
   return { allowed: true }
 }
 
-function clearRateLimit(key: string) {
+async function checkRateLimit(
+  admin: ReturnType<typeof createSupabaseAdmin>,
+  key: string
+): Promise<{ allowed: boolean; retryAfterMin?: number }> {
+  const { data, error } = await admin.rpc('register_login_attempt', {
+    p_key: key,
+    p_max: MAX_ATTEMPTS,
+    p_window_secs: WINDOW_SECS,
+  })
+  if (error) return checkRateLimitMemory(key) // RPC missing / DB hiccup → fall back
+  const res = data as { allowed: boolean; retry_after_min?: number }
+  return { allowed: res.allowed, retryAfterMin: res.retry_after_min }
+}
+
+async function clearRateLimit(admin: ReturnType<typeof createSupabaseAdmin>, key: string) {
   attempts.delete(key)
+  await admin.rpc('clear_login_attempts', { p_key: key }).then(undefined, () => {})
 }
 
 const GENERIC_ERROR = 'Invalid Employee ID or password.'
@@ -63,7 +80,10 @@ export async function signInWithEmployeeId(
     return { ok: false, error: 'Enter your password.' }
   }
 
-  const rl = checkRateLimit(id)
+  // RLS-bypassing admin client — also backs the durable rate limiter.
+  const admin = createSupabaseAdmin()
+
+  const rl = await checkRateLimit(admin, id)
   if (!rl.allowed) {
     return {
       ok: false,
@@ -73,8 +93,7 @@ export async function signInWithEmployeeId(
     }
   }
 
-  // Resolve Employee ID → email server-side (RLS-bypassing admin client).
-  const admin = createSupabaseAdmin()
+  // Resolve Employee ID → email server-side.
   const { data: employee, error: lookupError } = await admin
     .from('employees')
     .select('email, status')
@@ -113,6 +132,6 @@ export async function signInWithEmployeeId(
     }
   }
 
-  clearRateLimit(id)
+  await clearRateLimit(admin, id)
   return { ok: true, role }
 }

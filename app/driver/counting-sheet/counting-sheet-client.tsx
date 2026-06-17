@@ -139,17 +139,30 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
         setSheetId(currentSheetId)
       }
 
-      // Upsert rows (delete all and re-insert for simplicity)
-      await supabase.from('counting_rows').delete().eq('sheet_id', currentSheetId)
+      // Replace rows by inserting the new set FIRST, then deleting the prior
+      // rows. Insert-before-delete guarantees a failed save can never leave the
+      // sheet empty (the old delete-then-insert lost all rows if the insert
+      // errored). A failed delete only leaves recoverable duplicates, which the
+      // next save self-heals (it deletes everything it did not just insert).
+      let insertedIds: string[] = []
       if (rowsPayload.length > 0) {
-        const { error: insErr } = await supabase
+        const { data: inserted, error: insErr } = await supabase
           .from('counting_rows')
           .insert(rowsPayload.map(r => ({ ...r, sheet_id: currentSheetId })))
+          .select('id')
         if (insErr) throw insErr
+        insertedIds = (inserted ?? []).map((r: { id: string }) => r.id)
       }
+      let del = supabase.from('counting_rows').delete().eq('sheet_id', currentSheetId)
+      if (insertedIds.length > 0) del = del.not('id', 'in', `(${insertedIds.join(',')})`)
+      const { error: delErr } = await del
+      if (delErr) throw delErr
       return currentSheetId ?? undefined
     } catch (e) {
-      // Network failure mid-save → fall back to the offline queue rather than lose data.
+      // Network failure mid-save → fall back to the offline queue rather than
+      // lose data. When online, surface the error: in-memory `rows` are intact,
+      // so the driver can retry, and insert-before-delete above guarantees the
+      // already-saved rows were not wiped.
       if (typeof navigator !== 'undefined' && !navigator.onLine) return queueOffline()
       setError(e instanceof Error ? e.message : 'Failed to save')
       return undefined

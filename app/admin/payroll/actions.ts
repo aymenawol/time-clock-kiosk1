@@ -307,6 +307,11 @@ export async function logPayrollExportAction(payPeriodId: string, rowCount: numb
   const { user } = await getServerUser()
   if (!user) return
 
+  // Writes to payroll_exports via the RLS-bypassing admin client, so enforce
+  // the same role gate as the other payroll actions (admin/payroll only).
+  const role = user.app_metadata?.role as string
+  if (!['admin', 'payroll'].includes(role)) return
+
   const admin = createSupabaseAdmin()
   await admin.from('payroll_exports').insert({
     pay_period_id: payPeriodId,

@@ -71,8 +71,16 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
     const others = activeMessages.filter(m => !m.is_deleted && m.sender_id !== currentEmployeeId)
     const ids = others.map(m => m.id)
     if (ids.length) {
-      markReadAction(ids)
-      ids.forEach(id => { void markDeliveredAction(id) })
+      // Await + swallow: receipts are best-effort, but an unhandled rejection
+      // here would surface as a console error / break fast-refresh in dev.
+      void (async () => {
+        try {
+          await markReadAction(ids)
+          await Promise.all(ids.map(id => markDeliveredAction(id)))
+        } catch {
+          /* receipt failures are non-fatal; next room-open retries */
+        }
+      })()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRoomId, activeMessages.length])

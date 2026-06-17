@@ -118,7 +118,13 @@ export async function getUnconfirmedCountAction(): Promise<number> {
     .from('chat_confirmations')
     .select('message_id')
     .eq('confirmer_id', emp.id)
-  const confirmedIds = (confirmed ?? []).map((c: { message_id: string }) => c.message_id)
+  // Guard the values before building the PostgREST `in (...)` string. These are
+  // server-derived UUIDs (no injection risk), but filtering to the canonical
+  // UUID shape keeps the hand-built filter robust against any malformed id.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const confirmedIds = (confirmed ?? [])
+    .map((c: { message_id: string }) => c.message_id)
+    .filter((id: string) => UUID_RE.test(id))
 
   let query = admin
     .from('chat_messages')

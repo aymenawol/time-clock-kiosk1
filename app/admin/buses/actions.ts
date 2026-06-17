@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import type { BusStatus } from '@/lib/supabase'
+import { BUS_STATUS_LABELS } from '@/lib/supabase'
 import { failValidation } from '@/lib/actions/result'
 import { CreateBusSchema, UpdateBusSchema } from '@/lib/schemas/bus'
 
@@ -70,9 +71,14 @@ export async function updateBusStatusAction(
   status: BusStatus,
   reason?: string
 ) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Unauthorized' }
+  // RLS is bypassed below (service-role admin client), so authz MUST be
+  // enforced here — mirrors createBusAction/updateBusAction/deleteBusAction.
+  const user = await requireAdminRole()
+
+  // Validate against the known status set (drift-proof: keys of the label map).
+  if (!Object.prototype.hasOwnProperty.call(BUS_STATUS_LABELS, status)) {
+    return { error: 'Invalid bus status' }
+  }
 
   const admin = createSupabaseAdmin()
   const { error } = await admin
@@ -98,12 +104,19 @@ export async function updateBusStatusAction(
   return { success: true }
 }
 
+/**
+ * Retire a bus (soft delete). A hard DELETE cascades away bus_status_history
+ * and repair_notes — losing the maintenance audit trail — and nulls shift.bus_id.
+ * We deactivate instead: the bus drops out of the active fleet view (the UI
+ * already lists inactive buses separately) while its history is preserved.
+ */
 export async function deleteBusAction(id: string) {
   await requireAdminRole()
   const supabase = createSupabaseAdmin()
-  const { error } = await supabase.from('buses').delete().eq('id', id)
+  const { error } = await supabase.from('buses').update({ is_active: false }).eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/admin/buses')
+  revalidatePath(`/admin/buses/${id}`)
   return { success: true }
 }
 

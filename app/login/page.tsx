@@ -7,6 +7,16 @@ import { signInWithEmployeeId } from "./actions"
 
 type AppRouter = ReturnType<typeof useRouter>
 
+/**
+ * Accept only same-origin relative paths as a post-login redirect target.
+ * Rejects absolute and protocol-relative URLs to prevent open redirects.
+ */
+function safeInternalPath(raw: string | null, fallback: string): string {
+  if (!raw || !raw.startsWith('/')) return fallback
+  if (raw.startsWith('//') || raw.startsWith('/\\')) return fallback
+  return raw
+}
+
 function roleHomePath(role: string | undefined, adminRedirectTo: string): string | null {
   if (!role) return null
   if (role === "admin" || role === "management") return adminRedirectTo
@@ -29,7 +39,7 @@ type Mode = "kiosk" | "staff"
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get("redirectTo") ?? "/admin/employees"
+  const redirectTo = safeInternalPath(searchParams.get("redirectTo"), "/admin/employees")
 
   const [mode, setMode] = useState<Mode>("kiosk")
   const [employeeId, setEmployeeId] = useState("")

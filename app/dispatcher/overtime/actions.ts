@@ -2,20 +2,26 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient, getServerUser } from '@/lib/supabase-server'
 import { enqueueNotificationBatch } from '@/lib/notifications'
+import { PostOtShiftSchema, OffDayRequestSchema } from '@/lib/schemas/overtime'
 
 export async function postOtShiftAction(formData: FormData) {
   const { user } = await getServerUser()
   if (!user) throw new Error('Unauthorized')
   if (!['admin', 'management', 'dispatcher'].includes((user.app_metadata?.role as string) ?? '')) throw new Error('Forbidden')
 
-  const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.from('overtime_shifts').insert({
-    date:            formData.get('date') as string,
-    start_time:      formData.get('start_time') as string,
+  const parsed = PostOtShiftSchema.safeParse({
+    date:            formData.get('date'),
+    start_time:      formData.get('start_time'),
     duration_hours:  Number(formData.get('duration_hours')),
     slots_available: Number(formData.get('slots_available') ?? 1),
     description:     (formData.get('description') as string) || null,
     bid_close_at:    (formData.get('bid_close_at') as string) || null,
+  })
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'Invalid overtime shift')
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.from('overtime_shifts').insert({
+    ...parsed.data,
     posted_by:       user.id,
     status:          'open',
   })
@@ -56,13 +62,19 @@ export async function sendOffDayRequestAction(formData: FormData) {
   if (!user) throw new Error('Unauthorized')
   if (!['admin', 'management', 'dispatcher'].includes((user.app_metadata?.role as string) ?? '')) throw new Error('Forbidden')
 
+  const parsed = OffDayRequestSchema.safeParse({
+    employee_id:    formData.get('employee_id'),
+    requested_date: formData.get('requested_date'),
+    message:        (formData.get('message') as string) || null,
+  })
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'Invalid off-day request')
+  const { employee_id: employeeId, requested_date: requestedDate } = parsed.data
+
   const supabase = await createSupabaseServerClient()
-  const employeeId = formData.get('employee_id') as string
-  const requestedDate = formData.get('requested_date') as string
   const { error } = await supabase.from('off_day_requests').insert({
     employee_id:    employeeId,
     requested_date: requestedDate,
-    message:        (formData.get('message') as string) || null,
+    message:        parsed.data.message ?? null,
     posted_by:      user.id,
     response:       'pending',
   })

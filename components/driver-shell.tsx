@@ -207,23 +207,27 @@ export default function DriverShell({
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    // 1. Status changes
+    // 1. Status changes — only drop from the queue once the write SUCCEEDS.
+    // (Supabase returns errors in `{ error }` rather than throwing, so an
+    // unchecked update used to delete the queued edit even when it failed.)
     const statusChanges = await getAllQueued('pending_status_changes')
     for (const item of statusChanges) {
       const d = item.data as { shift_id: string; radio_status: string }
-      await supabase.from('shifts').update({ radio_status: d.radio_status }).eq('id', d.shift_id)
+      const { error } = await supabase.from('shifts').update({ radio_status: d.radio_status }).eq('id', d.shift_id)
+      if (error) continue // keep queued, retry next sync
       await deleteQueued('pending_status_changes', item.key)
     }
 
-    // 2. Breaks
+    // 2. Breaks — same: keep queued on error so the edit is not lost.
     const breaks = await getAllQueued('pending_breaks')
     for (const item of breaks) {
       const d = item.data as { break_id: string; actual_start?: string; actual_end?: string; status: string }
-      await supabase.from('breaks').update({
+      const { error } = await supabase.from('breaks').update({
         ...(d.actual_start ? { actual_start: d.actual_start } : {}),
         ...(d.actual_end   ? { actual_end:   d.actual_end   } : {}),
         status: d.status,
       }).eq('id', d.break_id)
+      if (error) continue // keep queued, retry next sync
       await deleteQueued('pending_breaks', item.key)
     }
 

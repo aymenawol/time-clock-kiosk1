@@ -1,10 +1,15 @@
-'use server'
-
+// NOTE: intentionally NOT a Server Action. This helper uses the service-role
+// (RLS-bypassing) admin client and performs no authorization of its own, so it
+// must only ever run inside an already-authorized server action. It is invoked
+// from submitEndOfShiftAction (app/driver/actions.ts), which gates the caller
+// via requireUser(). Adding `'use server'` here would expose it as a public,
+// unauthenticated POST endpoint that can forge performance/attendance data.
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 
 /**
  * Writes/updates the performance snapshot for a shift. Called (best-effort) when
- * a shift is closed at end-of-shift.
+ * a shift is closed at end-of-shift. INTERNAL — call only from an authorized
+ * server action; never expose directly to the client.
  *
  * Reconciled to the real schema: shifts use actual_start/actual_end (not
  * clock_in/clock_out). Attendance lateness and the safety-meeting / inspection /
@@ -12,7 +17,7 @@ import { createSupabaseAdmin } from '@/lib/supabase-admin'
  * here we record the two metrics that are reliable at close time (attendance
  * present + missed-break count). Omitted snapshot columns default to 0.
  */
-export async function writePerformanceSnapshotAction(shiftId: string) {
+export async function writePerformanceSnapshot(shiftId: string) {
   const admin = createSupabaseAdmin()
 
   const { data: shift, error: shiftErr } = await admin

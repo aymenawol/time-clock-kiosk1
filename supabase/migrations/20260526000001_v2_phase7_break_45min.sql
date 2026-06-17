@@ -1,5 +1,12 @@
 -- Phase 7: Break window 45-minute default + counting sheet review table
 -- Date: 2026-05-26
+--
+-- ⚠️ SUPERSEDED by Phase 8 (20260601000001_v2_phase8_breaks.sql). The settings
+-- UPDATE below targets `id = 'default'`, but app_settings has CHECK(id='singleton'),
+-- so that statement is a no-op. Phase 8 reverts the 45-min default back to 15 and
+-- upserts the correct break_rules on the 'singleton' row. This file is kept as-is
+-- (it is already applied; do not rewrite applied migrations) — see Phase 8 for the
+-- authoritative break policy.
 
 -- Update app_settings: set break window duration to 45 minutes
 UPDATE public.app_settings

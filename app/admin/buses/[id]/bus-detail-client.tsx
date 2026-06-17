@@ -61,7 +61,7 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
   }
 
   function handleDelete() {
-    if (!confirm(`Permanently delete bus #${bus.bus_number}? This cannot be undone.`)) return
+    if (!confirm(`Retire bus #${bus.bus_number}? It will be moved to inactive (its history is kept) and can be reactivated later.`)) return
     startTransition(async () => {
       await deleteBusAction(bus.id)
       router.push('/admin/buses')
@@ -105,7 +105,7 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
           disabled={isPending}
           className="text-red-400 hover:text-red-300 text-sm border border-red-800 hover:border-red-600 rounded-lg px-3 py-1.5"
         >
-          Delete
+          {bus.is_active ? 'Retire' : 'Retired'}
         </button>
       </div>
 

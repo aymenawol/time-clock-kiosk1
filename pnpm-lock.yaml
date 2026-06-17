@@ -99,7 +99,7 @@ importers:
         specifier: ^2.87.1
         version: 2.89.0
       '@vercel/analytics':
-        specifier: latest
+        specifier: ^2.0.1
         version: 2.0.1(next@16.1.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
       '@vis.gl/react-google-maps':
         specifier: ^1.8.3
@@ -135,7 +135,7 @@ importers:
         specifier: 16.1.0
         version: 16.1.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       next-themes:
-        specifier: latest
+        specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react:
         specifier: 19.2.0

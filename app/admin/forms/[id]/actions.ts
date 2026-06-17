@@ -73,21 +73,33 @@ export async function approveResignationAction(submissionId: string, comments: s
     .eq('id', sub.employee_id)
     .single()
 
-  // Update form status
-  await supabase.from('form_submissions').update({
+  // Apply the three coupled writes in a deactivate-first order so a failure
+  // never leaves an employee who can still log in / be scheduled while their
+  // form reads "approved". Each write is error-checked; the first failure
+  // aborts before any downstream (irreversible) step runs. (Supabase JS has no
+  // client-side transaction; ordering + early-abort is the safe approximation.)
+
+  // 1. Deactivate the employee record first (the safety-critical step).
+  const { error: empErr } = await supabase
+    .from('employees')
+    .update({ status: 'terminated', is_active: false })
+    .eq('id', sub.employee_id)
+  if (empErr) throw new Error(`Could not deactivate employee: ${empErr.message}`)
+
+  // 2. Cancel pending/active shift assignments.
+  const { error: shiftErr } = await supabase.from('shifts').update({ status: 'cancelled' })
+    .eq('employee_id', sub.employee_id)
+    .in('status', ['scheduled', 'active'])
+  if (shiftErr) throw new Error(`Employee deactivated but shifts not cancelled: ${shiftErr.message}`)
+
+  // 3. Mark the form approved last, so its status reflects completed processing.
+  const { error: formErr } = await supabase.from('form_submissions').update({
     status:           'approved',
     reviewed_by:      auth.user.id,
     reviewed_at:      new Date().toISOString(),
     reviewer_comments: comments || null,
   }).eq('id', submissionId)
-
-  // Deactivate employee record
-  await supabase.from('employees').update({ status: 'terminated', is_active: false }).eq('id', sub.employee_id)
-
-  // Remove pending/active shift assignments
-  await supabase.from('shifts').update({ status: 'cancelled' })
-    .eq('employee_id', sub.employee_id)
-    .in('status', ['scheduled', 'active'])
+  if (formErr) throw new Error(`Employee deactivated but form not marked approved: ${formErr.message}`)
 
   // Ban auth user if we have auth_user_id
   if (emp?.auth_user_id) {

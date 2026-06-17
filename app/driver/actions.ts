@@ -3,7 +3,7 @@
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireUser } from '@/lib/auth/rbac'
 import { calcDailyHours } from '@/lib/payroll-calc'
-import { writePerformanceSnapshotAction } from '@/actions/performance-snapshot'
+import { writePerformanceSnapshot } from '@/actions/performance-snapshot'
 import type { BusStatus } from '@/lib/supabase'
 
 // Radio code → bus status mapping
@@ -225,7 +225,7 @@ export async function submitEndOfShiftAction(data: {
 
   // Best-effort performance snapshot — never block shift close on it.
   try {
-    await writePerformanceSnapshotAction(data.shiftId)
+    await writePerformanceSnapshot(data.shiftId)
   } catch {
     /* non-fatal */
   }

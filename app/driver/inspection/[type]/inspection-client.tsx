@@ -121,12 +121,20 @@ export default function InspectionClient({ type, employee, shift, existingInspec
       if (err) { setError(err.message); return null }
     }
 
-    // Upsert inspection items
-    await supabase.from('inspection_items').delete().eq('inspection_id', currentId)
-    const { error: itemsErr } = await supabase.from('inspection_items').insert(
-      itemsPayload.map(it => ({ ...it, inspection_id: currentId }))
-    )
-    if (itemsErr) setError(itemsErr.message)
+    // Replace items by inserting the new set FIRST, then deleting the prior
+    // rows. Insert-before-delete guarantees a failed save can never wipe the
+    // checklist (the old delete-then-insert lost all items if the insert
+    // errored). A failed delete only leaves duplicates, self-healed on next save.
+    const { data: insertedItems, error: itemsErr } = await supabase
+      .from('inspection_items')
+      .insert(itemsPayload.map(it => ({ ...it, inspection_id: currentId })))
+      .select('id')
+    if (itemsErr) { setError(itemsErr.message); return null }
+    const insertedItemIds = (insertedItems ?? []).map((r: { id: string }) => r.id)
+    let delItems = supabase.from('inspection_items').delete().eq('inspection_id', currentId)
+    if (insertedItemIds.length > 0) delItems = delItems.not('id', 'in', `(${insertedItemIds.join(',')})`)
+    const { error: delItemsErr } = await delItems
+    if (delItemsErr) { setError(delItemsErr.message); return null }
 
     // If has defects, auto-insert repair notes
     if (hasDefects) {
