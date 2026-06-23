@@ -1,7 +1,11 @@
 'use client'
 import { useState, useTransition } from 'react'
+import { Plus, X } from 'lucide-react'
 import { OvertimeShift, OtBanner } from '@/lib/supabase'
 import { postOtShiftAction, closeOtShiftAction, updateBannerAction, sendOffDayRequestAction } from './actions'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 interface OffDayReq { id: string; employee_id: string; requested_date: string; message: string | null; response: string; employees: { name: string } | null }
 interface Employee { id: string; name: string }
@@ -39,80 +43,80 @@ export default function DispatcherOvertimeClient({ banner, shifts, offDayRequest
   }
 
   const STATUS_COLOR: Record<string, string> = {
-    open:      'text-green-400',
+    open:      'text-ok',
     closed:    'text-muted-foreground',
-    awarded:   'text-blue-400',
-    cancelled: 'text-red-500',
+    awarded:   'text-info',
+    cancelled: 'text-danger',
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-8">
+    <div className="space-y-8">
       <h1 className="text-2xl font-bold text-foreground">Overtime Management</h1>
 
-      {err && <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded px-3 py-2">{err}</p>}
+      {err && <p className="text-danger text-sm bg-danger-surface border border-danger-border rounded px-3 py-2">{err}</p>}
 
       {/* OT Banner */}
       <section className="bg-card border border-border rounded-lg p-4 space-y-3">
         <h2 className="text-foreground font-semibold">OT Banner</h2>
         <div className="flex items-center gap-3">
-          <button onClick={() => { setBannerActive(v => !v); act(() => updateBannerAction(!bannerActive, bannerMsg)) }}
-            className={`px-3 py-1.5 text-sm rounded font-medium ${bannerActive ? 'bg-yellow-600 text-foreground' : 'bg-muted text-muted-foreground'}`}>
+          <Button
+            variant={bannerActive ? 'default' : 'secondary'}
+            size="sm"
+            onClick={() => { setBannerActive(v => !v); act(() => updateBannerAction(!bannerActive, bannerMsg)) }}
+          >
             {bannerActive ? 'Active — click to deactivate' : 'Inactive — click to activate'}
-          </button>
+          </Button>
         </div>
         <div>
           <label className="block text-xs text-muted-foreground mb-1">Banner Message</label>
-          <input value={bannerMsg} onChange={e => setBannerMsg(e.target.value)}
-            className="w-full bg-muted border border-border rounded px-3 py-2 text-foreground text-sm" />
+          <Input value={bannerMsg} onChange={e => setBannerMsg(e.target.value)} />
         </div>
-        <button onClick={() => act(() => updateBannerAction(bannerActive, bannerMsg))} disabled={pending}
-          className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-foreground text-xs rounded disabled:opacity-50">
+        <Button variant="secondary" size="sm" onClick={() => act(() => updateBannerAction(bannerActive, bannerMsg))} disabled={pending}>
           Save Banner
-        </button>
+        </Button>
       </section>
 
       {/* Post OT Shift */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-foreground font-semibold">Overtime Shifts</h2>
-          <button onClick={() => setShowShiftForm(v => !v)}
-            className="px-3 py-1.5 bg-muted hover:bg-gray-700 text-foreground text-sm border border-border rounded">
-            {showShiftForm ? 'Cancel' : '+ Post Shift'}
-          </button>
+          <Button variant="secondary" size="sm" onClick={() => setShowShiftForm(v => !v)}>
+            {showShiftForm ? <X aria-hidden /> : <Plus aria-hidden />}
+            {showShiftForm ? 'Cancel' : 'Post Shift'}
+          </Button>
         </div>
 
         {showShiftForm && (
           <form onSubmit={handleShiftPost} className="bg-card border border-border rounded-lg p-4 mb-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Date *</label>
-                <input name="date" type="date" required className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
+                <Input name="date" type="date" required />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Start Time *</label>
-                <input name="start_time" type="time" required className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
+                <Input name="start_time" type="time" required />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Duration (hours) *</label>
-                <input name="duration_hours" type="number" step="0.25" required className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
+                <Input name="duration_hours" type="number" step="0.25" required />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Slots Available</label>
-                <input name="slots_available" type="number" defaultValue={1} className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
+                <Input name="slots_available" type="number" defaultValue={1} />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Bid Close (optional)</label>
-                <input name="bid_close_at" type="datetime-local" className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
+                <Input name="bid_close_at" type="datetime-local" />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Description</label>
-                <input name="description" className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
+                <Input name="description" />
               </div>
             </div>
-            <button type="submit" disabled={pending}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-foreground text-xs rounded disabled:opacity-50">
+            <Button type="submit" size="sm" disabled={pending}>
               Post Shift
-            </button>
+            </Button>
           </form>
         )}
 
@@ -120,7 +124,7 @@ export default function DispatcherOvertimeClient({ banner, shifts, offDayRequest
           {shifts.length === 0 && <p className="text-muted-foreground text-sm">No shifts posted.</p>}
           {shifts.map(s => (
             <div key={s.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="text-foreground text-sm font-medium">{s.date} {s.start_time} · {s.duration_hours}h</p>
                 {s.description && <p className="text-muted-foreground text-xs">{s.description}</p>}
                 <p className="text-muted-foreground text-xs">{s.bid_count} bid{s.bid_count !== 1 ? 's' : ''} · {s.slots_available} slot{s.slots_available !== 1 ? 's' : ''}</p>
@@ -129,7 +133,7 @@ export default function DispatcherOvertimeClient({ banner, shifts, offDayRequest
                 <span className={`text-xs font-medium ${STATUS_COLOR[s.status]}`}>{s.status}</span>
                 {s.status === 'open' && (
                   <button onClick={() => act(() => closeOtShiftAction(s.id))} disabled={pending}
-                    className="text-xs text-yellow-500 hover:text-yellow-400 disabled:opacity-50">Close</button>
+                    className="text-xs text-warn hover:text-warn/80 disabled:opacity-50">Close</button>
                 )}
               </div>
             </div>
@@ -141,33 +145,32 @@ export default function DispatcherOvertimeClient({ banner, shifts, offDayRequest
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-foreground font-semibold">Off-Day Work Requests</h2>
-          <button onClick={() => setShowOffDayForm(v => !v)}
-            className="px-3 py-1.5 bg-muted hover:bg-gray-700 text-foreground text-sm border border-border rounded">
-            {showOffDayForm ? 'Cancel' : '+ Send Request'}
-          </button>
+          <Button variant="secondary" size="sm" onClick={() => setShowOffDayForm(v => !v)}>
+            {showOffDayForm ? <X aria-hidden /> : <Plus aria-hidden />}
+            {showOffDayForm ? 'Cancel' : 'Send Request'}
+          </Button>
         </div>
 
         {showOffDayForm && (
           <form onSubmit={handleOffDay} className="bg-card border border-border rounded-lg p-4 mb-4 space-y-3">
             <div>
               <label className="block text-xs text-muted-foreground mb-1">Employee *</label>
-              <select name="employee_id" required className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm">
+              <select name="employee_id" required className="w-full h-10 bg-card border border-input rounded-lg px-3 py-2 text-foreground text-sm">
                 <option value="">— Select —</option>
                 {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs text-muted-foreground mb-1">Requested Date *</label>
-              <input name="requested_date" type="date" required className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
+              <Input name="requested_date" type="date" required />
             </div>
             <div>
               <label className="block text-xs text-muted-foreground mb-1">Message</label>
-              <textarea name="message" rows={2} className="w-full bg-muted border border-border rounded px-2 py-1.5 text-foreground text-sm" />
+              <Textarea name="message" rows={2} />
             </div>
-            <button type="submit" disabled={pending}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-foreground text-xs rounded disabled:opacity-50">
+            <Button type="submit" size="sm" disabled={pending}>
               Send Request
-            </button>
+            </Button>
           </form>
         )}
 
@@ -175,12 +178,12 @@ export default function DispatcherOvertimeClient({ banner, shifts, offDayRequest
           {offDayRequests.length === 0 && <p className="text-muted-foreground text-sm">No off-day requests.</p>}
           {offDayRequests.map(r => (
             <div key={r.id} className="bg-card border border-border rounded-lg p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-foreground text-sm">{r.employees?.name ?? r.employee_id}</p>
-                <span className={`text-xs font-medium ${
-                  r.response === 'accepted' ? 'text-green-400' :
-                  r.response === 'declined' ? 'text-red-400' :
-                  r.response === 'custom'   ? 'text-blue-400' : 'text-yellow-400'
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-foreground text-sm min-w-0 truncate">{r.employees?.name ?? r.employee_id}</p>
+                <span className={`text-xs font-medium shrink-0 ${
+                  r.response === 'accepted' ? 'text-ok' :
+                  r.response === 'declined' ? 'text-danger' :
+                  r.response === 'custom'   ? 'text-info' : 'text-warn'
                 }`}>{r.response}</span>
               </div>
               <p className="text-muted-foreground text-xs">{r.requested_date}</p>

@@ -1,6 +1,8 @@
 import { getEmployeesPageAction } from "./actions"
 import { EMPLOYEES_PAGE_SIZE, type EmployeeSort } from "./types"
 import EmployeeDirectoryClient from "./employee-directory-client"
+import { Button } from "@/components/ui/button"
+import { UserPlus } from "lucide-react"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
@@ -41,29 +43,28 @@ export default async function EmployeesPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-foreground">Employee Directory</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {stats.total} total · {stats.active} active · {stats.onLeave} on leave ·{" "}
             {stats.terminated} terminated
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <EmployeeDirectoryClient exportOnly />
-          <Link
-            href="/admin/employees/new"
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-foreground"
-            style={{ backgroundColor: "#2563EB" }}
-          >
-            + Add Employee
-          </Link>
+          <Button asChild>
+            <Link href="/admin/employees/new">
+              <UserPlus />
+              Add Employee
+            </Link>
+          </Button>
         </div>
       </div>
 
       {/* Error state */}
       {!result.success && (
-        <div className="rounded-xl bg-red-950 border border-red-800 px-4 py-3 text-red-300 text-sm">
+        <div className="rounded-xl bg-danger-surface border border-danger-border px-4 py-3 text-danger text-sm">
           Failed to load employees: {result.error}
         </div>
       )}

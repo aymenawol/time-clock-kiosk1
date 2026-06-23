@@ -9,6 +9,11 @@ import {
   ROUTE_TYPE_LABELS,
 } from '@/lib/supabase'
 import { submitBidAction } from './actions'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Award, CalendarClock } from 'lucide-react'
 
 const DAY_KEYS = ['sun','mon','tue','wed','thu','fri','sat'] as const
 const DAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa']
@@ -36,11 +41,13 @@ export default function DriverBidsClient({ activeCycle, slots, mySubmission, myA
 
   if (!activeCycle) {
     return (
-      <div className="p-6 max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold text-foreground mb-4">Shift Bids</h1>
-        <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
-          No active bid cycle at this time.
-        </div>
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-foreground">Shift Bids</h1>
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            No active bid cycle at this time.
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -63,99 +70,111 @@ export default function DriverBidsClient({ activeCycle, slots, mySubmission, myA
   const canSubmit = activeCycle.status === 'published'
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-foreground mb-2">Shift Bids</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-foreground">Shift Bids</h1>
 
       {/* Cycle info */}
-      <div className="bg-card border border-border rounded-lg p-4 mb-6">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-foreground font-semibold">{activeCycle.name}</h2>
-          <span className={`px-2.5 py-1 rounded-full text-xs border ${BID_CYCLE_STATUS_COLOR[activeCycle.status]}`}>
-            {activeCycle.status}
-          </span>
-        </div>
-        <p className="text-muted-foreground text-sm">Period: {activeCycle.start_date} — {activeCycle.end_date}</p>
-        {activeCycle.submission_close_at && (
-          <p className="text-muted-foreground text-xs mt-0.5">Submissions close: {new Date(activeCycle.submission_close_at).toLocaleString()}</p>
-        )}
-      </div>
+      <Card>
+        <CardContent className="p-4 space-y-1">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h2 className="text-foreground font-semibold min-w-0 truncate">{activeCycle.name}</h2>
+            <span className={`px-2.5 py-1 rounded-full text-xs border ${BID_CYCLE_STATUS_COLOR[activeCycle.status]}`}>
+              {activeCycle.status}
+            </span>
+          </div>
+          <p className="text-muted-foreground text-sm">Period: {activeCycle.start_date} — {activeCycle.end_date}</p>
+          {activeCycle.submission_close_at && (
+            <p className="text-muted-foreground text-xs flex items-center gap-1">
+              <CalendarClock className="size-3.5 shrink-0" />
+              Submissions close: {new Date(activeCycle.submission_close_at).toLocaleString()}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Award result */}
       {myAward && (
-        <div className="bg-green-900/30 border border-green-700 rounded-lg p-4 mb-6">
-          <h2 className="text-green-300 font-semibold mb-2">Your Bid Award</h2>
-          {myAward.shift_bid_slots ? (
-            <div className="text-sm text-green-200 space-y-1">
-              <p>Bid #{myAward.shift_bid_slots.bid_number} · {ROUTE_TYPE_LABELS[myAward.shift_bid_slots.route_type]}</p>
-              <p>Report: {myAward.shift_bid_slots.report_time} · {myAward.shift_bid_slots.shift_start} → {myAward.shift_bid_slots.shift_end}</p>
-              <p className="text-green-400 text-xs">
-                {myAward.preference_rank ? `Preference #${myAward.preference_rank}` : 'Auto-assigned'}
-              </p>
-            </div>
-          ) : (
-            <p className="text-green-300 text-sm">Slot info unavailable.</p>
-          )}
-        </div>
+        <Card className="border-ok-border bg-ok-surface">
+          <CardContent className="p-4">
+            <h2 className="text-ok font-semibold mb-2 flex items-center gap-2">
+              <Award className="size-4 shrink-0" /> Your Bid Award
+            </h2>
+            {myAward.shift_bid_slots ? (
+              <div className="text-sm text-foreground space-y-1">
+                <p>Bid #{myAward.shift_bid_slots.bid_number} · {ROUTE_TYPE_LABELS[myAward.shift_bid_slots.route_type]}</p>
+                <p>Report: {myAward.shift_bid_slots.report_time} · {myAward.shift_bid_slots.shift_start} → {myAward.shift_bid_slots.shift_end}</p>
+                <p className="text-ok text-xs">
+                  {myAward.preference_rank ? `Preference #${myAward.preference_rank}` : 'Auto-assigned'}
+                </p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">Slot info unavailable.</p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Available slots */}
-      <div className="mb-6">
+      <div>
         <h2 className="text-foreground font-semibold mb-3">Available Slots ({slots.length})</h2>
         <div className="space-y-2">
           {slots.map(slot => (
-            <div key={slot.id} className="bg-card border border-border rounded-lg p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-foreground font-medium">Bid #{slot.bid_number}</span>
-                <span className="text-muted-foreground text-xs">{ROUTE_TYPE_LABELS[slot.route_type]}</span>
-              </div>
-              <p className="text-foreground text-sm font-mono">
-                Report {slot.report_time} · {slot.shift_start} → {slot.shift_end}
-              </p>
-              <p className="text-muted-foreground text-xs mt-1 font-mono">
-                {DAY_KEYS.map((d, i) => (slot as any)[`days_${d}`] ? DAY_LABELS[i] : '·').join(' ')}
-              </p>
-              {slot.notes && <p className="text-muted-foreground text-xs mt-1">{slot.notes}</p>}
-            </div>
+            <Card key={slot.id}>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                  <span className="text-foreground font-medium">Bid #{slot.bid_number}</span>
+                  <span className="text-muted-foreground text-xs">{ROUTE_TYPE_LABELS[slot.route_type]}</span>
+                </div>
+                <p className="text-foreground text-sm font-mono">
+                  Report {slot.report_time} · {slot.shift_start} → {slot.shift_end}
+                </p>
+                <p className="text-muted-foreground text-xs mt-1 font-mono">
+                  {DAY_KEYS.map((d, i) => (slot as any)[`days_${d}`] ? DAY_LABELS[i] : '·').join(' ')}
+                </p>
+                {slot.notes && <p className="text-muted-foreground text-xs mt-1">{slot.notes}</p>}
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>
 
       {/* Preference form */}
       {canSubmit && (
-        <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-4 space-y-3">
-          <h2 className="text-foreground font-semibold">Your Preferences</h2>
-          <p className="text-muted-foreground text-xs">Select up to 3 slots in order of preference. Higher seniority employees are awarded first.</p>
+        <Card>
+          <form onSubmit={handleSubmit} className="p-4 space-y-3">
+            <h2 className="text-foreground font-semibold">Your Preferences</h2>
+            <p className="text-muted-foreground text-xs">Select up to 3 slots in order of preference. Higher seniority employees are awarded first.</p>
 
-          {([1,2,3] as const).map(rank => (
-            <div key={rank}>
-              <label className="block text-xs text-muted-foreground mb-1">Preference #{rank}</label>
-              <select
-                value={prefs[rank]}
-                onChange={e => setPrefs(p => ({ ...p, [rank]: e.target.value }))}
-                className="w-full bg-muted border border-border rounded px-3 py-2 text-foreground text-sm"
-              >
-                <option value="">— No preference —</option>
-                {slots.map(slot => (
-                  <option key={slot.id} value={slot.id} disabled={Object.values(prefs).includes(slot.id) && prefs[rank] !== slot.id}>
-                    Bid #{slot.bid_number} · {ROUTE_TYPE_LABELS[slot.route_type]} · {slot.shift_start}–{slot.shift_end}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+            {([1,2,3] as const).map(rank => (
+              <div key={rank}>
+                <Label className="block text-xs text-muted-foreground mb-1">Preference #{rank}</Label>
+                <select
+                  value={prefs[rank]}
+                  onChange={e => setPrefs(p => ({ ...p, [rank]: e.target.value }))}
+                  className="w-full bg-card border border-input rounded-lg px-3 py-2.5 text-foreground text-sm"
+                >
+                  <option value="">— No preference —</option>
+                  {slots.map(slot => (
+                    <option key={slot.id} value={slot.id} disabled={Object.values(prefs).includes(slot.id) && prefs[rank] !== slot.id}>
+                      Bid #{slot.bid_number} · {ROUTE_TYPE_LABELS[slot.route_type]} · {slot.shift_start}–{slot.shift_end}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
 
-          {err && <p className="text-red-400 text-sm">{err}</p>}
-          {success && <p className="text-green-400 text-sm">{success}</p>}
+            {err && <p className="text-danger text-sm">{err}</p>}
+            {success && <p className="text-ok text-sm">{success}</p>}
 
-          <button type="submit" disabled={pending}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground text-sm font-medium rounded">
-            {mySubmission ? 'Update Preferences' : 'Submit Preferences'}
-          </button>
-        </form>
+            <Button type="submit" size="lg" disabled={pending}>
+              {mySubmission ? 'Update Preferences' : 'Submit Preferences'}
+            </Button>
+          </form>
+        </Card>
       )}
 
       {activeCycle.status === 'locked' && !myAward && (
-        <p className="text-muted-foreground text-sm mt-4">Submissions are closed. Awards will be announced soon.</p>
+        <p className="text-muted-foreground text-sm">Submissions are closed. Awards will be announced soon.</p>
       )}
     </div>
   )

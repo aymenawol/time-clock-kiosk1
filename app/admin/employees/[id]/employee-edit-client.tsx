@@ -9,6 +9,12 @@ import {
 } from "../actions"
 import type { UpdateEmployeeInput } from "../types"
 import type { Employee, EmployeeRole, EmployeeStatus } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { ArrowLeft } from "lucide-react"
 
 const ROLES: { value: EmployeeRole; label: string }[] = [
   { value: "driver",        label: "Driver / Operator" },
@@ -37,13 +43,13 @@ const DEPARTMENTS = [
   "Administration",
 ]
 
-const INPUT_CLS =
-  "w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-600"
+const SELECT_CLS =
+  "w-full h-10 px-3 py-2 rounded-lg bg-card border border-input text-foreground text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:border-ring"
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="block text-xs font-medium text-muted-foreground mb-1.5">{label}</label>
+    <div className="space-y-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
       {children}
     </div>
   )
@@ -137,31 +143,29 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
   return (
     <div className="max-w-2xl space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/admin/employees"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          ← Employees
+          <ArrowLeft className="size-4" />
+          Employees
         </Link>
         <h1 className="text-xl font-bold text-foreground">{employee.name}</h1>
         <span className="text-xs text-muted-foreground font-mono">ID {employee.employee_id}</span>
       </div>
 
       {/* Balances summary card */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
           { label: "PTO Balance", value: `${employee.pto_balance}h` },
           { label: "Vacation Balance", value: `${employee.vacation_balance}h` },
           { label: "FMLA Balance", value: `${employee.fmla_balance}h` },
         ].map((b) => (
-          <div
-            key={b.label}
-            className="bg-card rounded-xl border border-border px-4 py-3 text-center"
-          >
+          <Card key={b.label} className="px-4 py-3 text-center">
             <div className="text-2xl font-bold text-foreground">{b.value}</div>
             <div className="text-xs text-muted-foreground mt-1">{b.label}</div>
-          </div>
+          </Card>
         ))}
       </div>
 
@@ -170,31 +174,29 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
         onSubmit={handleSave}
         className="bg-card rounded-2xl p-6 border border-border space-y-5"
       >
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Full Name *">
-            <input
+            <Input
               required
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="Email">
-            <input
+            <Input
               type="email"
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Role">
             <select
               value={form.role}
               onChange={(e) => set("role", e.target.value)}
-              className={INPUT_CLS}
+              className={SELECT_CLS}
             >
               <option value="">No role</option>
               {ROLES.map((r) => (
@@ -208,7 +210,7 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
             <select
               value={form.status}
               onChange={(e) => set("status", e.target.value)}
-              className={INPUT_CLS}
+              className={SELECT_CLS}
             >
               {STATUSES.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -219,12 +221,12 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Department">
             <select
               value={form.department}
               onChange={(e) => set("department", e.target.value)}
-              className={INPUT_CLS}
+              className={SELECT_CLS}
             >
               <option value="">Select…</option>
               {DEPARTMENTS.map((d) => (
@@ -235,158 +237,136 @@ export default function EmployeeEditClient({ employee }: { employee: Employee })
             </select>
           </Field>
           <Field label="Phone">
-            <input
+            <Input
               type="tel"
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Hire Date">
-            <input
+            <Input
               type="date"
               value={form.hire_date}
               onChange={(e) => set("hire_date", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="Seniority #">
-            <input
+            <Input
               type="number"
               min={1}
               value={form.seniority_number}
               onChange={(e) => set("seniority_number", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="Shift">
-            <input
+            <Input
               value={form.shift}
               onChange={(e) => set("shift", e.target.value)}
               placeholder="AM / PM"
-              className={INPUT_CLS}
             />
           </Field>
         </div>
 
-        <hr className="border-border" />
+        <Separator />
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
           Leave Balances (hours)
         </p>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="PTO">
-            <input
+            <Input
               type="number"
               min={0}
               step={0.5}
               value={form.pto_balance}
               onChange={(e) => set("pto_balance", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="Vacation">
-            <input
+            <Input
               type="number"
               min={0}
               step={0.5}
               value={form.vacation_balance}
               onChange={(e) => set("vacation_balance", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="FMLA">
-            <input
+            <Input
               type="number"
               min={0}
               step={0.5}
               value={form.fmla_balance}
               onChange={(e) => set("fmla_balance", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
         </div>
 
         {error && (
-          <div className="rounded-xl bg-red-950 border border-red-800 px-4 py-3 text-red-300 text-sm">
+          <div className="rounded-xl bg-danger-surface border border-danger-border px-4 py-3 text-danger text-sm">
             {error}
           </div>
         )}
         {successMsg && (
-          <div className="rounded-xl bg-green-950 border border-green-800 px-4 py-3 text-green-300 text-sm">
+          <div className="rounded-xl bg-ok-surface border border-ok-border px-4 py-3 text-ok text-sm">
             {successMsg}
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Link
-            href="/admin/employees"
-            className="px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-700 transition-colors"
-          >
-            Cancel
-          </Link>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="px-6 py-2 rounded-xl text-sm font-semibold text-foreground disabled:opacity-50 transition-opacity"
-            style={{ backgroundColor: "#2563EB" }}
-          >
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-end">
+          <Button asChild variant="secondary">
+            <Link href="/admin/employees">Cancel</Link>
+          </Button>
+          <Button type="submit" disabled={isPending}>
             {isPending ? "Saving…" : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </form>
 
       {/* Password reset section */}
       <div className="bg-card rounded-2xl p-6 border border-border space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-foreground">Password Reset</h2>
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => setShowPwReset(!showPwReset)}
-            className="text-xs text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors"
           >
             {showPwReset ? "Cancel" : "Reset Password"}
-          </button>
+          </Button>
         </div>
 
         {showPwReset && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="New Password">
-                <input
+                <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Min 8 characters"
-                  className={INPUT_CLS}
                 />
               </Field>
               <Field label="Confirm Password">
-                <input
+                <Input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repeat"
-                  className={INPUT_CLS}
                 />
               </Field>
             </div>
             {pwError && (
-              <div className="rounded-xl bg-red-950 border border-red-800 px-4 py-3 text-red-300 text-sm">
+              <div className="rounded-xl bg-danger-surface border border-danger-border px-4 py-3 text-danger text-sm">
                 {pwError}
               </div>
             )}
-            <button
-              type="button"
-              onClick={handlePasswordReset}
-              disabled={isPending}
-              className="px-5 py-2 rounded-xl text-sm font-semibold text-foreground disabled:opacity-50 transition-opacity"
-              style={{ backgroundColor: "#2563EB" }}
-            >
+            <Button type="button" onClick={handlePasswordReset} disabled={isPending}>
               {isPending ? "Resetting…" : "Set New Password"}
-            </button>
+            </Button>
           </div>
         )}
       </div>

@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
 import { getServerUser, createSupabaseServerClient } from '@/lib/supabase-server'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,53 +47,58 @@ export default async function BalancesPage() {
   }
 
   const balances = [
-    { label: 'PTO', value: emp.pto_balance, color: 'text-blue-300' },
-    { label: 'Vacation', value: emp.vacation_balance, color: 'text-green-300' },
-    { label: 'FMLA', value: emp.fmla_balance, color: 'text-purple-300' },
+    { label: 'PTO', value: emp.pto_balance, color: 'text-info' },
+    { label: 'Vacation', value: emp.vacation_balance, color: 'text-ok' },
+    { label: 'FMLA', value: emp.fmla_balance, color: 'text-hazard' },
   ]
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-8">
       <div className="max-w-xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-foreground">My Balances</h1>
-            <p className="text-muted-foreground text-sm">{emp.name} · ID {emp.employee_id}</p>
+            <p className="text-muted-foreground text-sm truncate">{emp.name} · ID {emp.employee_id}</p>
           </div>
-          <Link href="/driver" className="text-sm text-muted-foreground hover:text-foreground">← Back</Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/driver">
+              <ArrowLeft />
+              Back
+            </Link>
+          </Button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {balances.map((b) => (
-            <div key={b.label} className="bg-card border border-border rounded-xl p-4 text-center">
+            <Card key={b.label} className="p-4 text-center">
               <p className={`text-3xl font-bold font-mono tabular-nums ${b.color}`}>{Number(b.value ?? 0).toFixed(1)}</p>
               <p className="text-muted-foreground text-xs mt-1 uppercase tracking-wide">{b.label} hours</p>
-            </div>
+            </Card>
           ))}
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-4 space-y-2 text-sm">
-          <div className="flex justify-between">
+        <Card className="p-4 space-y-2 text-sm">
+          <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">Department</span>
             <span className="text-foreground">{emp.department ?? '—'}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">Hire date</span>
             <span className="text-foreground">{emp.hire_date ?? '—'}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">Seniority number</span>
             <span className="text-foreground font-mono">{emp.seniority_number ?? '—'}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">Seniority rank</span>
             <span className="text-foreground">
               {rank != null ? `#${rank}${totalRanked ? ` of ${totalRanked}` : ''}` : 'Not ranked'}
             </span>
           </div>
-        </div>
+        </Card>
 
-        <p className="text-gray-600 text-xs">
+        <p className="text-muted-foreground text-xs">
           Balances are maintained by payroll. To request leave, use the Forms section.
         </p>
       </div>

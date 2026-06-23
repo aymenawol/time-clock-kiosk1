@@ -2,7 +2,12 @@
 
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
+import { ArrowLeft, Plus, X, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { submitCountingSheetAction } from './actions'
 
 interface CountingRow {
@@ -210,7 +215,9 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
     return (
       <div className="text-center py-20 text-muted-foreground">
         <p>No active shift found for today.</p>
-        <a href="/driver" className="text-blue-400 hover:underline text-sm mt-2 block">← Back to dashboard</a>
+        <Link href="/driver" className="text-primary hover:underline text-sm mt-2 inline-flex items-center gap-1">
+          <ArrowLeft className="size-4" /> Back to dashboard
+        </Link>
       </div>
     )
   }
@@ -218,40 +225,46 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <a href="/driver" className="text-xs text-muted-foreground hover:text-foreground">← Dashboard</a>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <Link href="/driver" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+            <ArrowLeft className="size-3.5" /> Dashboard
+          </Link>
           <h1 className="text-xl font-bold text-foreground mt-0.5">Passenger Counting Sheet</h1>
         </div>
-        {submitted && (
-          <span className="bg-green-900 text-green-300 text-xs font-semibold px-3 py-1 rounded-full">Submitted</span>
-        )}
+        {submitted && <Badge variant="ok">Submitted</Badge>}
       </div>
 
       {/* Break timer banner */}
       {activeBreak && (
-        <div className={`rounded-xl border-2 p-3 text-center ${breakTimer && breakTimer <= 0 ? 'border-red-500 bg-red-950/40' : 'border-yellow-600 bg-yellow-950/40'}`}>
-          <p className="text-yellow-300 text-sm font-semibold">
+        <div className={`rounded-xl border-2 p-3 text-center ${breakTimer && breakTimer <= 0 ? 'border-danger-border bg-danger-surface' : 'border-warn-border bg-warn-surface'}`}>
+          <p className={`text-sm font-semibold ${breakTimer !== null && breakTimer <= 0 ? 'text-danger' : 'text-warn'}`}>
             Break {activeBreak.break_number} — {breakTimer !== null ? `${Math.floor(breakTimer/60)}:${(breakTimer%60).toString().padStart(2,'0')} remaining` : '…'}
-            {breakTimer !== null && breakTimer <= 0 && <span className="text-red-400 ml-2">⚠ RETURN NOW</span>}
+            {breakTimer !== null && breakTimer <= 0 && (
+              <span className="text-danger ml-2 inline-flex items-center gap-1">
+                <AlertTriangle className="size-4" /> RETURN NOW
+              </span>
+            )}
           </p>
         </div>
       )}
 
       {/* Info bar */}
-      <div className="bg-card border border-border rounded-xl p-3 flex gap-6 text-sm">
+      <Card className="p-3 flex flex-wrap gap-x-8 gap-y-3 text-sm">
         <div><p className="text-muted-foreground text-xs">Driver</p><p className="text-foreground">{employee.name}</p></div>
         <div><p className="text-muted-foreground text-xs">Bus</p><p className="text-foreground">{shift.bus ? `#${shift.bus.bus_number}` : '—'}</p></div>
         <div><p className="text-muted-foreground text-xs">Date</p><p className="text-foreground">{today}</p></div>
-      </div>
+      </Card>
 
-      {error && <div className="bg-red-900/40 border border-red-600 text-red-300 rounded p-3 text-sm">{error}</div>}
+      {error && (
+        <div className="bg-danger-surface border border-danger-border text-danger rounded-lg p-3 text-sm">{error}</div>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-card text-muted-foreground text-xs uppercase">
+            <tr className="bg-muted text-muted-foreground text-xs uppercase">
               <th className="px-2 py-2 w-8">#</th>
               <th className="px-2 py-2 text-left">Depart</th>
               <th className="px-2 py-2 text-center">RAC</th>
@@ -266,15 +279,15 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((row, idx) => (
-              <tr key={idx} className="hover:bg-card/30">
-                <td className="px-2 py-1 text-gray-600 text-xs text-center">{idx + 1}</td>
+              <tr key={idx} className="hover:bg-accent/40">
+                <td className="px-2 py-1 text-muted-foreground text-xs text-center">{idx + 1}</td>
                 <td className="px-1 py-1">
                   <input
                     type="time"
                     value={row.departure_time}
                     disabled={submitted}
                     onChange={e => updateCell(idx, 'departure_time', e.target.value)}
-                    className="bg-transparent border border-border text-foreground text-xs rounded px-1 py-0.5 w-24 disabled:opacity-50"
+                    className="bg-transparent border border-input text-foreground text-xs rounded px-1 py-0.5 w-24 disabled:opacity-50"
                   />
                 </td>
                 {(['rac','t1','t3','term1','term3_west','term3_east'] as const).map(field => (
@@ -285,7 +298,7 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
                       value={row[field] || ''}
                       disabled={submitted}
                       onChange={e => updateCell(idx, field, parseInt(e.target.value) || 0)}
-                      className="bg-transparent border border-border text-foreground text-xs rounded px-1 py-0.5 w-12 text-center disabled:opacity-50"
+                      className="bg-transparent border border-input text-foreground text-xs rounded px-1 py-0.5 w-12 text-center disabled:opacity-50"
                     />
                   </td>
                 ))}
@@ -296,20 +309,21 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
                   <td className="px-1 py-1">
                     <button
                       onClick={() => deleteRow(idx)}
-                      className="text-gray-700 hover:text-red-400 text-xs"
-                    >✕</button>
+                      aria-label="Delete row"
+                      className="text-muted-foreground hover:text-danger"
+                    ><X className="size-4" /></button>
                   </td>
                 )}
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-card/60 font-bold text-foreground text-xs">
+            <tr className="bg-muted/60 font-bold text-foreground text-xs">
               <td className="px-2 py-2" colSpan={2}>TOTALS</td>
               {(['rac','t1','t3','term1','term3_west','term3_east'] as const).map(f => (
                 <td key={f} className="px-2 py-2 text-center">{totals[f] || ''}</td>
               ))}
-              <td className="px-2 py-2 text-center text-blue-300 text-base">{grandTotal || ''}</td>
+              <td className="px-2 py-2 text-center text-primary text-base">{grandTotal || ''}</td>
               {!submitted && <td />}
             </tr>
           </tfoot>
@@ -317,16 +331,16 @@ export default function CountingSheetClient({ employee, shift, existingSheet, ex
       </div>
 
       {!submitted && (
-        <div className="flex gap-3">
-          <button onClick={addRow} className="bg-muted hover:bg-gray-700 text-foreground text-sm px-4 py-2 rounded-lg">
-            + Add Row
-          </button>
-          <button onClick={handleSaveDraft} disabled={isPending} className="bg-muted hover:bg-gray-700 disabled:opacity-50 text-foreground text-sm px-4 py-2 rounded-lg">
+        <div className="flex flex-wrap gap-3">
+          <Button variant="secondary" size="lg" onClick={addRow}>
+            <Plus className="size-4" /> Add Row
+          </Button>
+          <Button variant="secondary" size="lg" onClick={handleSaveDraft} disabled={isPending}>
             {isPending ? 'Saving…' : 'Save Draft'}
-          </button>
-          <button onClick={handleSubmit} disabled={isPending} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground text-sm font-medium px-4 py-2 rounded-lg ml-auto">
+          </Button>
+          <Button size="lg" onClick={handleSubmit} disabled={isPending} className="ml-auto">
             Submit Sheet
-          </button>
+          </Button>
         </div>
       )}
     </div>

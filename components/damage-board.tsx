@@ -104,7 +104,7 @@ export default function DamageBoard({
               type="button"
               onClick={() => setView(v.key)}
               className={`text-xs px-2.5 py-1 rounded border transition-colors ${
-                view === v.key ? 'bg-blue-600 border-blue-500 text-foreground' : 'bg-muted border-border text-muted-foreground hover:text-foreground'
+                view === v.key ? 'bg-primary border-primary text-primary-foreground' : 'bg-muted border-border text-muted-foreground hover:text-foreground'
               }`}
             >
               {v.label}{count > 0 ? ` (${count})` : ''}
@@ -122,19 +122,19 @@ export default function DamageBoard({
             disabled={disabled}
             onClick={() => setTool(t.key)}
             className={`text-xs px-2.5 py-1 rounded border transition-colors ${
-              tool === t.key ? 'bg-blue-600 border-blue-500 text-foreground' : 'bg-muted border-border text-muted-foreground hover:text-foreground'
+              tool === t.key ? 'bg-primary border-primary text-primary-foreground' : 'bg-muted border-border text-muted-foreground hover:text-foreground'
             } disabled:opacity-50`}
           >{t.label}</button>
         ))}
         <button type="button" disabled={disabled || viewStrokes.length === 0} onClick={undo}
           className="text-xs px-2.5 py-1 rounded border border-border bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 ml-auto">Undo</button>
         <button type="button" disabled={disabled || viewStrokes.length === 0} onClick={clearView}
-          className="text-xs px-2 py-1 rounded border border-border bg-muted text-muted-foreground hover:text-red-300 hover:border-red-700 disabled:opacity-30">Clear</button>
+          className="text-xs px-2 py-1 rounded border border-border bg-muted text-muted-foreground hover:text-danger hover:border-danger-border disabled:opacity-30">Clear</button>
       </div>
       <div className="flex gap-2">
         {DAMAGE_COLORS.map((c) => (
           <button key={c} type="button" disabled={disabled} onClick={() => setColor(c)}
-            className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-white scale-110' : 'border-transparent opacity-70'}`}
+            className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-foreground scale-110' : 'border-transparent opacity-70'}`}
             style={{ backgroundColor: c }} />
         ))}
       </div>
@@ -156,7 +156,7 @@ export default function DamageBoard({
           ))}
         </svg>
       </div>
-      <p className="text-gray-600 text-xs">Mark damage on each view. Strokes are saved per diagram.</p>
+      <p className="text-muted-foreground text-xs">Mark damage on each view. Strokes are saved per diagram.</p>
     </div>
   )
 }

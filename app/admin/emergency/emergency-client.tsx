@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { triggerEmergencyAction, resolveEmergencyAction, getEmergencyAckStatusAction } from './actions'
 
 type EventType = 'weather' | 'airport_emergency' | 'reroute' | 'custom'
@@ -98,39 +103,39 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
     <div className="space-y-8">
       {/* Active emergency status */}
       {activeEvent && (
-        <div className="bg-red-950/70 border-2 border-red-600 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-red-300 font-bold text-lg uppercase tracking-wide">
+        <div className="rounded-2xl border-2 border-danger bg-danger-surface p-5 sm:p-6">
+          <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="size-3 shrink-0 rounded-full bg-danger animate-pulse" />
+              <span className="text-danger font-bold text-lg uppercase tracking-wide">
                 Emergency Active — {TYPE_LABELS[activeEvent.event_type as EventType] ?? activeEvent.event_type}
               </span>
             </div>
-            <span className="text-muted-foreground text-xs">
+            <span className="text-muted-foreground text-xs shrink-0">
               {new Date(activeEvent.triggered_at).toLocaleString('en-US', { hour12: false })}
             </span>
           </div>
           <p className="text-foreground text-base mb-6 whitespace-pre-wrap">{activeEvent.message}</p>
 
           {ackStatus && (
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-green-950/50 border border-green-800 rounded-xl p-4">
-                <div className="text-green-400 font-bold text-2xl">{ackStatus.acknowledged.length}</div>
-                <div className="text-green-300 text-sm">Acknowledged</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div className="rounded-xl border border-ok-border bg-ok-surface p-4">
+                <div className="text-ok font-bold text-2xl">{ackStatus.acknowledged.length}</div>
+                <div className="text-ok text-sm">Acknowledged</div>
               </div>
-              <div className="bg-yellow-950/50 border border-yellow-800 rounded-xl p-4">
-                <div className="text-yellow-400 font-bold text-2xl">{ackStatus.unacknowledged.length}</div>
-                <div className="text-yellow-300 text-sm">Not yet acknowledged</div>
+              <div className="rounded-xl border border-warn-border bg-warn-surface p-4">
+                <div className="text-warn font-bold text-2xl">{ackStatus.unacknowledged.length}</div>
+                <div className="text-warn text-sm">Not yet acknowledged</div>
               </div>
             </div>
           )}
 
           {ackStatus?.unacknowledged && ackStatus.unacknowledged.length > 0 && (
             <details className="mb-4">
-              <summary className="text-yellow-400 text-sm cursor-pointer hover:text-yellow-300">
+              <summary className="text-warn text-sm hover:text-warn/80">
                 View unacknowledged employees ({ackStatus.unacknowledged.length})
               </summary>
-              <div className="mt-2 grid grid-cols-2 gap-1 max-h-48 overflow-y-auto">
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-48 overflow-y-auto">
                 {ackStatus.unacknowledged.map(e => (
                   <div key={e.id} className="text-muted-foreground text-xs px-2 py-1 bg-card rounded">
                     {e.name}
@@ -141,28 +146,18 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
           )}
 
           {!confirmResolve ? (
-            <button
-              onClick={() => setConfirmResolve(true)}
-              className="bg-green-700 hover:bg-green-600 text-foreground font-bold px-6 py-3 rounded-xl transition-colors"
-            >
+            <Button onClick={() => setConfirmResolve(true)} variant="success" size="lg">
               Resolve Emergency
-            </button>
+            </Button>
           ) : (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="text-foreground text-sm">Confirm resolve emergency?</span>
-              <button
-                onClick={handleResolve}
-                disabled={isPending}
-                className="bg-green-700 hover:bg-green-600 text-foreground font-semibold px-4 py-2 rounded-xl text-sm"
-              >
+              <Button onClick={handleResolve} disabled={isPending} variant="success">
                 Yes, Resolve
-              </button>
-              <button
-                onClick={() => setConfirmResolve(false)}
-                className="text-muted-foreground hover:text-foreground text-sm"
-              >
+              </Button>
+              <Button onClick={() => setConfirmResolve(false)} variant="ghost">
                 Cancel
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -170,55 +165,60 @@ export default function EmergencyClient({ initialActiveEvent }: Props) {
 
       {/* Trigger form */}
       {!activeEvent && (
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <h2 className="text-foreground font-semibold text-lg mb-5">Trigger Emergency Alert</h2>
+        <Card>
+          <CardContent className="p-5 sm:p-6">
+            <h2 className="text-foreground font-semibold text-lg mb-5">Trigger Emergency Alert</h2>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-muted-foreground mb-2">Event Type</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(Object.entries(TYPE_LABELS) as [EventType, string][]).map(([val, label]) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setEventType(val)}
-                    className={`py-2.5 px-4 rounded-xl text-sm font-medium border transition-colors ${
-                      eventType === val
-                        ? 'bg-red-800 border-red-600 text-foreground'
-                        : 'bg-muted border-border text-muted-foreground hover:border-gray-500'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+            <div className="space-y-4">
+              <div>
+                <Label className="mb-2 block text-muted-foreground">Event Type</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(Object.entries(TYPE_LABELS) as [EventType, string][]).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setEventType(val)}
+                      className={`py-2.5 px-4 rounded-xl text-sm font-medium border transition-colors ${
+                        eventType === val
+                          ? 'border-danger bg-danger text-white'
+                          : 'border-border bg-muted text-muted-foreground hover:border-danger-border hover:text-foreground'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              <div>
+                <Label className="mb-1 block text-muted-foreground">Message</Label>
+                <Textarea
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  rows={4}
+                  placeholder="Describe the emergency situation and required actions…"
+                  className="resize-none"
+                />
+              </div>
+
+              {error && <p className="text-danger text-sm">{error}</p>}
+
+              <Button
+                onClick={handleTrigger}
+                disabled={isPending || !message.trim()}
+                variant="destructive"
+                size="lg"
+                className="w-full text-lg"
+              >
+                <AlertTriangle className="size-5" />
+                {isPending ? 'Activating…' : 'Trigger Emergency Alert'}
+              </Button>
+              <p className="text-muted-foreground text-xs text-center">
+                All drivers, dispatchers, and supervisors will see a full-screen alert immediately.
+              </p>
             </div>
-
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">Message</label>
-              <textarea
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                rows={4}
-                placeholder="Describe the emergency situation and required actions…"
-                className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:border-red-700 resize-none"
-              />
-            </div>
-
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-
-            <button
-              onClick={handleTrigger}
-              disabled={isPending || !message.trim()}
-              className="w-full bg-red-700 hover:bg-red-600 text-foreground font-bold py-4 rounded-xl text-lg disabled:opacity-40 transition-colors"
-            >
-              {isPending ? 'Activating…' : '⚠ Trigger Emergency Alert'}
-            </button>
-            <p className="text-gray-600 text-xs text-center">
-              All drivers, dispatchers, and supervisors will see a full-screen alert immediately.
-            </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

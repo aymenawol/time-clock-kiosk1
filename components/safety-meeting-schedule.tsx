@@ -274,7 +274,7 @@ export default function SafetyMeetingSchedule({
                         }
                       }}
                       disabled={newMeeting.category !== category || !newMeeting.date || !newMeeting.time}
-                      className="bg-green-600 text-foreground px-4 py-2 rounded font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="bg-ok text-white px-4 py-2 rounded font-bold hover:bg-ok/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       <Plus size={16} />
                       Add
@@ -294,7 +294,7 @@ export default function SafetyMeetingSchedule({
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="bg-blue-600 text-foreground px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
               >
                 <Edit2 size={18} />
                 Edit Schedule
@@ -306,7 +306,7 @@ export default function SafetyMeetingSchedule({
                     setData(initialData)
                     setIsEditing(false)
                   }}
-                  className="bg-gray-600 text-foreground px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center gap-2 shadow-sm"
+                  className="bg-gray-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center gap-2 shadow-sm"
                 >
                   <X size={18} />
                   Cancel
@@ -314,7 +314,7 @@ export default function SafetyMeetingSchedule({
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-[#2563EB] text-foreground px-5 py-2.5 rounded-lg font-semibold hover:bg-red-700 disabled:bg-gray-400 transition-colors flex items-center gap-2 shadow-sm"
+                  className="bg-primary text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
                 >
                   <Save size={18} />
                   {isSaving ? 'Saving...' : 'Save Changes'}
@@ -327,7 +327,7 @@ export default function SafetyMeetingSchedule({
             <div className="flex gap-3">
               <button
                 onClick={handleExportText}
-                className="bg-gray-700 text-foreground px-5 py-2.5 rounded-lg font-semibold hover:bg-muted transition-colors flex items-center gap-2 shadow-sm"
+                className="bg-gray-700 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-muted transition-colors flex items-center gap-2 shadow-sm"
               >
                 {copied ? <Check size={18} /> : <Copy size={18} />}
                 {copied ? 'Copied!' : 'Copy Text'}
@@ -335,7 +335,7 @@ export default function SafetyMeetingSchedule({
               {onShare && (
                 <button
                   onClick={onShare}
-                  className="bg-green-600 text-foreground px-5 py-2.5 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm"
+                  className="bg-green-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm"
                 >
                   <Share2 size={18} />
                   Share Link

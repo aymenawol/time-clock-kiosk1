@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
+import { Badge } from '@/components/ui/badge'
 import {
   APIProvider,
   Map,
@@ -48,7 +50,11 @@ interface Props {
   apiKey: string | null
 }
 
-const CONGESTION_COLOR = { green: '#22c55e', yellow: '#facc15', red: '#ef4444' }
+const CONGESTION_DOT: Record<'green' | 'yellow' | 'red', string> = {
+  green: 'bg-ok',
+  yellow: 'bg-warn',
+  red: 'bg-danger',
+}
 
 export default function MapClient({ initialBuses, apiKey }: Props) {
   const [buses, setBuses] = useState<ActiveBus[]>(initialBuses)
@@ -108,9 +114,9 @@ export default function MapClient({ initialBuses, apiKey }: Props) {
 
   if (!apiKey) {
     return (
-      <div className="flex items-center justify-center h-full bg-background text-center p-8">
+      <div className="flex items-center justify-center h-full text-center p-8">
         <div>
-          <p className="text-yellow-400 font-semibold text-lg mb-2">Google Maps API key not configured</p>
+          <p className="text-warn font-semibold text-lg mb-2">Google Maps API key not configured</p>
           <p className="text-muted-foreground text-sm">
             Add <code className="bg-muted px-1 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to your{' '}
             <code className="bg-muted px-1 rounded">.env.local</code> file to enable the live map.
@@ -136,10 +142,7 @@ export default function MapClient({ initialBuses, apiKey }: Props) {
       <div className="flex gap-3 px-4 py-2 bg-card border-b border-border flex-wrap">
         {congestion.map(({ terminal, level }) => (
           <div key={terminal.id} className="flex items-center gap-1.5 text-sm">
-            <span
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: CONGESTION_COLOR[level] }}
-            />
+            <span className={`w-3 h-3 rounded-full ${CONGESTION_DOT[level]}`} />
             <span className="text-foreground">{terminal.name}</span>
             <span className="text-muted-foreground capitalize text-xs">{level}</span>
           </div>
@@ -147,7 +150,7 @@ export default function MapClient({ initialBuses, apiKey }: Props) {
         <div className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
           <span>{activeBuses.length} buses online</span>
           {staleBuses.length > 0 && (
-            <span className="text-red-400">{staleBuses.length} GPS lost</span>
+            <span className="text-danger">{staleBuses.length} GPS lost</span>
           )}
         </div>
       </div>
@@ -166,7 +169,7 @@ export default function MapClient({ initialBuses, apiKey }: Props) {
               {/* Terminal markers */}
               {TERMINALS.map(t => (
                 <AdvancedMarker key={t.id} position={{ lat: t.lat, lng: t.lng }}>
-                  <div className="bg-blue-900 border border-blue-500 text-blue-200 text-xs font-bold px-2 py-0.5 rounded shadow-lg">
+                  <div className="bg-info-surface border border-info-border text-info text-xs font-bold px-2 py-0.5 rounded shadow-lg">
                     {t.code}
                   </div>
                 </AdvancedMarker>
@@ -187,14 +190,14 @@ export default function MapClient({ initialBuses, apiKey }: Props) {
                     position={{ lat: bus.position.latitude, lng: bus.position.longitude }}
                     onClick={() => setSelected(bus)}
                   >
-                    <div className={`flex flex-col items-center cursor-pointer`}>
+                    <div className="flex flex-col items-center">
                       <div className={`text-xs font-bold px-2 py-0.5 rounded shadow-lg border ${
                         stale
-                          ? 'bg-red-900 border-red-600 text-red-200'
-                          : 'bg-card border-gray-600 text-foreground'
+                          ? 'bg-danger-surface border-danger-border text-danger'
+                          : 'bg-card border-border text-foreground'
                       }`}>
                         #{bus.bus_number}
-                        {stale && <span className="ml-1 text-red-400">⚠</span>}
+                        {stale && <AlertTriangle className="ml-1 inline size-3 text-danger" />}
                       </div>
                       <Pin
                         background={stale ? '#7f1d1d' : '#1e3a5f'}
@@ -246,7 +249,7 @@ export default function MapClient({ initialBuses, apiKey }: Props) {
         <div className="w-64 bg-card border-l border-border overflow-y-auto p-3 space-y-2">
           <p className="text-muted-foreground text-xs uppercase tracking-wide font-semibold mb-3">Active Buses</p>
           {buses.length === 0 && (
-            <p className="text-gray-600 text-sm">No active shifts with GPS data.</p>
+            <p className="text-muted-foreground text-sm">No active shifts with GPS data.</p>
           )}
           {buses.map(bus => {
             const stale = bus.position ? isPositionStale(bus.position.recorded_at) : false
@@ -256,20 +259,18 @@ export default function MapClient({ initialBuses, apiKey }: Props) {
                 onClick={() => setSelected(bus)}
                 className={`w-full text-left rounded-lg p-2.5 border transition-colors ${
                   selected?.bus_id === bus.bus_id
-                    ? 'border-blue-600 bg-blue-950/30'
-                    : 'border-border bg-card hover:border-border'
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border bg-card hover:bg-accent'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-foreground">#{bus.bus_number}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded ${
-                    bus.bus_type === 'EV' ? 'bg-teal-900 text-teal-300' : 'bg-muted text-muted-foreground'
-                  }`}>{bus.bus_type}</span>
+                  <Badge variant={bus.bus_type === 'EV' ? 'info' : 'neutral'}>{bus.bus_type}</Badge>
                 </div>
                 <p className="text-muted-foreground text-xs truncate">{bus.driver_name}</p>
                 {bus.position ? (
                   <>
-                    <p className={`text-xs mt-0.5 ${stale ? 'text-red-400' : 'text-green-400'}`}>
+                    <p className={`text-xs mt-0.5 ${stale ? 'text-danger' : 'text-ok'}`}>
                       {stale ? `GPS lost ${minutesSinceLastPosition(bus.position.recorded_at)}m ago` : 'Live'}
                     </p>
                     {(() => {
@@ -279,12 +280,12 @@ export default function MapClient({ initialBuses, apiKey }: Props) {
                       }))
                       const near = calcNearestTerminalEta(samples, TERMINALS)
                       return near ? (
-                        <p className="text-xs text-blue-300 mt-0.5">→ {near.terminal.code} ~{near.etaMin}m</p>
+                        <p className="text-xs text-info mt-0.5">→ {near.terminal.code} ~{near.etaMin}m</p>
                       ) : null
                     })()}
                   </>
                 ) : (
-                  <p className="text-xs text-gray-600 mt-0.5">No GPS data</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">No GPS data</p>
                 )}
               </button>
             )

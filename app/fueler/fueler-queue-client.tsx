@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Fuel, Droplets } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { completeServiceAction } from './actions'
 
 export interface QueueBus {
@@ -44,7 +47,7 @@ function ServiceCard({ bus }: { bus: QueueBus }) {
         {bus.fuel_level != null && (
           <span
             className={`text-sm font-medium ${
-              bus.fuel_level >= 50 ? 'text-green-400' : 'text-yellow-400'
+              bus.fuel_level >= 50 ? 'text-ok' : 'text-warn'
             }`}
           >
             {bus.fuel_level.toFixed(0)}%
@@ -55,7 +58,7 @@ function ServiceCard({ bus }: { bus: QueueBus }) {
       <div className="flex flex-wrap items-center gap-2">
         {needsFuel && (
           <>
-            <input
+            <Input
               type="number"
               min={0}
               max={100}
@@ -63,34 +66,38 @@ function ServiceCard({ bus }: { bus: QueueBus }) {
               value={fuelInput}
               onChange={(e) => setFuelInput(e.target.value)}
               placeholder="Fuel %"
-              className="w-20 px-2 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder-gray-500"
+              className="w-24 bg-muted"
             />
-            <button
+            <Button
               type="button"
+              size="lg"
               disabled={pending}
               onClick={() => run('fuel')}
-              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-foreground text-sm font-semibold disabled:opacity-60"
+              className="bg-warn text-white hover:bg-warn/90"
             >
+              <Fuel />
               {pending ? '…' : 'Mark Fueled'}
-            </button>
+            </Button>
           </>
         )}
         {needsWash && (
-          <button
+          <Button
             type="button"
+            size="lg"
             disabled={pending}
             onClick={() => run('wash')}
-            className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-foreground text-sm font-semibold disabled:opacity-60"
+            className="bg-info text-white hover:bg-info/90"
           >
+            <Droplets />
             {pending ? '…' : 'Mark Washed'}
-          </button>
+          </Button>
         )}
         {bus.status === 'fuel_wash' && (
-          <span className="text-amber-400 text-xs">Needs both — complete each task</span>
+          <span className="text-warn text-xs">Needs both — complete each task</span>
         )}
       </div>
 
-      {error && <p className="text-red-400 text-xs">{error}</p>}
+      {error && <p className="text-danger text-xs">{error}</p>}
     </div>
   )
 }
@@ -103,7 +110,7 @@ export default function FuelerQueueClient({
   emptyLabel: string
 }) {
   if (buses.length === 0) {
-    return <p className="text-gray-600 text-sm px-4 py-3">{emptyLabel}</p>
+    return <p className="text-muted-foreground text-sm px-4 py-3">{emptyLabel}</p>
   }
   return (
     <div className="divide-y divide-border">

@@ -1,6 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { ChevronUp, ChevronDown } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 interface Snapshot {
   snapshot_date:            string
@@ -25,23 +29,23 @@ function pct(num: number, denom: number) {
 }
 
 function color(val: number) {
-  if (val >= 80) return 'text-green-400'
-  if (val >= 60) return 'text-yellow-400'
-  return 'text-red-400'
+  if (val >= 80) return 'text-ok'
+  if (val >= 60) return 'text-warn'
+  return 'text-danger'
 }
 
 function badge(val: number) {
-  if (val >= 80) return 'bg-green-900/60 text-green-300'
-  if (val >= 60) return 'bg-yellow-900/60 text-yellow-300'
-  return 'bg-red-900/60 text-red-300'
+  if (val >= 80) return 'bg-ok-surface text-ok border border-ok-border'
+  if (val >= 60) return 'bg-warn-surface text-warn border border-warn-border'
+  return 'bg-danger-surface text-danger border border-danger-border'
 }
 
 function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-3 text-center">
+    <Card className="p-3 text-center">
       <div className="text-foreground font-bold text-xl">{value}</div>
       <div className="text-muted-foreground text-xs mt-0.5">{label}</div>
-    </div>
+    </Card>
   )
 }
 
@@ -81,26 +85,22 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
 
   return (
     <div>
-      <div className="flex gap-3 mb-5 flex-wrap items-center">
-        <input
+      <div className="flex flex-col gap-3 mb-5 sm:flex-row sm:flex-wrap sm:items-center">
+        <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search employee…"
-          className="bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm w-56"
+          className="w-full sm:w-56"
         />
         <div className="flex gap-1">
           {([30, 60, 90] as const).map(d => (
-            <button
+            <Button
               key={d}
+              variant={period === d ? 'default' : 'outline'}
               onClick={() => setPeriod(d)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                period === d
-                  ? 'bg-blue-700 border-blue-500 text-foreground'
-                  : 'bg-card border-border text-muted-foreground hover:border-gray-500'
-              }`}
             >
               {d}d
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -113,17 +113,17 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
           const agg      = aggregateSnapshots(emp.snapshots, period)
           const expanded = expandedId === emp.id
           return (
-            <div key={emp.id} className="bg-card border border-border rounded-2xl overflow-hidden">
+            <Card key={emp.id} className="overflow-hidden">
               <button
                 onClick={() => setExpandedId(expanded ? null : emp.id)}
-                className="w-full text-left px-5 py-4 flex items-center justify-between"
+                className="w-full text-left px-5 py-4 flex items-center justify-between gap-3"
               >
-                <div>
-                  <div className="text-foreground font-medium">{emp.name}</div>
+                <div className="min-w-0">
+                  <div className="text-foreground font-medium truncate">{emp.name}</div>
                   <div className="text-muted-foreground text-xs capitalize">{emp.role}</div>
                 </div>
                 {agg ? (
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
                     <span className={`text-sm px-2 py-0.5 rounded-full ${badge(agg.attendancePct)}`}>
                       Att: {agg.attendancePct}%
                     </span>
@@ -133,16 +133,16 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
                     <span className={`text-sm px-2 py-0.5 rounded-full ${badge(agg.inspPct)}`}>
                       Insp: {agg.inspPct}%
                     </span>
-                    <span className="text-gray-600 text-xs">{expanded ? '▲' : '▼'}</span>
+                    {expanded ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
                   </div>
                 ) : (
-                  <span className="text-gray-600 text-sm">No data</span>
+                  <span className="text-muted-foreground text-sm shrink-0">No data</span>
                 )}
               </button>
 
               {expanded && agg && (
                 <div className="border-t border-border px-5 py-4">
-                  <div className="grid grid-cols-4 gap-3 mb-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
                     <MetricCard label={`Attendance (${period}d)`} value={`${agg.attendancePct}%`} />
                     <MetricCard label="Late arrivals" value={agg.lates} />
                     <MetricCard label="Absences" value={agg.absences} />
@@ -158,12 +158,12 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
                     <div className="space-y-1">
                       {emp.snapshots.slice(0, 10).map((s, i) => (
                         <div key={i} className="flex items-center gap-3 text-xs">
-                          <span className="text-gray-600 w-24">{s.snapshot_date}</span>
-                          <span className={`w-16 ${color(s.attendance_status === 'present' ? 100 : s.attendance_status === 'late' ? 70 : 0)}`}>
+                          <span className="text-muted-foreground w-24 shrink-0">{s.snapshot_date}</span>
+                          <span className={`w-16 shrink-0 ${color(s.attendance_status === 'present' ? 100 : s.attendance_status === 'late' ? 70 : 0)}`}>
                             {s.attendance_status}
                           </span>
                           {s.missed_breaks_count > 0 && (
-                            <span className="text-red-400">{s.missed_breaks_count} missed break{s.missed_breaks_count > 1 ? 's' : ''}</span>
+                            <span className="text-danger">{s.missed_breaks_count} missed break{s.missed_breaks_count > 1 ? 's' : ''}</span>
                           )}
                         </div>
                       ))}
@@ -171,7 +171,7 @@ export default function PerformanceClient({ employees }: { employees: Employee[]
                   </div>
                 </div>
               )}
-            </div>
+            </Card>
           )
         })}
       </div>

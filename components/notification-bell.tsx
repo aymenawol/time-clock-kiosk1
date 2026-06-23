@@ -83,12 +83,12 @@ export default function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => { const next = !open; setOpen(next); if (next && unread) markAllRead() }}
-        className="relative p-1.5 rounded-lg hover:bg-muted text-foreground"
+        className="relative inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ''}`}
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="size-[18px]" />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-red-600 text-foreground text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -102,15 +102,15 @@ export default function NotificationBell() {
               <span className="text-sm font-semibold text-foreground">Notifications</span>
             </div>
             {items.length === 0 ? (
-              <p className="px-3 py-6 text-center text-sm text-gray-600">No notifications</p>
+              <p className="px-3 py-6 text-center text-sm text-muted-foreground">No notifications</p>
             ) : items.map(n => (
               <div key={n.id} className={`px-3 py-2 border-b border-border/50 ${n.is_read ? '' : 'bg-muted/40'}`}>
                 <div className="flex items-start gap-2">
-                  <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${TYPE_DOT[n.type] ?? 'bg-gray-500'}`} />
+                  <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${TYPE_DOT[n.type] ?? 'bg-muted-foreground'}`} />
                   <div className="min-w-0">
                     <p className="text-sm text-foreground font-medium">{n.title}</p>
                     {n.body && <p className="text-xs text-muted-foreground mt-0.5 break-words">{n.body}</p>}
-                    <p className="text-[10px] text-gray-600 mt-0.5">{new Date(n.created_at).toLocaleString()}</p>
+                    <p className="text-[10px] text-muted-foreground/70 mt-0.5">{new Date(n.created_at).toLocaleString()}</p>
                   </div>
                 </div>
               </div>

@@ -2,6 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Download, Printer, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge, type BadgeProps } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 
 interface Employee { id: string; name: string; seniority_number: number | null; employee_id: string }
 interface Shift {
@@ -20,11 +25,11 @@ interface Props {
   pageSize: number
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  active:    'bg-blue-900 text-blue-300',
-  completed: 'bg-green-900 text-green-300',
-  scheduled: 'bg-gray-700 text-muted-foreground',
-  cancelled: 'bg-red-900 text-red-400',
+const STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
+  active:    'info',
+  completed: 'ok',
+  scheduled: 'neutral',
+  cancelled: 'danger',
 }
 
 export default function SignInSheetsClient({ shifts, totalCount, dateFilter, page, pageSize }: Props) {
@@ -71,40 +76,34 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Sign-In Sheets</h1>
           <p className="text-muted-foreground text-sm">{totalCount} shift{totalCount !== 1 ? 's' : ''} · {dateFilter}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <input
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
             type="date"
             value={date}
             onChange={e => handleDateChange(e.target.value)}
-            className="bg-card border border-border text-foreground rounded-lg px-3 py-1.5 text-sm"
+            className="h-9 w-auto text-sm"
           />
-          <button
-            onClick={exportCSV}
-            className="bg-muted hover:bg-gray-700 text-foreground text-sm px-3 py-1.5 rounded-lg border border-border"
-          >
-            ↓ Export CSV
-          </button>
-          <button
-            onClick={handlePrint}
-            className="bg-muted hover:bg-gray-700 text-foreground text-sm px-3 py-1.5 rounded-lg border border-border"
-          >
-            🖨 Print
-          </button>
+          <Button variant="outline" size="sm" onClick={exportCSV}>
+            <Download /> Export CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer /> Print
+          </Button>
         </div>
       </div>
 
       {/* Table */}
       {shifts.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-10 text-center">
+        <Card className="p-10 text-center">
           <p className="text-muted-foreground">No shifts found for {dateFilter}.</p>
-        </div>
+        </Card>
       ) : (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <Card className="overflow-hidden p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -143,15 +142,15 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
                       {s.tablet?.tablet_number ?? '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[s.status] ?? 'bg-muted text-muted-foreground'}`}>
+                      <Badge variant={STATUS_VARIANT[s.status] ?? 'neutral'}>
                         {s.status}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-4 py-3">
                       {s.radio_status ? (
                         <span className="text-xs text-muted-foreground">{s.radio_status}</span>
                       ) : (
-                        <span className="text-gray-700">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </td>
                   </tr>
@@ -159,7 +158,7 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Pagination */}
@@ -170,20 +169,22 @@ export default function SignInSheetsClient({ shifts, totalCount, dateFilter, pag
           </p>
           <div className="flex gap-2">
             {page > 1 && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => router.push(`/admin/sign-in-sheets?date=${dateFilter}&page=${page - 1}`)}
-                className="bg-muted hover:bg-gray-700 text-foreground px-3 py-1.5 rounded-lg"
               >
-                ← Prev
-              </button>
+                <ChevronLeft /> Prev
+              </Button>
             )}
             {page < totalPages && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => router.push(`/admin/sign-in-sheets?date=${dateFilter}&page=${page + 1}`)}
-                className="bg-muted hover:bg-gray-700 text-foreground px-3 py-1.5 rounded-lg"
               >
-                Next →
-              </button>
+                Next <ChevronRight />
+              </Button>
             )}
           </div>
         </div>

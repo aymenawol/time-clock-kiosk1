@@ -19,11 +19,11 @@ export default function DamageStrokesView({ drawing }: { drawing: unknown }) {
       // eslint-disable-next-line @next/next/no-img-element
       return <img src={img} alt="Damage diagram" className="w-full border border-border rounded bg-background" />
     }
-    return <p className="text-gray-600 text-xs">No damage diagram recorded.</p>
+    return <p className="text-muted-foreground text-xs">No damage diagram recorded.</p>
   }
 
   if (strokes.length === 0) {
-    return <p className="text-gray-600 text-xs">No damage marked.</p>
+    return <p className="text-muted-foreground text-xs">No damage marked.</p>
   }
 
   const viewsWithMarks = DAMAGE_VIEWS.filter((v) => strokesForView(strokes, v.key).length > 0)

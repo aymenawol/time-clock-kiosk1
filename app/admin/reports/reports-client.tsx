@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Printer, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { REPORT_CONFIG, REPORT_TABS, type ReportTab } from './report-data'
 import { exportReportCSVAction } from './actions'
 
@@ -50,15 +52,12 @@ export default function AdminReportsClient({ tab, rows, totalCount, page, pageSi
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-6 flex-wrap">
         <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-        <button
-          onClick={() => window.print()}
-          className="px-3 py-1.5 bg-muted hover:bg-gray-700 text-foreground text-sm border border-border rounded"
-        >
-          Print / PDF
-        </button>
+        <Button variant="secondary" size="sm" onClick={() => window.print()}>
+          <Printer className="size-4" /> Print / PDF
+        </Button>
       </div>
 
       <div className="flex border-b border-border mb-6 gap-1 overflow-x-auto">
@@ -67,7 +66,7 @@ export default function AdminReportsClient({ tab, rows, totalCount, page, pageSi
             key={t}
             onClick={() => goToTab(t)}
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-              tab === t ? 'border-b-2 border-blue-500 text-foreground' : 'text-muted-foreground hover:text-foreground'
+              tab === t ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {REPORT_CONFIG[t].label}
@@ -76,19 +75,15 @@ export default function AdminReportsClient({ tab, rows, totalCount, page, pageSi
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
           <h2 className="text-foreground font-semibold">{config.label}</h2>
-          <button
-            onClick={handleExport}
-            disabled={isPending}
-            className="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-foreground text-xs rounded disabled:opacity-50"
-          >
+          <Button size="sm" onClick={handleExport} disabled={isPending}>
             {isPending ? 'Exporting…' : 'Export CSV'}
-          </button>
+          </Button>
         </div>
 
         {error && (
-          <p className="mb-3 rounded bg-red-950 border border-red-800 px-3 py-2 text-red-300 text-xs">
+          <p className="mb-3 rounded-lg bg-danger-surface border border-danger-border px-3 py-2 text-danger text-xs">
             {error}
           </p>
         )}
@@ -101,7 +96,7 @@ export default function AdminReportsClient({ tab, rows, totalCount, page, pageSi
               <thead>
                 <tr className="border-b border-border text-muted-foreground text-xs">
                   {config.cols.map((c) => (
-                    <th key={c} className="text-left py-2 pr-4 capitalize">
+                    <th key={c} className="text-left py-2 pr-4 capitalize whitespace-nowrap">
                       {c.replace(/_/g, ' ')}
                     </th>
                   ))}
@@ -109,7 +104,7 @@ export default function AdminReportsClient({ tab, rows, totalCount, page, pageSi
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={i} className="border-b border-border/50 hover:bg-card/30">
+                  <tr key={i} className="border-b border-border/50 hover:bg-accent">
                     {config.cols.map((c) => (
                       <td key={c} className="py-2 pr-4 text-foreground">
                         {String(row[c] ?? '—')}
@@ -123,29 +118,21 @@ export default function AdminReportsClient({ tab, rows, totalCount, page, pageSi
         )}
 
         {/* Pagination */}
-        <div className="flex items-center justify-between text-sm mt-4">
+        <div className="flex items-center justify-between gap-2 text-sm mt-4 flex-wrap">
           <p className="text-muted-foreground">
             {totalCount === 0 ? 'No results' : `Showing ${rangeStart}–${rangeEnd} of ${totalCount}`}
           </p>
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => goToPage(page - 1)}
-                className="bg-muted hover:bg-gray-700 text-foreground px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                ← Prev
-              </button>
+              <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
+                <ChevronLeft className="size-4" /> Prev
+              </Button>
               <span className="text-muted-foreground">
                 Page {page} of {totalPages}
               </span>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => goToPage(page + 1)}
-                className="bg-muted hover:bg-gray-700 text-foreground px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Next →
-              </button>
+              <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => goToPage(page + 1)}>
+                Next <ChevronRight className="size-4" />
+              </Button>
             </div>
           )}
         </div>

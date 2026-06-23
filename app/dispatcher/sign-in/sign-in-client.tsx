@@ -3,7 +3,11 @@
 import { useRef, useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { Printer } from 'lucide-react'
 import { useDebouncedRefresh } from '@/lib/use-debounced-refresh'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 
 interface Driver  { id: string; name: string; seniority_number: number | null }
 interface BusOpt  { id: string; bus_number: string; bus_type: string; status: string; fuel_level: number | null }
@@ -74,7 +78,7 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
     const { x, y } = getPos(e, canvasRef.current!)
     ctx.lineWidth = 2
     ctx.lineCap = 'round'
-    ctx.strokeStyle = '#ffffff'
+    ctx.strokeStyle = '#111827'
     ctx.lineTo(x, y)
     ctx.stroke()
   }
@@ -127,11 +131,12 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-foreground">Sign-In Sheet — {displayDate}</h1>
-        <button onClick={() => window.print()} className="text-sm text-muted-foreground hover:text-foreground border border-border rounded px-3 py-1">
-          🖨 Print
-        </button>
+        <Button variant="outline" size="sm" onClick={() => window.print()}>
+          <Printer aria-hidden />
+          Print
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
@@ -139,8 +144,8 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
         <form onSubmit={handleSubmit} className="xl:col-span-2 space-y-4 bg-card rounded-xl border border-border p-4">
           <h2 className="font-semibold text-foreground text-sm">New Sign-In</h2>
 
-          {error   && <div className="bg-red-900/40 border border-red-600 text-red-300 rounded p-2 text-sm">{error}</div>}
-          {success && <div className="bg-green-900/40 border border-green-600 text-green-300 rounded p-2 text-sm">{success}</div>}
+          {error   && <div className="bg-danger-surface border border-danger-border text-danger rounded p-2 text-sm">{error}</div>}
+          {success && <div className="bg-ok-surface border border-ok-border text-ok rounded p-2 text-sm">{success}</div>}
 
           <div>
             <label className={LBL}>Driver *</label>
@@ -176,11 +181,11 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={LBL}>Sched. Start</label>
-              <input type="time" value={form.scheduled_start} onChange={e => setForm(p => ({...p, scheduled_start: e.target.value}))} className={INP} />
+              <Input type="time" value={form.scheduled_start} onChange={e => setForm(p => ({...p, scheduled_start: e.target.value}))} />
             </div>
             <div>
               <label className={LBL}>Sched. End</label>
-              <input type="time" value={form.scheduled_end} onChange={e => setForm(p => ({...p, scheduled_end: e.target.value}))} className={INP} />
+              <Input type="time" value={form.scheduled_end} onChange={e => setForm(p => ({...p, scheduled_end: e.target.value}))} />
             </div>
           </div>
 
@@ -200,7 +205,7 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
             <canvas
               ref={canvasRef}
               width={340} height={100}
-              className="w-full border border-border rounded bg-background cursor-crosshair touch-none"
+              className="w-full border border-input rounded bg-white cursor-crosshair touch-none"
               onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
               onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
             />
@@ -209,24 +214,24 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
 
           <div>
             <label className={LBL}>Notes</label>
-            <input value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} className={INP} placeholder="Optional…" />
+            <Input value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} placeholder="Optional…" />
           </div>
 
-          <button type="submit" disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground font-medium py-2 rounded-lg text-sm">
+          <Button type="submit" disabled={isPending} className="w-full">
             {isPending ? 'Signing in…' : 'Sign In Driver'}
-          </button>
+          </Button>
         </form>
 
         {/* Today's sign-in list */}
         <div className="xl:col-span-3 space-y-3">
           <h2 className="font-semibold text-foreground text-sm">Today's Sign-Ins ({shifts.length})</h2>
           {shifts.length === 0 ? (
-            <p className="text-gray-600 text-sm">No sign-ins yet today.</p>
+            <p className="text-muted-foreground text-sm">No sign-ins yet today.</p>
           ) : (
-            <div className="overflow-auto rounded-xl border border-border">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-card text-muted-foreground text-xs uppercase">
+                  <tr className="bg-muted text-muted-foreground text-xs uppercase">
                     <th className="px-3 py-2 text-left">Driver</th>
                     <th className="px-3 py-2 text-left">Bus</th>
                     <th className="px-3 py-2 text-left">Tablet</th>
@@ -237,20 +242,23 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
                 </thead>
                 <tbody className="divide-y divide-border">
                   {shifts.map(s => (
-                    <tr key={s.id} className="hover:bg-card/40">
-                      <td className="px-3 py-2 text-foreground">{s.employee?.name}</td>
+                    <tr key={s.id} className="hover:bg-accent/40">
+                      <td className="px-3 py-2 text-foreground whitespace-nowrap">{s.employee?.name}</td>
                       <td className="px-3 py-2 text-muted-foreground">{s.bus ? `#${s.bus.bus_number}` : '—'}</td>
                       <td className="px-3 py-2 text-muted-foreground">{s.tablet?.tablet_number ?? '—'}</td>
                       <td className="px-3 py-2 text-muted-foreground">{s.scheduled_start ?? '—'}</td>
                       <td className="px-3 py-2 text-muted-foreground">{s.scheduled_end ?? '—'}</td>
-                      <td className="px-3 py-2">
-                        <span className={`text-xs px-2 py-0.5 rounded ${
-                          s.status === 'active'    ? 'bg-green-900 text-green-300' :
-                          s.status === 'completed' ? 'bg-muted text-muted-foreground' :
-                          s.status === 'cancelled' ? 'bg-red-900 text-red-400' :
-                          'bg-blue-900 text-blue-300'
-                        }`}>{s.status}</span>
-                        {s.lunch_waiver && <span className="ml-1 text-[10px] text-orange-400">LW</span>}
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <Badge
+                          variant={
+                            s.status === 'active'    ? 'ok' :
+                            s.status === 'completed' ? 'neutral' :
+                            s.status === 'cancelled' ? 'danger' :
+                            'info'
+                          }
+                          className="rounded"
+                        >{s.status}</Badge>
+                        {s.lunch_waiver && <span className="ml-1 text-[10px] text-warn">LW</span>}
                       </td>
                     </tr>
                   ))}
@@ -266,8 +274,7 @@ export default function SignInClient({ drivers, buses, tablets, todayShifts, tod
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const LBL = 'block text-xs text-muted-foreground mb-1'
-const INP = 'w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm'
-const SEL = 'w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm'
+const SEL = 'w-full h-10 bg-card border border-input text-foreground rounded-lg px-3 py-2 text-sm'
 
 function getPos(
   e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,

@@ -2,6 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowLeft, BatteryWarning, CheckCircle2, AlertTriangle, Zap, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { submitEndOfShiftAction } from '../actions'
 
 interface Bus { id: string; bus_number: string; bus_type: string; fuel_level: number | null }
@@ -18,10 +24,10 @@ const DIESEL_PCT: Record<DieselLabel, number> = {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'ready',           label: 'Ready for Service',   color: 'bg-green-900/40 border-green-600 text-green-300' },
-  { value: 'charge_required', label: 'Charge Required',     color: 'bg-yellow-900/40 border-yellow-600 text-yellow-300' },
-  { value: 'shop',            label: 'Needs Shop',          color: 'bg-red-900/40 border-red-600 text-red-300' },
-  { value: 'hazard',          label: '⚠ HAZARD — Alert Dispatch', color: 'bg-purple-900/50 border-purple-500 text-purple-200 font-semibold' },
+  { value: 'ready',           label: 'Ready for Service',   color: 'bg-ok-surface border-ok-border text-ok' },
+  { value: 'charge_required', label: 'Charge Required',     color: 'bg-warn-surface border-warn-border text-warn' },
+  { value: 'shop',            label: 'Needs Shop',          color: 'bg-danger-surface border-danger-border text-danger' },
+  { value: 'hazard',          label: 'HAZARD — Alert Dispatch', color: 'bg-hazard-surface border-hazard-border text-hazard font-semibold' },
 ] as const
 
 export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
@@ -69,9 +75,11 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
   if (!shift) {
     return (
       <div className="text-center py-20">
-        <p className="text-3xl mb-3">🔋</p>
+        <BatteryWarning className="size-10 mx-auto mb-3 text-muted-foreground" />
         <p className="text-muted-foreground">No active shift today.</p>
-        <button onClick={() => router.back()} className="mt-4 text-muted-foreground text-sm hover:text-foreground">← Back</button>
+        <Button variant="ghost" size="lg" onClick={() => router.back()} className="mt-4">
+          <ArrowLeft className="size-4" /> Back
+        </Button>
       </div>
     )
   }
@@ -79,17 +87,14 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
   if (submitted) {
     return (
       <div className="text-center py-20">
-        <p className="text-5xl mb-4">✅</p>
+        <CheckCircle2 className="size-14 mx-auto mb-4 text-ok" />
         <h2 className="text-xl font-bold text-foreground mb-2">End of Shift Submitted</h2>
         <p className="text-muted-foreground text-sm mb-6">
           {bus ? `Bus #${bus.bus_number}` : 'Bus'} status has been updated.
         </p>
-        <button
-          onClick={() => router.push('/driver')}
-          className="bg-blue-600 hover:bg-blue-500 text-foreground px-6 py-2 rounded-lg text-sm"
-        >
+        <Button size="lg" onClick={() => router.push('/driver')}>
           Back to Dashboard
-        </button>
+        </Button>
       </div>
     )
   }
@@ -97,7 +102,9 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
   return (
     <div className="space-y-6">
       <div>
-        <button onClick={() => router.back()} className="text-muted-foreground text-sm hover:text-foreground mb-2">← Back</button>
+        <button onClick={() => router.back()} className="text-muted-foreground text-sm hover:text-foreground mb-2 inline-flex items-center gap-1">
+          <ArrowLeft className="size-3.5" /> Back
+        </button>
         <h1 className="text-2xl font-bold text-foreground">End of Shift</h1>
         {bus && (
           <p className="text-muted-foreground text-sm mt-1">
@@ -107,45 +114,48 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
       </div>
 
       {error && (
-        <div className="bg-red-900/40 border border-red-600 text-red-300 rounded-lg p-3 text-sm">{error}</div>
+        <div className="bg-danger-surface border border-danger-border text-danger rounded-lg p-3 text-sm">{error}</div>
       )}
 
       {/* Fuel / Battery Input */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <Card className="p-4 space-y-3">
         <h2 className="text-sm font-semibold text-foreground">
           {isEV ? 'Battery Level' : 'Fuel Level'}
         </h2>
 
         {isEV ? (
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">Battery % *</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="ev-battery">Battery % *</Label>
+            <Input
+              id="ev-battery"
               type="number"
               min="0"
               max="100"
               value={evBattery}
               onChange={e => setEvBattery(e.target.value)}
               placeholder="0–100"
-              className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm"
+              className="h-12 text-base"
             />
             {!isNaN(evPct) && evPct >= 0 && (
-              <p className={`text-xs mt-1.5 ${evPct >= 50 ? 'text-green-400' : 'text-yellow-400'}`}>
-                {evPct >= 50 ? '✓ Ready for Service' : '⚡ Charge Required (below 50%)'}
+              <p className={`text-xs mt-1.5 inline-flex items-center gap-1 ${evPct >= 50 ? 'text-ok' : 'text-warn'}`}>
+                {evPct >= 50
+                  ? <><Check className="size-3.5" /> Ready for Service</>
+                  : <><Zap className="size-3.5" /> Charge Required (below 50%)</>}
               </p>
             )}
           </div>
         ) : (
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">Fuel Level *</label>
+          <div className="space-y-1.5">
+            <Label>Fuel Level *</Label>
             <div className="grid grid-cols-2 gap-2">
               {DIESEL_LABELS.map(label => (
                 <button
                   key={label}
                   onClick={() => setDieselLabel(label)}
-                  className={`border rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`border rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
                     dieselLabel === label
-                      ? 'bg-blue-700 border-blue-500 text-foreground'
-                      : 'bg-card border-border text-muted-foreground hover:border-gray-500'
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : 'bg-card border-border text-muted-foreground hover:bg-accent'
                   }`}
                 >
                   {label}
@@ -154,10 +164,10 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Bus Status */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <Card className="p-4 space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Bus Status After Shift</h2>
         {isEV && !isNaN(evPct) && evPct >= 0 && (
           <p className="text-xs text-muted-foreground">
@@ -169,41 +179,44 @@ export default function EndOfShiftClient({ shift }: { shift: Shift | null }) {
             <button
               key={opt.value}
               onClick={() => setStatusSubmitted(opt.value)}
-              className={`w-full border rounded-lg px-4 py-3 text-sm text-left transition-colors ${
+              className={`w-full border rounded-lg px-4 py-3.5 text-sm text-left transition-colors inline-flex items-center gap-2 ${
                 statusSubmitted === opt.value
-                  ? opt.color + ' ring-2 ring-offset-1 ring-offset-gray-900 ring-white/30'
-                  : 'bg-background border-border text-muted-foreground hover:border-gray-500'
+                  ? opt.color + ' ring-2 ring-offset-1 ring-offset-background ring-ring'
+                  : 'bg-card border-border text-muted-foreground hover:bg-accent'
               }`}
             >
+              {opt.value === 'hazard' && <AlertTriangle className="size-4 shrink-0" />}
               {opt.label}
             </button>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Notes */}
-      <div className="bg-card border border-border rounded-xl p-4">
-        <label className="block text-xs text-muted-foreground mb-1">Notes (optional)</label>
-        <textarea
+      <Card className="p-4 space-y-1.5">
+        <Label htmlFor="eos-notes">Notes (optional)</Label>
+        <Textarea
+          id="eos-notes"
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={3}
           placeholder="Any issues, damage, or comments…"
-          className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm resize-none"
+          className="resize-none"
         />
-      </div>
+      </Card>
 
-      <button
+      <Button
+        size="xl"
         onClick={handleSubmit}
         disabled={isPending}
-        className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground font-semibold rounded-xl text-sm"
+        className="w-full"
       >
         {isPending ? 'Submitting…' : 'Submit End of Shift'}
-      </button>
+      </Button>
 
       {statusSubmitted === 'hazard' && (
-        <p className="text-purple-400 text-xs text-center">
-          ⚠ A hazard alert will be sent to dispatch and management immediately.
+        <p className="text-hazard text-xs text-center inline-flex items-center justify-center gap-1 w-full">
+          <AlertTriangle className="size-3.5" /> A hazard alert will be sent to dispatch and management immediately.
         </p>
       )}
     </div>

@@ -53,3 +53,30 @@ export async function getServerUserRole(): Promise<string | null> {
   if (!user) return null
   return (user.app_metadata?.role as string) ?? null
 }
+
+/**
+ * Bundle of identity fields the app shell needs for its header/user menu:
+ * the auth user, role, display name (from the employees roster), and email.
+ * One round-trip; safe to call from any role layout.
+ */
+export async function getShellUser(): Promise<{
+  user: import('@supabase/supabase-js').User | null
+  role: string | null
+  name: string | null
+  email: string | null
+}> {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { user: null, role: null, name: null, email: null }
+
+  const role = (user.app_metadata?.role as string) ?? null
+  const { data: emp } = await supabase
+    .from('employees')
+    .select('name')
+    .eq('auth_user_id', user.id)
+    .maybeSingle()
+
+  return { user, role, name: emp?.name ?? null, email: user.email ?? null }
+}

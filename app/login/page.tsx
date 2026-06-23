@@ -3,7 +3,13 @@
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
+import { Delete, ShieldCheck, Bus, Clock3 } from "lucide-react"
 import { signInWithEmployeeId } from "./actions"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { cn } from "@/lib/utils"
 
 type AppRouter = ReturnType<typeof useRouter>
 
@@ -120,62 +126,98 @@ function LoginForm() {
     setEmployeeId((v) => (v.length >= 8 ? v : v + k))
   }
 
-  const inputBase =
-    "w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition"
-  const ring = { "--tw-ring-color": "#2563EB" } as React.CSSProperties
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        {/* Logo / Branding */}
-        <div className="text-center mb-8">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-            style={{ backgroundColor: "#2563EB" }}
-          >
-            <span className="text-foreground text-2xl font-bold">RC</span>
-          </div>
-          <h1 className="text-foreground text-2xl font-bold">Rolecall</h1>
-          <p className="text-muted-foreground text-sm mt-1">Sign In</p>
+    <div className="flex min-h-screen bg-background">
+      {/* Brand panel — desktop only */}
+      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-primary p-12 text-primary-foreground lg:flex xl:w-[55%]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              "radial-gradient(60rem 60rem at 15% 10%, rgba(255,255,255,0.25), transparent 55%), radial-gradient(50rem 50rem at 90% 90%, rgba(0,0,0,0.25), transparent 50%)",
+          }}
+        />
+        <div className="relative flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-white/15 text-lg font-bold backdrop-blur">
+            RC
+          </span>
+          <span className="text-lg font-bold tracking-tight">Rolecall</span>
         </div>
 
-        {/* Card */}
-        <div className="bg-card rounded-2xl p-8 border border-border shadow-2xl">
+        <div className="relative max-w-md">
+          <h1 className="text-3xl font-bold leading-tight tracking-tight xl:text-4xl">
+            Run every shift from one place.
+          </h1>
+          <p className="mt-4 text-base text-primary-foreground/80">
+            Sign-ins, breaks, inspections, GPS, payroll and more — the whole
+            operation, live and in sync.
+          </p>
+          <ul className="mt-8 space-y-3 text-sm text-primary-foreground/90">
+            <li className="flex items-center gap-3">
+              <Bus className="size-5 shrink-0" /> Real-time fleet & driver status
+            </li>
+            <li className="flex items-center gap-3">
+              <Clock3 className="size-5 shrink-0" /> Breaks, overtime & payroll, automated
+            </li>
+            <li className="flex items-center gap-3">
+              <ShieldCheck className="size-5 shrink-0" /> Inspections, safety & compliance
+            </li>
+          </ul>
+        </div>
+
+        <p className="relative text-xs text-primary-foreground/60">
+          Harry Reid International Airport · Las Vegas
+        </p>
+      </aside>
+
+      {/* Sign-in panel */}
+      <main className="flex w-full flex-1 flex-col items-center justify-center px-4 py-10 sm:px-6">
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
+        </div>
+
+        <div className="w-full max-w-sm">
+          {/* Compact brand for mobile */}
+          <div className="mb-8 flex flex-col items-center text-center lg:hidden">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground">
+              RC
+            </span>
+            <h1 className="mt-4 text-2xl font-bold text-foreground">Rolecall</h1>
+          </div>
+
+          <div className="mb-6 hidden lg:block">
+            <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Sign in to continue.</p>
+          </div>
+
           {/* Mode toggle */}
-          <div className="grid grid-cols-2 gap-1 mb-6 p-1 rounded-xl bg-muted">
-            <button
-              type="button"
-              onClick={() => {
-                setMode("kiosk")
-                setError(null)
-              }}
-              className={`py-2.5 rounded-lg text-sm font-semibold transition ${
-                mode === "kiosk" ? "bg-background text-foreground shadow" : "text-muted-foreground"
-              }`}
-            >
-              Employee ID
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("staff")
-                setError(null)
-              }}
-              className={`py-2.5 rounded-lg text-sm font-semibold transition ${
-                mode === "staff" ? "bg-background text-foreground shadow" : "text-muted-foreground"
-              }`}
-            >
-              Staff Email
-            </button>
+          <div className="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+            {(["kiosk", "staff"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setMode(m)
+                  setError(null)
+                }}
+                className={cn(
+                  "rounded-lg py-2.5 text-sm font-semibold transition-colors",
+                  mode === m
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {m === "kiosk" ? "Employee ID" : "Staff Email"}
+              </button>
+            ))}
           </div>
 
           {mode === "kiosk" ? (
             <form onSubmit={handleKioskSubmit} className="space-y-5">
-              <div>
-                <label htmlFor="employeeId" className="block text-sm font-medium text-foreground mb-1.5">
-                  Employee ID
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="employeeId">Employee ID</Label>
+                <Input
                   id="employeeId"
                   type="text"
                   inputMode="numeric"
@@ -188,30 +230,29 @@ function LoginForm() {
                     setError(null)
                   }}
                   placeholder="0000"
-                  className={`${inputBase} text-center text-2xl tracking-[0.5em] font-mono`}
-                  style={ring}
+                  className="h-14 text-center font-mono text-2xl tracking-[0.5em]"
                 />
               </div>
 
               {/* On-screen keypad for touch kiosks */}
               <div className="grid grid-cols-3 gap-2">
                 {keypadKeys.map((k) => (
-                  <button
+                  <Button
                     key={k}
                     type="button"
+                    variant={k === "clear" || k === "del" ? "secondary" : "outline"}
+                    size="xl"
                     onClick={() => pressKey(k)}
-                    className="py-3 rounded-xl bg-muted border border-border text-foreground text-lg font-semibold active:bg-gray-700 transition select-none"
+                    className="select-none font-semibold"
                   >
-                    {k === "del" ? "⌫" : k === "clear" ? "C" : k}
-                  </button>
+                    {k === "del" ? <Delete className="size-5" /> : k === "clear" ? "C" : k}
+                  </Button>
                 ))}
               </div>
 
-              <div>
-                <label htmlFor="kioskPassword" className="block text-sm font-medium text-foreground mb-1.5">
-                  Password
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="kioskPassword">Password</Label>
+                <Input
                   id="kioskPassword"
                   type="password"
                   autoComplete="current-password"
@@ -222,33 +263,20 @@ function LoginForm() {
                     setError(null)
                   }}
                   placeholder="••••••••"
-                  className={inputBase}
-                  style={ring}
                 />
               </div>
 
-              {error && (
-                <div className="rounded-xl bg-red-950 border border-red-800 px-4 py-3 text-red-300 text-sm">
-                  {error}
-                </div>
-              )}
+              {error && <ErrorBanner>{error}</ErrorBanner>}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 px-6 rounded-xl font-semibold text-foreground transition-opacity disabled:opacity-60"
-                style={{ backgroundColor: "#2563EB" }}
-              >
+              <Button type="submit" size="lg" disabled={loading} className="w-full">
                 {loading ? "Signing in…" : "Sign In"}
-              </button>
+              </Button>
             </form>
           ) : (
             <form onSubmit={handleStaffSubmit} className="space-y-5">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
-                  Email
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
                   id="email"
                   type="email"
                   autoComplete="email"
@@ -256,16 +284,12 @@ function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className={inputBase}
-                  style={ring}
                 />
               </div>
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1.5">
-                  Password
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
                   id="password"
                   type="password"
                   autoComplete="current-password"
@@ -273,33 +297,33 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={inputBase}
-                  style={ring}
                 />
               </div>
 
-              {error && (
-                <div className="rounded-xl bg-red-950 border border-red-800 px-4 py-3 text-red-300 text-sm">
-                  {error}
-                </div>
-              )}
+              {error && <ErrorBanner>{error}</ErrorBanner>}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 px-6 rounded-xl font-semibold text-foreground transition-opacity disabled:opacity-60"
-                style={{ backgroundColor: "#2563EB" }}
-              >
+              <Button type="submit" size="lg" disabled={loading} className="w-full">
                 {loading ? "Signing in…" : "Sign In"}
-              </button>
+              </Button>
             </form>
           )}
 
-          <p className="mt-6 text-center text-xs text-gray-600">
+          <p className="mt-6 text-center text-xs text-muted-foreground">
             Trouble signing in? Contact your administrator.
           </p>
         </div>
-      </div>
+      </main>
+    </div>
+  )
+}
+
+function ErrorBanner({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      role="alert"
+      className="rounded-lg border border-danger-border bg-danger-surface px-4 py-3 text-sm text-danger"
+    >
+      {children}
     </div>
   )
 }

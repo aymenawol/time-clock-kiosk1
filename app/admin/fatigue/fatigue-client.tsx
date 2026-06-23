@@ -1,6 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { Check, CornerUpRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge, type BadgeProps } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
 import { resolveAlertAction, dismissAlertAction } from './actions'
 
 interface FatigueAlert {
@@ -27,10 +31,16 @@ const TYPE_LABEL: Record<string, string> = {
   ot_threshold:     'OT Threshold Exceeded',
 }
 
-const TYPE_COLOR: Record<string, string> = {
-  single_shift:     'border-orange-700 bg-orange-950/20',
-  consecutive_days: 'border-yellow-700 bg-yellow-950/20',
-  ot_threshold:     'border-red-700 bg-red-950/20',
+const TYPE_VARIANT: Record<string, BadgeProps['variant']> = {
+  single_shift:     'warn',
+  consecutive_days: 'warn',
+  ot_threshold:     'danger',
+}
+
+const TYPE_CARD: Record<string, string> = {
+  single_shift:     'border-warn-border bg-warn-surface',
+  consecutive_days: 'border-warn-border bg-warn-surface',
+  ot_threshold:     'border-danger-border bg-danger-surface',
 }
 
 export default function FatigueClient({ alerts }: Props) {
@@ -73,51 +83,48 @@ export default function FatigueClient({ alerts }: Props) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">
+    <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Fatigue Monitoring</h1>
           {unresolved > 0 && (
-            <p className="text-red-400 text-sm mt-0.5">{unresolved} unresolved alert{unresolved > 1 ? 's' : ''}</p>
+            <p className="text-danger text-sm mt-0.5">{unresolved} unresolved alert{unresolved > 1 ? 's' : ''}</p>
           )}
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 items-center">
         {(['unresolved', 'all', 'resolved'] as const).map(s => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${filter === s ? 'bg-white text-gray-900 border-white' : 'text-muted-foreground border-border hover:text-foreground'}`}>
+          <Button key={s} variant={filter === s ? 'default' : 'outline'} size="sm" onClick={() => setFilter(s)}>
             {s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
+          </Button>
         ))}
-        <div className="border-l border-border mx-1" />
+        <div className="border-l border-border h-6 mx-1" />
         {(['all', 'single_shift', 'consecutive_days', 'ot_threshold'] as const).map(t => (
-          <button key={t} onClick={() => setTypeFilter(t)}
-            className={`px-3 py-1.5 rounded-lg text-sm border ${typeFilter === t ? 'bg-white text-gray-900 border-white' : 'text-muted-foreground border-border hover:text-foreground'}`}>
+          <Button key={t} variant={typeFilter === t ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(t)}>
             {t === 'all' ? 'All Types' : TYPE_LABEL[t]}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Action modal */}
       {actionId && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setActionId(null)}>
-          <div className="bg-card border border-border rounded-xl p-5 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setActionId(null)}>
+          <div className="bg-card border border-border rounded-xl p-5 w-[92vw] max-w-md shadow-lg" onClick={e => e.stopPropagation()}>
             <h3 className="text-foreground font-semibold mb-3 capitalize">{actionType} Alert</h3>
-            <textarea
+            <Textarea
               value={noteText} onChange={e => setNoteText(e.target.value)}
               placeholder={actionType === 'resolve' ? 'Resolution notes…' : 'Reason for dismissal…'}
               rows={3}
-              className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm resize-none mb-3" />
+              className="resize-none mb-3" />
             <div className="flex gap-3">
-              <button onClick={handleSubmit} disabled={isPending}
-                className={`text-foreground text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50 ${
-                  actionType === 'resolve' ? 'bg-green-700 hover:bg-green-600' : 'bg-yellow-700 hover:bg-yellow-600'
-                }`}>
+              <Button onClick={handleSubmit} disabled={isPending}
+                variant={actionType === 'resolve' ? 'success' : 'default'}
+                className={actionType === 'dismiss' ? 'bg-warn text-white hover:bg-warn/90' : undefined}>
                 {isPending ? 'Saving…' : actionType === 'resolve' ? 'Mark Resolved' : 'Dismiss'}
-              </button>
-              <button onClick={() => setActionId(null)} className="text-muted-foreground hover:text-foreground text-sm px-4 py-2">Cancel</button>
+              </Button>
+              <Button variant="ghost" onClick={() => setActionId(null)}>Cancel</Button>
             </div>
           </div>
         </div>
@@ -134,16 +141,16 @@ export default function FatigueClient({ alerts }: Props) {
           const isDismissed = !!alert.dismissed_at
           const isActive    = !isResolved && !isDismissed
           return (
-            <div key={alert.id} className={`border rounded-xl p-4 ${TYPE_COLOR[alert.alert_type] ?? 'border-border bg-card'} ${!isActive ? 'opacity-60' : ''}`}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
+            <div key={alert.id} className={`border rounded-xl p-4 ${TYPE_CARD[alert.alert_type] ?? 'border-border bg-card'} ${!isActive ? 'opacity-60' : ''}`}>
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="text-foreground font-semibold">{alert.employee_name}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${TYPE_COLOR[alert.alert_type]}`}>
+                    <Badge variant={TYPE_VARIANT[alert.alert_type] ?? 'neutral'}>
                       {TYPE_LABEL[alert.alert_type]}
-                    </span>
-                    {isResolved   && <span className="text-green-400 text-xs">✓ Resolved</span>}
-                    {isDismissed  && <span className="text-yellow-400 text-xs">↷ Dismissed</span>}
+                    </Badge>
+                    {isResolved   && <span className="text-ok text-xs inline-flex items-center gap-1"><Check className="size-3.5" /> Resolved</span>}
+                    {isDismissed  && <span className="text-warn text-xs inline-flex items-center gap-1"><CornerUpRight className="size-3.5" /> Dismissed</span>}
                   </div>
 
                   {/* Context detail */}
@@ -170,15 +177,13 @@ export default function FatigueClient({ alerts }: Props) {
                 </div>
 
                 {isActive && (
-                  <div className="flex flex-col gap-2 shrink-0">
-                    <button onClick={() => openAction(alert.id, 'resolve')}
-                      className="bg-green-800 hover:bg-green-700 text-foreground text-xs font-semibold px-3 py-1.5 rounded-lg">
+                  <div className="flex flex-row sm:flex-col gap-2 shrink-0">
+                    <Button variant="success" size="sm" onClick={() => openAction(alert.id, 'resolve')}>
                       Resolve
-                    </button>
-                    <button onClick={() => openAction(alert.id, 'dismiss')}
-                      className="bg-yellow-800 hover:bg-yellow-700 text-foreground text-xs font-semibold px-3 py-1.5 rounded-lg">
+                    </Button>
+                    <Button size="sm" className="bg-warn text-white hover:bg-warn/90" onClick={() => openAction(alert.id, 'dismiss')}>
                       Dismiss
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>

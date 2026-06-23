@@ -2,8 +2,15 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import type { Bus, BusStatusHistory, RepairNote } from '@/lib/supabase'
 import { BUS_STATUS_LABELS, BUS_STATUS_COLOR } from '@/lib/supabase'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { updateBusStatusAction, updateBusAction, deleteBusAction } from '../actions'
 
 type Tab = 'overview' | 'history' | 'shifts' | 'repairs' | 'inspections' | 'damage'
@@ -80,54 +87,53 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <button onClick={() => router.push('/admin/buses')} className="text-sm text-muted-foreground hover:text-foreground mb-1">
-            ← Fleet
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <button onClick={() => router.push('/admin/buses')} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-1">
+            <ArrowLeft className="size-4" />
+            Fleet
           </button>
           <h1 className="text-2xl font-bold text-foreground">Bus #{bus.bus_number}</h1>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex flex-wrap items-center gap-2 mt-1">
             <span className={`inline-flex text-xs font-semibold px-2 py-0.5 rounded border ${BUS_STATUS_COLOR[bus.status]}`}>
               {BUS_STATUS_LABELS[bus.status]}
             </span>
-            <span className={`text-xs px-2 py-0.5 rounded ${
-              bus.bus_type === 'EV' ? 'bg-teal-900 text-teal-300' : 'bg-muted text-muted-foreground'
-            }`}>
-              {bus.bus_type}
-            </span>
+            <Badge variant={bus.bus_type === 'EV' ? 'info' : 'secondary'}>{bus.bus_type}</Badge>
             {!bus.is_active && (
-              <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">Inactive</span>
+              <Badge variant="neutral">Inactive</Badge>
             )}
           </div>
         </div>
-        <button
+        <Button
+          variant="destructive"
+          size="sm"
           onClick={handleDelete}
           disabled={isPending}
-          className="text-red-400 hover:text-red-300 text-sm border border-red-800 hover:border-red-600 rounded-lg px-3 py-1.5"
+          className="shrink-0 self-start"
         >
           {bus.is_active ? 'Retire' : 'Retired'}
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="bg-red-900/40 border border-red-600 text-red-300 rounded-lg p-3 text-sm">{error}</div>
+        <div className="bg-danger-surface border border-danger-border text-danger rounded-lg p-3 text-sm">{error}</div>
       )}
 
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-border overflow-x-auto">
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap ${
               tab === t.key
-                ? 'border-blue-500 text-foreground'
+                ? 'border-primary text-foreground'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             {t.label}
             {t.count != null && t.count > 0 && (
-              <span className="ml-1.5 bg-gray-700 text-foreground text-[10px] px-1.5 rounded-full">{t.count}</span>
+              <span className="ml-1.5 bg-muted text-foreground text-[10px] px-1.5 rounded-full">{t.count}</span>
             )}
           </button>
         ))}
@@ -138,34 +144,34 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
         <div className="max-w-xl space-y-4">
           {editing ? (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Bus Number">
-                  <input name="bus_number" value={form.bus_number} onChange={e => setForm(p => ({...p, bus_number: e.target.value}))} className={INPUT} />
+                  <Input name="bus_number" value={form.bus_number} onChange={e => setForm(p => ({...p, bus_number: e.target.value}))} />
                 </Field>
                 <Field label="Type">
-                  <select value={form.bus_type} onChange={e => setForm(p => ({...p, bus_type: e.target.value as 'EV'|'Diesel'}))} className={INPUT}>
+                  <select value={form.bus_type} onChange={e => setForm(p => ({...p, bus_type: e.target.value as 'EV'|'Diesel'}))} className={SELECT}>
                     <option value="Diesel">Diesel</option>
                     <option value="EV">EV</option>
                   </select>
                 </Field>
               </div>
               <Field label="VIN">
-                <input value={form.vin} onChange={e => setForm(p => ({...p, vin: e.target.value}))} className={INPUT} />
+                <Input value={form.vin} onChange={e => setForm(p => ({...p, vin: e.target.value}))} />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Fuel / Charge %">
-                  <input type="number" min="0" max="100" value={form.fuel_level} onChange={e => setForm(p => ({...p, fuel_level: e.target.value}))} className={INPUT} />
+                  <Input type="number" min="0" max="100" value={form.fuel_level} onChange={e => setForm(p => ({...p, fuel_level: e.target.value}))} />
                 </Field>
                 <Field label="Mileage">
-                  <input type="number" min="0" value={form.current_mileage} onChange={e => setForm(p => ({...p, current_mileage: e.target.value}))} className={INPUT} />
+                  <Input type="number" min="0" value={form.current_mileage} onChange={e => setForm(p => ({...p, current_mileage: e.target.value}))} />
                 </Field>
               </div>
               <Field label="Notes">
-                <textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows={3} className={INPUT} />
+                <Textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows={3} />
               </Field>
               <div className="flex gap-2">
-                <button onClick={handleSave} disabled={isPending} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground text-sm font-medium px-4 py-2 rounded-lg">Save</button>
-                <button onClick={() => setEditing(false)} className="bg-muted text-foreground text-sm px-4 py-2 rounded-lg">Cancel</button>
+                <Button onClick={handleSave} disabled={isPending}>Save</Button>
+                <Button variant="secondary" onClick={() => setEditing(false)}>Cancel</Button>
               </div>
             </div>
           ) : (
@@ -177,7 +183,7 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
                 <InfoRow label="Active"      value={bus.is_active ? 'Yes' : 'No'} />
               </dl>
               {bus.notes && <p className="text-muted-foreground text-sm">{bus.notes}</p>}
-              <button onClick={() => setEditing(true)} className="bg-muted hover:bg-gray-700 text-foreground text-sm px-4 py-2 rounded-lg">Edit</button>
+              <Button variant="secondary" onClick={() => setEditing(true)}>Edit</Button>
             </div>
           )}
         </div>
@@ -193,7 +199,7 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
                 {new Date(h.created_at).toLocaleString()}
               </span>
               <span className="text-muted-foreground">{h.from_status ?? '—'}</span>
-              <span className="text-gray-600">→</span>
+              <span className="text-muted-foreground">→</span>
               <span className="text-foreground font-medium">{BUS_STATUS_LABELS[h.to_status as keyof typeof BUS_STATUS_LABELS] ?? h.to_status}</span>
               {h.reason && <span className="text-muted-foreground text-xs ml-auto">{h.reason}</span>}
             </div>
@@ -208,11 +214,13 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
           {shifts.map((s: any) => (
             <div key={s.id} className="flex items-center gap-3 text-sm border border-border rounded-lg px-3 py-2">
               <span className="text-muted-foreground w-28 shrink-0">{s.date}</span>
-              <span className="text-foreground">{s.employee?.name}</span>
-              <span className={`ml-auto text-xs px-2 py-0.5 rounded ${
-                s.status === 'active' ? 'bg-green-900 text-green-300' :
-                s.status === 'completed' ? 'bg-muted text-muted-foreground' : 'bg-card text-muted-foreground'
-              }`}>{s.status}</span>
+              <span className="text-foreground min-w-0 truncate">{s.employee?.name}</span>
+              <Badge
+                variant={s.status === 'active' ? 'info' : s.status === 'completed' ? 'ok' : 'neutral'}
+                className="ml-auto"
+              >
+                {s.status}
+              </Badge>
             </div>
           ))}
         </div>
@@ -224,16 +232,16 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
           {repairs.length === 0 && <p className="text-muted-foreground text-sm">No repair notes.</p>}
           {repairs.map(r => (
             <div key={r.id} className={`border rounded-lg px-3 py-3 text-sm space-y-1 ${
-              r.is_resolved ? 'border-border opacity-60' : 'border-red-800'
+              r.is_resolved ? 'border-border opacity-60' : 'border-danger-border'
             }`}>
-              <div className="flex items-start justify-between">
-                <span className="text-foreground font-medium">{r.defect_category} – {r.defect_item}</span>
-                <span className={`text-xs px-2 py-0.5 rounded ${r.is_resolved ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-foreground font-medium min-w-0">{r.defect_category} – {r.defect_item}</span>
+                <Badge variant={r.is_resolved ? 'ok' : 'danger'} className="shrink-0">
                   {r.is_resolved ? 'Resolved' : 'Open'}
-                </span>
+                </Badge>
               </div>
               <p className="text-muted-foreground">{r.notes}</p>
-              <p className="text-gray-600 text-xs">{new Date(r.created_at).toLocaleDateString()}</p>
+              <p className="text-muted-foreground text-xs">{new Date(r.created_at).toLocaleDateString()}</p>
             </div>
           ))}
         </div>
@@ -244,10 +252,10 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
         <div className="space-y-3">
           {inspections.length === 0 && <p className="text-muted-foreground text-sm">No inspections found.</p>}
           {inspections.map((insp) => (
-            <div key={insp.id} className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-foreground text-sm font-medium">
+            <Card key={insp.id}>
+              <CardContent className="flex items-center justify-between gap-3 p-4 sm:p-4">
+                <div className="min-w-0">
+                  <p className="text-foreground text-sm font-medium truncate">
                     {insp.driver ? insp.driver.name : 'Unknown Driver'}
                   </p>
                   <p className="text-muted-foreground text-xs">
@@ -256,16 +264,16 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
                     {insp.submitted_at ? new Date(insp.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Not submitted'}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
                   {insp.has_defects && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-900 text-red-300">Defects</span>
+                    <Badge variant="danger">Defects</Badge>
                   )}
                   {insp.is_locked && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Locked</span>
+                    <Badge variant="neutral">Locked</Badge>
                   )}
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
@@ -300,7 +308,7 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
   )
 }
 
-const INPUT = 'w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm'
+const SELECT = 'flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:border-ring'
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div><label className="block text-xs text-muted-foreground mb-1">{label}</label>{children}</div>
 }

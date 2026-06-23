@@ -1,13 +1,22 @@
 'use client'
 import { useState } from 'react'
-import { FormSubmission, FORM_TYPE_LABELS, FORM_STATUS_COLOR, FormType, FormStatus } from '@/lib/supabase'
+import { FormSubmission, FORM_TYPE_LABELS, FormType, FormStatus } from '@/lib/supabase'
 import Link from 'next/link'
+import { Badge, type BadgeProps } from '@/components/ui/badge'
 
 interface Props {
   submissions: (FormSubmission & { employees: { name: string } | null })[]
 }
 
 const ALL = 'all'
+
+const STATUS_VARIANT: Record<FormStatus, BadgeProps['variant']> = {
+  submitted:    'info',
+  under_review: 'info',
+  approved:     'ok',
+  denied:       'danger',
+  returned:     'warn',
+}
 
 export default function AdminFormsClient({ submissions }: Props) {
   const [typeFilter, setTypeFilter] = useState<FormType | 'all'>(ALL)
@@ -19,27 +28,28 @@ export default function AdminFormsClient({ submissions }: Props) {
     return typeOk && statusOk
   })
 
+  const selectClass =
+    'h-10 rounded-lg border border-input bg-card px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background'
+
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Form Submissions</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-foreground">Form Submissions</h1>
 
       {/* Filters */}
-      <div className="flex gap-3 mb-5">
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}
-          className="bg-card border border-border rounded px-3 py-1.5 text-foreground text-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)} className={selectClass}>
           <option value={ALL}>All Types</option>
           {(Object.entries(FORM_TYPE_LABELS) as [FormType, string][]).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
         </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}
-          className="bg-card border border-border rounded px-3 py-1.5 text-foreground text-sm">
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className={selectClass}>
           <option value={ALL}>All Statuses</option>
           {(['submitted','under_review','approved','denied','returned'] as FormStatus[]).map(s => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-        <span className="ml-auto text-muted-foreground text-sm self-center">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+        <span className="text-muted-foreground text-sm sm:ml-auto sm:self-center">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
       {filtered.length === 0 ? (
@@ -48,11 +58,11 @@ export default function AdminFormsClient({ submissions }: Props) {
         <div className="space-y-2">
           {filtered.map(sub => (
             <Link key={sub.id} href={`/admin/forms/${sub.id}`}
-              className="block bg-card border border-border rounded-lg p-4 hover:border-border transition-colors">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-foreground text-sm font-medium">{sub.employees?.name ?? sub.employee_id}</span>
+              className="block rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:bg-accent">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                    <span className="text-foreground text-sm font-medium truncate">{sub.employees?.name ?? sub.employee_id}</span>
                     <span className="text-muted-foreground text-xs">{FORM_TYPE_LABELS[sub.form_type]}</span>
                   </div>
                   <p className="text-muted-foreground text-xs">
@@ -61,9 +71,7 @@ export default function AdminFormsClient({ submissions }: Props) {
                     {sub.version > 1 && <> · v{sub.version}</>}
                   </p>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${FORM_STATUS_COLOR[sub.status]}`}>
-                  {sub.status}
-                </span>
+                <Badge variant={STATUS_VARIANT[sub.status]} className="shrink-0">{sub.status}</Badge>
               </div>
             </Link>
           ))}

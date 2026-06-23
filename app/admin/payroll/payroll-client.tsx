@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import { Plus, ChevronRight } from 'lucide-react'
 import { createPayPeriodAction } from './actions'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface PayPeriod {
   id: string
@@ -37,50 +44,49 @@ export default function PayrollClient({ periods }: Props) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-foreground">Payroll Periods</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 hover:bg-blue-500 text-foreground text-sm font-semibold px-4 py-2 rounded-lg"
-        >
-          + New Period
-        </button>
+        <Button onClick={() => setShowForm(!showForm)} className="self-start sm:self-auto">
+          <Plus />
+          New Period
+        </Button>
       </div>
 
       {/* New period form */}
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-card border border-border rounded-xl p-5 space-y-4">
-          <h2 className="text-foreground font-semibold">Create Pay Period</h2>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="text-muted-foreground text-xs block mb-1">Period Start</label>
-              <input name="period_start" type="date" required
-                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm" />
-            </div>
-            <div>
-              <label className="text-muted-foreground text-xs block mb-1">Period End</label>
-              <input name="period_end" type="date" required
-                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm" />
-            </div>
-            <div>
-              <label className="text-muted-foreground text-xs block mb-1">Pay Date</label>
-              <input name="pay_date" type="date" required
-                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button type="submit" disabled={isPending}
-              className="bg-green-600 hover:bg-green-500 text-foreground text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
-              {isPending ? 'Creating…' : 'Create Period'}
-            </button>
-            <button type="button" onClick={() => setShowForm(false)}
-              className="text-muted-foreground hover:text-foreground text-sm px-4 py-2 rounded-lg">
-              Cancel
-            </button>
-          </div>
-        </form>
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Pay Period</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreate} className="space-y-4">
+              {error && <p className="text-danger text-sm">{error}</p>}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label htmlFor="period_start">Period Start</Label>
+                  <Input id="period_start" name="period_start" type="date" required />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="period_end">Period End</Label>
+                  <Input id="period_end" name="period_end" type="date" required />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="pay_date">Pay Date</Label>
+                  <Input id="pay_date" name="pay_date" type="date" required />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button type="submit" variant="success" disabled={isPending}>
+                  {isPending ? 'Creating…' : 'Create Period'}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {/* Period list */}
@@ -89,40 +95,36 @@ export default function PayrollClient({ periods }: Props) {
           <p className="text-muted-foreground text-center py-12">No pay periods created yet.</p>
         )}
         {periods.map(period => (
-          <a
+          <Link
             key={period.id}
             href={`/admin/payroll/${period.id}`}
-            className="block bg-card border border-border hover:border-border rounded-xl p-4 transition-colors"
+            className="block rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:bg-accent"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-foreground font-semibold">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-foreground font-semibold truncate">
                   {new Date(period.period_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   {' — '}
                   {new Date(period.period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </p>
                 {period.pay_date && (
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-muted-foreground text-sm truncate">
                     Pay date: {new Date(period.pay_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                 )}
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 shrink-0">
                 {period.exports_count > 0 && (
-                  <span className="text-muted-foreground text-xs">{period.exports_count} export(s)</span>
+                  <span className="hidden text-muted-foreground text-xs sm:inline">{period.exports_count} export(s)</span>
                 )}
-                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                  period.status === 'closed'
-                    ? 'bg-muted text-muted-foreground'
-                    : 'bg-green-900/40 text-green-400 border border-green-800'
-                }`}>
+                <Badge variant={period.status === 'closed' ? 'neutral' : 'ok'}>
                   {period.status === 'closed' ? 'Closed' : 'Open'}
-                </span>
-                <span className="text-gray-600">→</span>
+                </Badge>
+                <ChevronRight className="size-4 text-muted-foreground" />
               </div>
             </div>
-          </a>
+          </Link>
         ))}
       </div>
     </div>

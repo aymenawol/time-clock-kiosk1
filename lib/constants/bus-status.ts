@@ -26,21 +26,22 @@ export const BUS_STATUS_LABEL: Record<BusStatus, string> = {
   training:           'Training',
 }
 
-// border + bg + text triplet. Semantic: green=ready, blue=in service,
-// teal/amber/cyan=charge/fuel/wash, red=shop, purple=hazard hold, gray=salvage.
+// border + bg + text triplet, using the semantic operational ramps so the pills
+// read correctly in light AND dark. ok=ready, info=in service/training,
+// warn=charge/fuel/wash, danger=shop/maintenance, hazard=safety hold, neutral=salvage.
 export const BUS_STATUS_COLOR: Record<BusStatus, string> = {
-  ready:              'bg-green-900/30 text-green-400 border-green-800',
-  in_service:         'bg-blue-900/30 text-blue-400 border-blue-800',
-  charging:           'bg-teal-900/30 text-teal-400 border-teal-800',
-  fuel:               'bg-amber-900/30 text-amber-400 border-amber-800',
-  wash:               'bg-cyan-900/30 text-cyan-400 border-cyan-800',
-  fuel_wash:          'bg-amber-900/30 text-amber-400 border-amber-800',
-  maintenance_pmi:    'bg-red-900/30 text-red-400 border-red-800',
-  shopped_dvir:       'bg-red-900/30 text-red-400 border-red-800',
-  maintenance_repair: 'bg-red-900/30 text-red-400 border-red-800',
-  safety_hold:        'bg-purple-900/30 text-purple-400 border-purple-800',
-  salvage:            'bg-gray-800/40 text-gray-400 border-gray-700',
-  training:           'bg-indigo-900/30 text-indigo-400 border-indigo-800',
+  ready:              'bg-ok-surface text-ok border-ok-border',
+  in_service:         'bg-info-surface text-info border-info-border',
+  charging:           'bg-warn-surface text-warn border-warn-border',
+  fuel:               'bg-warn-surface text-warn border-warn-border',
+  wash:               'bg-warn-surface text-warn border-warn-border',
+  fuel_wash:          'bg-warn-surface text-warn border-warn-border',
+  maintenance_pmi:    'bg-danger-surface text-danger border-danger-border',
+  shopped_dvir:       'bg-danger-surface text-danger border-danger-border',
+  maintenance_repair: 'bg-danger-surface text-danger border-danger-border',
+  safety_hold:        'bg-hazard-surface text-hazard border-hazard-border',
+  salvage:            'bg-neutral-surface text-neutral border-neutral-border',
+  training:           'bg-info-surface text-info border-info-border',
 }
 
 // Operational groupings used by dashboards.
@@ -53,5 +54,5 @@ export function busStatusLabel(status: string): string {
 }
 
 export function busStatusColor(status: string): string {
-  return (BUS_STATUS_COLOR as Record<string, string>)[status] ?? 'bg-gray-800/40 text-gray-400 border-gray-700'
+  return (BUS_STATUS_COLOR as Record<string, string>)[status] ?? 'bg-neutral-surface text-neutral border-neutral-border'
 }

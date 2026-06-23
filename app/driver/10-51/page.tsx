@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { Accessibility } from 'lucide-react'
 import { getServerUser } from '@/lib/supabase-server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import WheelchairForm from './wheelchair-form'
@@ -47,21 +48,19 @@ export default async function WheelchairPage() {
     .order('name')
 
   return (
-    <div className="max-w-lg mx-auto py-8 px-4">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-full bg-orange-900/60 flex items-center justify-center text-xl">
-            ♿
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">10-51 Wheelchair Request</h1>
-            <p className="text-muted-foreground text-sm">Submit to dispatch for wheelchair assist</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-warn-surface border border-warn-border text-warn flex items-center justify-center shrink-0">
+          <Accessibility className="size-6" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-foreground">10-51 Wheelchair Request</h1>
+          <p className="text-muted-foreground text-sm">Submit to dispatch for wheelchair assist</p>
         </div>
       </div>
 
       {!activeShift ? (
-        <div className="bg-yellow-950/50 border border-yellow-700 rounded-xl p-6 text-yellow-200">
+        <div className="bg-warn-surface border border-warn-border rounded-xl p-6 text-warn">
           No active shift found. You must be clocked in to submit a wheelchair request.
         </div>
       ) : (

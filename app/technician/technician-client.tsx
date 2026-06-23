@@ -3,6 +3,13 @@
 import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { Plus, CheckCircle2, Camera, Loader2, Wrench } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 interface Bus {
   id: string; bus_number: string; bus_type: string; status: string; fuel_level: number | null
@@ -121,30 +128,28 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-foreground">Open Defects</h1>
         <div className="flex items-center gap-2">
-          <span className="bg-red-950 text-red-300 border border-red-800 text-sm font-semibold px-3 py-1 rounded-full">
+          <Badge variant="danger" className="text-sm font-semibold px-3 py-1">
             {initialRepairNotes.length} open
-          </span>
-          <button
-            onClick={() => setShowForm(v => !v)}
-            className="bg-blue-700 hover:bg-blue-600 text-foreground text-sm px-3 py-1.5 rounded-lg"
-          >
-            + Log Defect
-          </button>
+          </Badge>
+          <Button onClick={() => setShowForm(v => !v)} size="sm">
+            <Plus />
+            Log Defect
+          </Button>
         </div>
       </div>
 
-      {error && <div className="bg-red-900/40 border border-red-600 text-red-300 rounded p-3 text-sm">{error}</div>}
+      {error && <div className="bg-danger-surface border border-danger-border text-danger rounded-lg p-3 text-sm">{error}</div>}
 
       {/* Add defect form */}
       {showForm && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <Card className="p-4 space-y-3">
           <h2 className="text-sm font-semibold text-foreground">Log New Defect</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Bus *</label>
+              <Label className="text-xs text-muted-foreground block mb-1">Bus *</Label>
               <select value={form.bus_id} onChange={e => setForm(p => ({...p, bus_id: e.target.value}))} className={SEL}>
                 <option value="">Select bus…</option>
                 {buses.map(b => (
@@ -153,64 +158,64 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
               </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Category</label>
-              <input
+              <Label className="text-xs text-muted-foreground block mb-1">Category</Label>
+              <Input
                 value={form.defect_category}
                 onChange={e => setForm(p => ({...p, defect_category: e.target.value}))}
                 placeholder="e.g. Lights"
-                className={INP}
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Item</label>
-              <input
+              <Label className="text-xs text-muted-foreground block mb-1">Item</Label>
+              <Input
                 value={form.defect_item}
                 onChange={e => setForm(p => ({...p, defect_item: e.target.value}))}
                 placeholder="e.g. Left headlight"
-                className={INP}
               />
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Notes *</label>
-            <textarea
+            <Label className="text-xs text-muted-foreground block mb-1">Notes *</Label>
+            <Textarea
               value={form.notes}
               onChange={e => setForm(p => ({...p, notes: e.target.value}))}
               rows={3}
               placeholder="Describe the defect…"
-              className={`${INP} resize-none`}
+              className="resize-none"
             />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setShowForm(false)} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
-            <button onClick={handleAddNote} disabled={isPending} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground text-sm px-4 py-1.5 rounded-lg">
+            <Button variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button onClick={handleAddNote} disabled={isPending}>
               {isPending ? 'Saving…' : 'Log Defect'}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* No defects */}
       {initialRepairNotes.length === 0 && (
-        <div className="bg-card border border-border rounded-xl p-10 text-center">
-          <p className="text-green-400 font-semibold text-lg">All Clear!</p>
-          <p className="text-gray-600 text-sm mt-1">No open defects.</p>
-        </div>
+        <Card className="p-10 text-center">
+          <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-ok" />
+          <p className="text-ok font-semibold text-lg">All Clear!</p>
+          <p className="text-muted-foreground text-sm mt-1">No open defects.</p>
+        </Card>
       )}
 
       {/* Defects grouped by bus */}
       {Object.entries(byBus).map(([busId, group]) => (
-        <div key={busId} className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="px-4 py-3 bg-muted/60 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-foreground font-bold">
+        <Card key={busId} className="overflow-hidden">
+          <div className="px-4 py-3 bg-muted/60 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <Wrench className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="text-foreground font-bold truncate">
                 {group.bus ? `Bus #${group.bus.bus_number}` : 'Unknown Bus'}
               </span>
               {group.bus && (
-                <span className="text-muted-foreground text-xs">{group.bus.bus_type} — {group.bus.status}</span>
+                <span className="text-muted-foreground text-xs truncate">{group.bus.bus_type} — {group.bus.status}</span>
               )}
             </div>
-            <span className="text-red-400 text-sm font-medium">{group.notes.length} defect{group.notes.length > 1 ? 's' : ''}</span>
+            <span className="text-danger text-sm font-medium">{group.notes.length} defect{group.notes.length > 1 ? 's' : ''}</span>
           </div>
           <div className="divide-y divide-border">
             {group.notes.map(note => (
@@ -223,7 +228,7 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
                       </p>
                     )}
                     <p className="text-foreground text-sm">{note.notes}</p>
-                    <p className="text-gray-600 text-xs mt-1">
+                    <p className="text-muted-foreground text-xs mt-1">
                       {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       {note.inspection && (
                         <span className="ml-2">via {note.inspection.inspection_type.replace('_', '-')} inspection</span>
@@ -241,8 +246,8 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
                       </div>
                     )}
                     {/* Photo upload */}
-                    <label className={`mt-2 inline-flex items-center gap-1.5 text-xs cursor-pointer ${
-                      uploadingId === note.id ? 'text-gray-600 pointer-events-none' : 'text-muted-foreground hover:text-foreground'
+                    <label className={`mt-2 inline-flex items-center gap-1.5 text-xs ${
+                      uploadingId === note.id ? 'text-muted-foreground pointer-events-none' : 'text-muted-foreground hover:text-foreground'
                     }`}>
                       <input
                         type="file"
@@ -251,25 +256,31 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
                         disabled={uploadingId === note.id}
                         onChange={e => { if (e.target.files?.[0]) uploadPhoto(note.id, e.target.files[0]) }}
                       />
-                      {uploadingId === note.id ? '⏳ Uploading…' : '📷 Add Photo'}
+                      {uploadingId === note.id ? (
+                        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                      ) : (
+                        <><Camera className="h-3.5 w-3.5" /> Add Photo</>
+                      )}
                     </label>
                   </div>
-                  <button
+                  <Button
                     onClick={() => handleMarkResolved(note)}
                     disabled={isPending}
-                    className="bg-green-800 hover:bg-green-700 disabled:opacity-50 text-green-200 text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap"
+                    variant="success"
+                    size="sm"
+                    className="whitespace-nowrap"
                   >
+                    <CheckCircle2 />
                     Mark Resolved
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   )
 }
 
-const INP = 'w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm disabled:opacity-50 placeholder-gray-700'
-const SEL = 'w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm'
+const SEL = 'flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50'

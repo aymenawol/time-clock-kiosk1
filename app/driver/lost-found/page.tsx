@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerUser } from '@/lib/supabase-server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import LostFoundForm from './lost-found-form'
+import { Search } from 'lucide-react'
 
 export const metadata = { title: 'Lost & Found Report' }
 
@@ -40,16 +41,14 @@ export default async function DriverLostFoundPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto py-8 px-4">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-full bg-blue-900/60 flex items-center justify-center text-xl">
-            🔎
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Lost & Found</h1>
-            <p className="text-muted-foreground text-sm">Report an item found on your bus</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-info-surface border border-info-border flex items-center justify-center shrink-0">
+          <Search className="size-5 text-info" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-foreground">Lost & Found</h1>
+          <p className="text-muted-foreground text-sm">Report an item found on your bus</p>
         </div>
       </div>
 

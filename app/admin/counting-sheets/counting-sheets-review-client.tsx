@@ -2,6 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import { Badge, type BadgeProps } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 
 interface CountingRow {
   id?: string
@@ -51,15 +55,20 @@ export default function CountingSheetsReviewClient({
     )
   }
 
+  const STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
+    submitted: 'ok',
+    in_progress: 'warn',
+  }
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-foreground">Counting Sheets</h1>
-        <input
+        <Input
           type="date"
           value={dateFilter}
           onChange={(e) => handleDateChange(e.target.value)}
-          className="bg-card border border-border rounded-lg text-foreground px-3 py-2 text-sm"
+          className="h-9 w-auto text-sm"
         />
       </div>
 
@@ -73,14 +82,14 @@ export default function CountingSheetsReviewClient({
         const isExpanded = expanded === sheet.id
 
         return (
-          <div key={sheet.id} className="bg-card border border-border rounded-xl overflow-hidden">
+          <Card key={sheet.id} className="overflow-hidden p-0">
             <button
-              className="w-full text-left p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+              className="w-full text-left p-4 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors"
               onClick={() => setExpanded(isExpanded ? null : sheet.id)}
             >
-              <div className="flex items-center gap-4">
-                <div>
-                  <p className="text-foreground font-semibold">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="min-w-0">
+                  <p className="text-foreground font-semibold truncate">
                     {sheet.driver ? sheet.driver.name : 'Unknown'}
                     {sheet.driver?.seniority_number ? (
                       <span className="text-muted-foreground text-xs ml-2">#{sheet.driver.seniority_number}</span>
@@ -88,25 +97,23 @@ export default function CountingSheetsReviewClient({
                   </p>
                   <p className="text-muted-foreground text-sm">Bus {sheet.bus?.bus_number ?? '—'} · {sheet.bus?.bus_type ?? ''}</p>
                 </div>
-                <div className="text-center">
+                <div className="text-center shrink-0">
                   <p className="text-muted-foreground text-xs">Total Riders</p>
                   <p className="text-foreground font-bold text-lg">{grand}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  sheet.status === 'submitted' ? 'bg-green-900 text-green-300' :
-                  sheet.status === 'in_progress' ? 'bg-yellow-900 text-yellow-300' :
-                  'bg-muted text-muted-foreground'
-                }`}>
+              <div className="flex items-center gap-3 shrink-0">
+                <Badge variant={STATUS_VARIANT[sheet.status] ?? 'neutral'}>
                   {sheet.status.replace('_', ' ')}
-                </span>
+                </Badge>
                 {sheet.submitted_at && (
                   <p className="text-muted-foreground text-xs">
                     {new Date(sheet.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 )}
-                <span className="text-muted-foreground text-lg">{isExpanded ? '▲' : '▼'}</span>
+                {isExpanded
+                  ? <ChevronUp className="size-4 text-muted-foreground" />
+                  : <ChevronDown className="size-4 text-muted-foreground" />}
               </div>
             </button>
 
@@ -151,7 +158,7 @@ export default function CountingSheetsReviewClient({
                 </table>
               </div>
             )}
-          </div>
+          </Card>
         )
       })}
     </div>

@@ -1,11 +1,7 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getServerUser } from '@/lib/supabase-server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getServerUser, createSupabaseServerClient } from '@/lib/supabase-server'
 import DriverShell from '@/components/driver-shell'
-import SignOutButton from '@/components/sign-out-button'
-import NotificationBell from '@/components/notification-bell'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { FieldShell } from '@/components/app-shell/field-shell'
 
 export default async function DriverLayout({ children }: { children: React.ReactNode }) {
   const { user } = await getServerUser()
@@ -14,11 +10,11 @@ export default async function DriverLayout({ children }: { children: React.React
   const role = (user.app_metadata?.role as string) ?? ''
   if (!['admin', 'management', 'driver'].includes(role)) redirect('/unauthorized')
 
-  // Look up employee id + check for motion lock exemption
+  // Look up employee id + name + check for motion lock exemption
   const supabase = await createSupabaseServerClient()
   const { data: emp } = await supabase
     .from('employees')
-    .select('id')
+    .select('id, name')
     .eq('auth_user_id', user.id)
     .single()
 
@@ -39,51 +35,10 @@ export default async function DriverLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <nav className="bg-card border-b border-border px-4 h-12 flex items-center gap-1 overflow-x-auto scrollbar-hide">
-        <Link href="/driver" className="font-bold text-sm text-foreground/90 whitespace-nowrap px-2 py-1 rounded-lg">My Dashboard</Link>
-        <Link href="/driver/counting-sheet" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          Counting Sheet
-        </Link>
-        <Link href="/driver/inspection/pre_trip" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          Pre-Trip
-        </Link>
-        <Link href="/driver/inspection/post_trip" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          Post-Trip
-        </Link>
-        <Link href="/driver/10-51" className="text-sm text-orange-400 hover:text-orange-300 font-semibold transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          10-51
-        </Link>
-        <Link href="/driver/lost-found" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          Lost &amp; Found
-        </Link>
-        <Link href="/driver/bids" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          Bids
-        </Link>
-        <Link href="/driver/overtime" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          Overtime
-        </Link>
-        <Link href="/driver/forms" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          Forms
-        </Link>
-        <Link href="/driver/safety-meetings" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          Safety
-        </Link>
-        <Link href="/driver/performance" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          Performance
-        </Link>
-        <Link href="/balances" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap px-2 py-1 rounded-lg">
-          My Balances
-        </Link>
-        <div className="ml-auto pl-4 flex-shrink-0 flex items-center gap-2">
-          <ThemeToggle />
-          <NotificationBell />
-          <SignOutButton />
-        </div>
-      </nav>
-      <DriverShell employeeId={employeeId} isMotionLockExempt={isMotionLockExempt}>
-        <main className="px-4 py-5 max-w-2xl mx-auto">{children}</main>
-      </DriverShell>
-    </div>
+    <DriverShell employeeId={employeeId} isMotionLockExempt={isMotionLockExempt}>
+      <FieldShell variant="driver" name={emp?.name ?? null}>
+        {children}
+      </FieldShell>
+    </DriverShell>
   )
 }

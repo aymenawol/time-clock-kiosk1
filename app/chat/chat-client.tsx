@@ -4,6 +4,20 @@ import { useState, useEffect, useRef, useTransition } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { sendMessageAction, markReadAction, markDeliveredAction, confirmMessageAction, deleteMessageAction } from './actions'
 import { triggerEmergencyAction } from '@/app/admin/emergency/actions'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import {
+  Check,
+  CheckCheck,
+  ShieldCheck,
+  AlertTriangle,
+  Send,
+  Trash2,
+  Menu,
+  MessageSquare,
+} from 'lucide-react'
 
 interface Message {
   id: string
@@ -26,11 +40,17 @@ function StatusLadder({ msg }: { msg: Message }) {
   const confirmed = msg.confirmed_by.length
   let label: string
   let cls: string
-  if (msg.requires_confirmation && confirmed > 0) { label = `✓✓ Confirmed (${confirmed})`; cls = 'text-green-400' }
-  else if (read > 0) { label = `✓✓ Read (${read})`; cls = 'text-blue-400' }
-  else if (delivered > 0) { label = `✓✓ Delivered (${delivered})`; cls = 'text-muted-foreground' }
-  else { label = '✓ Sent'; cls = 'text-gray-600' }
-  return <span className={`text-xs ${cls}`} title="Sent → Delivered → Read → Confirmed">{label}</span>
+  let Icon: typeof Check
+  if (msg.requires_confirmation && confirmed > 0) { label = `Confirmed (${confirmed})`; cls = 'text-ok'; Icon = ShieldCheck }
+  else if (read > 0) { label = `Read (${read})`; cls = 'text-info'; Icon = CheckCheck }
+  else if (delivered > 0) { label = `Delivered (${delivered})`; cls = 'text-muted-foreground'; Icon = CheckCheck }
+  else { label = 'Sent'; cls = 'text-muted-foreground'; Icon = Check }
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs ${cls}`} title="Sent → Delivered → Read → Confirmed">
+      <Icon className="size-3 shrink-0" aria-hidden />
+      {label}
+    </span>
+  )
 }
 
 interface Room {
@@ -54,6 +74,8 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
   const [isPending, startTransition]      = useTransition()
   const [unconfirmedIds, setUnconfirmedIds] = useState<Set<string>>(new Set())
   const [emergencyError, setEmergencyError] = useState<string | null>(null)
+  // Presentation-only: controls the mobile room-list drawer (no data impact).
+  const [showRooms, setShowRooms] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const activeMessages = messages[activeRoomId ?? ''] ?? []
@@ -197,16 +219,29 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
     })
   }
 
+  const activeRoom = rooms.find(r => r.id === activeRoomId) ?? null
+
   return (
-    <div className="flex h-[calc(100vh-56px)] bg-background">
-      {/* Sidebar: room list */}
-      <div className="w-64 border-r border-border flex flex-col">
+    <div className="flex h-[calc(100vh-56px)] bg-background relative">
+      {/* Backdrop for the mobile room drawer */}
+      {showRooms && (
+        <div
+          className="fixed inset-0 z-20 bg-foreground/40 md:hidden"
+          onClick={() => setShowRooms(false)}
+          aria-hidden
+        />
+      )}
+
+      {/* Sidebar: room list. Off-canvas drawer on mobile, static column on md+. */}
+      <div
+        className={`absolute inset-y-0 left-0 z-30 w-64 max-w-[80vw] border-r border-border bg-card flex flex-col transition-transform md:static md:z-auto md:translate-x-0 md:bg-transparent ${
+          showRooms ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <span className="text-foreground font-semibold text-sm">Rooms</span>
           {unconfirmedIds.size > 0 && (
-            <span className="bg-red-600 text-foreground text-xs font-bold px-2 py-0.5 rounded-full">
-              {unconfirmedIds.size}
-            </span>
+            <Badge variant="danger">{unconfirmedIds.size}</Badge>
           )}
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -218,20 +253,18 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
             return (
               <button
                 key={room.id}
-                onClick={() => setActiveRoomId(room.id)}
-                className={`w-full text-left px-4 py-3 border-b border-border/50 transition-colors ${isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-card hover:text-foreground'}`}
+                onClick={() => { setActiveRoomId(room.id); setShowRooms(false) }}
+                className={`w-full text-left px-4 py-3 border-b border-border/50 transition-colors ${isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">{room.name}</span>
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <span className="text-sm truncate">{room.name}</span>
                   {roomUnconfirmed > 0 && (
-                    <span className="bg-red-600 text-foreground text-xs font-bold px-1.5 py-0.5 rounded-full">
-                      {roomUnconfirmed}
-                    </span>
+                    <Badge variant="danger" className="shrink-0">{roomUnconfirmed}</Badge>
                   )}
                 </div>
-                <span className={`text-xs mt-0.5 block ${
-                  room.type === 'emergency' ? 'text-red-400' :
-                  room.type === 'department' ? 'text-blue-400' : 'text-gray-600'
+                <span className={`text-xs mt-1 inline-flex ${
+                  room.type === 'emergency' ? 'text-danger' :
+                  room.type === 'department' ? 'text-info' : 'text-muted-foreground'
                 }`}>
                   {room.type}
                 </span>
@@ -242,7 +275,23 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
       </div>
 
       {/* Message area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile header: toggle the room drawer + show active room name */}
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2 md:hidden">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setShowRooms(true)}
+            aria-label="Show rooms"
+          >
+            <Menu />
+          </Button>
+          <span className="text-sm font-semibold text-foreground truncate min-w-0">
+            {activeRoom?.name ?? 'Chat'}
+          </span>
+        </div>
+
         {activeRoomId ? (
           <>
             {/* Message list */}
@@ -253,47 +302,52 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
                 const confirmedCount = msg.confirmed_by.length
                 return (
                   <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-md ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                    <div className={`max-w-[85%] sm:max-w-md min-w-0 ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
                       {!isOwn && (
-                        <span className="text-muted-foreground text-xs px-1">{msg.sender_name}</span>
+                        <span className="text-muted-foreground text-xs px-1 truncate max-w-full">{msg.sender_name}</span>
                       )}
                       <div className={`rounded-2xl px-4 py-2.5 ${
                         msg.is_deleted          ? 'bg-muted text-muted-foreground italic' :
-                        msg.message_type === 'emergency_alert' ? 'bg-red-900 text-red-100 border border-red-700' :
-                        isOwn                   ? 'bg-blue-700 text-foreground' :
+                        msg.message_type === 'emergency_alert' ? 'bg-danger-surface text-danger border border-danger-border' :
+                        isOwn                   ? 'bg-primary text-primary-foreground' :
                                                   'bg-muted text-foreground'
                       }`}>
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                       </div>
 
                       {/* Confirmation status */}
                       {msg.requires_confirmation && !msg.is_deleted && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-600 text-xs">{confirmedCount} confirmed</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-muted-foreground text-xs">{confirmedCount} confirmed</span>
                           {needsConfirm && (
                             <button
                               onClick={() => startTransition(() => { void confirmMessageAction(msg.id) })}
-                              className="text-xs bg-green-800 hover:bg-green-700 text-foreground px-2 py-0.5 rounded-full"
+                              className="inline-flex items-center gap-1 text-xs border border-ok-border bg-ok-surface text-ok hover:bg-ok-surface/70 px-2 py-0.5 rounded-full"
                             >
+                              <Check className="size-3 shrink-0" aria-hidden />
                               Confirm Read
                             </button>
                           )}
                           {!needsConfirm && (
-                            <span className="text-green-500 text-xs">✓ Confirmed</span>
+                            <span className="inline-flex items-center gap-1 text-ok text-xs">
+                              <ShieldCheck className="size-3 shrink-0" aria-hidden />
+                              Confirmed
+                            </span>
                           )}
                         </div>
                       )}
 
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-600 text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-muted-foreground text-xs">
                           {new Date(msg.sent_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                         </span>
                         {isOwn && !msg.is_deleted && <StatusLadder msg={msg} />}
                         {isAdmin && !msg.is_deleted && (
                           <button
                             onClick={() => { if (confirm('Remove this message?')) startTransition(() => { void deleteMessageAction(msg.id) }) }}
-                            className="text-gray-700 hover:text-red-400 text-xs"
+                            className="inline-flex items-center gap-1 text-muted-foreground hover:text-danger text-xs"
                           >
+                            <Trash2 className="size-3 shrink-0" aria-hidden />
                             remove
                           </button>
                         )}
@@ -306,18 +360,20 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
             </div>
 
             {/* Input area */}
-            <div className="border-t border-border p-4">
+            <div className="border-t border-border p-3 sm:p-4">
               {isAdmin && (
                 <div className="mb-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="destructive"
+                    size="sm"
                     onClick={handleSendEmergency}
                     disabled={isPending}
-                    className="text-xs bg-red-700 hover:bg-red-600 text-foreground px-3 py-1.5 rounded-lg font-semibold disabled:opacity-50"
                   >
-                    🚨 Send Emergency Alert
-                  </button>
-                  {emergencyError && <p className="text-red-400 text-xs mt-1">{emergencyError}</p>}
+                    <AlertTriangle />
+                    Send Emergency Alert
+                  </Button>
+                  {emergencyError && <p className="text-danger text-xs mt-1">{emergencyError}</p>}
                 </div>
               )}
               {canManage && (
@@ -327,34 +383,36 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
                     id="req-confirm"
                     checked={requireConfirm}
                     onChange={e => setRequireConfirm(e.target.checked)}
-                    className="rounded"
+                    className="rounded border-input accent-primary"
                   />
-                  <label htmlFor="req-confirm" className="text-muted-foreground text-xs cursor-pointer">
+                  <Label htmlFor="req-confirm" className="text-muted-foreground text-xs font-normal">
                     Require confirmation from all recipients
-                  </label>
+                  </Label>
                 </div>
               )}
-              <div className="flex gap-2">
-                <textarea
+              <div className="flex items-end gap-2">
+                <Textarea
                   value={draft}
                   onChange={e => setDraft(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message… (Enter to send, Shift+Enter for newline)"
                   rows={2}
-                  className="flex-1 bg-muted border border-border rounded-xl px-4 py-2 text-foreground text-sm resize-none placeholder-gray-600 focus:outline-none focus:border-gray-500"
+                  className="flex-1 min-h-0 resize-none rounded-xl"
                 />
-                <button
+                <Button
                   onClick={handleSend}
                   disabled={isPending || !draft.trim()}
-                  className="bg-blue-600 hover:bg-blue-500 text-foreground px-5 rounded-xl font-semibold text-sm disabled:opacity-40 transition-colors"
+                  className="rounded-xl"
                 >
-                  Send
-                </button>
+                  <Send />
+                  <span className="hidden sm:inline">Send</span>
+                </Button>
               </div>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-600">
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <MessageSquare className="size-8" aria-hidden />
             Select a room to start chatting
           </div>
         )}

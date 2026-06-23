@@ -261,18 +261,18 @@ export const BUS_STATUS_LABELS: Record<BusStatus, string> = {
 }
 
 export const BUS_STATUS_COLOR: Record<BusStatus, string> = {
-  ready:               'bg-green-900/60 border-green-600 text-green-300',
-  in_service:          'bg-blue-900/60 border-blue-600 text-blue-300',
-  charging:            'bg-yellow-900/60 border-yellow-600 text-yellow-300',
-  fuel:                'bg-yellow-900/60 border-yellow-600 text-yellow-300',
-  wash:                'bg-yellow-900/60 border-yellow-600 text-yellow-300',
-  fuel_wash:           'bg-amber-900/60 border-amber-600 text-amber-300',
-  maintenance_pmi:     'bg-red-900/60 border-red-600 text-red-300',
-  shopped_dvir:        'bg-red-900/60 border-red-600 text-red-300',
-  maintenance_repair:  'bg-red-900/60 border-red-600 text-red-300',
-  safety_hold:         'bg-purple-900/60 border-purple-600 text-purple-300',
-  salvage:             'bg-gray-800 border-gray-600 text-gray-400',
-  training:            'bg-yellow-900/60 border-yellow-600 text-yellow-300',
+  ready:               'bg-ok-surface border-ok-border text-ok',
+  in_service:          'bg-info-surface border-info-border text-info',
+  charging:            'bg-warn-surface border-warn-border text-warn',
+  fuel:                'bg-warn-surface border-warn-border text-warn',
+  wash:                'bg-warn-surface border-warn-border text-warn',
+  fuel_wash:           'bg-warn-surface border-warn-border text-warn',
+  maintenance_pmi:     'bg-danger-surface border-danger-border text-danger',
+  shopped_dvir:        'bg-danger-surface border-danger-border text-danger',
+  maintenance_repair:  'bg-danger-surface border-danger-border text-danger',
+  safety_hold:         'bg-hazard-surface border-hazard-border text-hazard',
+  salvage:             'bg-neutral-surface border-neutral-border text-neutral',
+  training:            'bg-info-surface border-info-border text-info',
 }
 
 export const INSPECTION_CHECKLIST: { category: string; items: string[] }[] = [
@@ -538,18 +538,18 @@ export const FORM_TYPE_LABELS: Record<FormType, string> = {
 }
 
 export const FORM_STATUS_COLOR: Record<FormStatus, string> = {
-  submitted:     'bg-blue-900/60 text-blue-300 border-blue-700',
-  under_review:  'bg-yellow-900/60 text-yellow-300 border-yellow-700',
-  approved:      'bg-green-900/60 text-green-300 border-green-700',
-  denied:        'bg-red-900/60 text-red-300 border-red-700',
-  returned:      'bg-orange-900/60 text-orange-300 border-orange-700',
+  submitted:     'bg-info-surface text-info border-info-border',
+  under_review:  'bg-info-surface text-info border-info-border',
+  approved:      'bg-ok-surface text-ok border-ok-border',
+  denied:        'bg-danger-surface text-danger border-danger-border',
+  returned:      'bg-warn-surface text-warn border-warn-border',
 }
 
 export const BID_CYCLE_STATUS_COLOR: Record<BidCycleStatus, string> = {
-  draft:      'bg-gray-800 text-gray-400 border-gray-700',
-  published:  'bg-blue-900/60 text-blue-300 border-blue-700',
-  locked:     'bg-yellow-900/60 text-yellow-300 border-yellow-700',
-  awarded:    'bg-green-900/60 text-green-300 border-green-700',
+  draft:      'bg-neutral-surface text-neutral border-neutral-border',
+  published:  'bg-info-surface text-info border-info-border',
+  locked:     'bg-warn-surface text-warn border-warn-border',
+  awarded:    'bg-ok-surface text-ok border-ok-border',
 }
 
 export const ROUTE_TYPE_LABELS: Record<RouteType, string> = {

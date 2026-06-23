@@ -1,11 +1,24 @@
 'use client'
 import { useTransition, useState } from 'react'
 import Link from 'next/link'
-import { FormSubmission, FORM_TYPE_LABELS, FORM_STATUS_COLOR } from '@/lib/supabase'
+import { FormSubmission, FORM_TYPE_LABELS } from '@/lib/supabase'
 import { acknowledgeFormAction } from './actions'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge, type BadgeProps } from '@/components/ui/badge'
+import { Check, Plus } from 'lucide-react'
 
 interface Props {
   submissions: (FormSubmission & { acked: boolean })[]
+}
+
+// Form status → operational ramp (DESIGN §4)
+const FORM_STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
+  approved: 'ok',
+  submitted: 'info',
+  under_review: 'info',
+  returned: 'warn',
+  denied: 'danger',
 }
 
 export default function DriverFormsClient({ submissions }: Props) {
@@ -21,48 +34,52 @@ export default function DriverFormsClient({ submissions }: Props) {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-2xl font-bold text-foreground">My Forms</h1>
-        <Link href="/driver/forms/new"
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-foreground text-sm rounded">
-          + New Form
-        </Link>
+        <Button asChild size="sm">
+          <Link href="/driver/forms/new">
+            <Plus className="size-4" /> New Form
+          </Link>
+        </Button>
       </div>
 
-      {err && <p className="text-red-400 text-sm mb-4">{err}</p>}
+      {err && <p className="text-danger text-sm">{err}</p>}
 
       {submissions.length === 0 ? (
         <p className="text-muted-foreground text-sm">No forms submitted yet.</p>
       ) : (
         <div className="space-y-3">
           {submissions.map(sub => (
-            <div key={sub.id} className="bg-card border border-border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-foreground font-medium text-sm">{FORM_TYPE_LABELS[sub.form_type]}</span>
-                <span className={`px-2.5 py-1 rounded-full text-xs border ${FORM_STATUS_COLOR[sub.status]}`}>
-                  {sub.status}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-xs">
-                Submitted {new Date(sub.submitted_at).toLocaleString()}
-                {sub.version > 1 && <> · v{sub.version}</>}
-              </p>
-              {sub.reviewer_comments && (
-                <div className="mt-2 bg-muted rounded p-2">
-                  <p className="text-muted-foreground text-xs">Reviewer: {sub.reviewer_comments}</p>
+            <Card key={sub.id}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                  <span className="text-foreground font-medium text-sm">{FORM_TYPE_LABELS[sub.form_type]}</span>
+                  <Badge variant={FORM_STATUS_VARIANT[sub.status] ?? 'neutral'}>
+                    {sub.status}
+                  </Badge>
                 </div>
-              )}
-              {['approved','denied'].includes(sub.status) && !sub.acked && (
-                <button onClick={() => handleAck(sub.id)} disabled={pending}
-                  className="mt-2 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-foreground text-xs rounded disabled:opacity-50">
-                  Confirm Receipt
-                </button>
-              )}
-              {sub.acked && (
-                <p className="text-gray-600 text-xs mt-2">✓ Receipt confirmed</p>
-              )}
-            </div>
+                <p className="text-muted-foreground text-xs">
+                  Submitted {new Date(sub.submitted_at).toLocaleString()}
+                  {sub.version > 1 && <> · v{sub.version}</>}
+                </p>
+                {sub.reviewer_comments && (
+                  <div className="mt-2 bg-muted rounded-lg p-2">
+                    <p className="text-muted-foreground text-xs">Reviewer: {sub.reviewer_comments}</p>
+                  </div>
+                )}
+                {['approved','denied'].includes(sub.status) && !sub.acked && (
+                  <Button onClick={() => handleAck(sub.id)} disabled={pending} variant="secondary" size="sm" className="mt-2">
+                    Confirm Receipt
+                  </Button>
+                )}
+                {sub.acked && (
+                  <p className="text-muted-foreground text-xs mt-2 flex items-center gap-1">
+                    <Check className="size-3.5 text-ok" /> Receipt confirmed
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

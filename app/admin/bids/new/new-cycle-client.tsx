@@ -1,6 +1,11 @@
 'use client'
 import { useTransition, useState } from 'react'
+import Link from 'next/link'
 import { createCycleAction } from '../actions'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 export default function NewBidCycleClient() {
   const [pending, startTransition] = useTransition()
@@ -20,51 +25,47 @@ export default function NewBidCycleClient() {
   }
 
   return (
-    <div className="p-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-foreground mb-6">New Bid Cycle</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-foreground">New Bid Cycle</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm text-muted-foreground mb-1">Cycle Name *</label>
-          <input name="name" required className="w-full bg-card border border-border rounded px-3 py-2 text-foreground text-sm" placeholder="e.g. Summer 2026 Bid" />
+        <div className="space-y-1.5">
+          <Label htmlFor="bc-name">Cycle Name *</Label>
+          <Input id="bc-name" name="name" required placeholder="e.g. Summer 2026 Bid" />
         </div>
-        <div>
-          <label className="block text-sm text-muted-foreground mb-1">Description</label>
-          <textarea name="description" rows={2} className="w-full bg-card border border-border rounded px-3 py-2 text-foreground text-sm" />
+        <div className="space-y-1.5">
+          <Label htmlFor="bc-description">Description</Label>
+          <Textarea id="bc-description" name="description" rows={2} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">Shift Period Start *</label>
-            <input name="start_date" type="date" required className="w-full bg-card border border-border rounded px-3 py-2 text-foreground text-sm" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="bc-start">Shift Period Start *</Label>
+            <Input id="bc-start" name="start_date" type="date" required />
           </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">Shift Period End *</label>
-            <input name="end_date" type="date" required className="w-full bg-card border border-border rounded px-3 py-2 text-foreground text-sm" />
+          <div className="space-y-1.5">
+            <Label htmlFor="bc-end">Shift Period End *</Label>
+            <Input id="bc-end" name="end_date" type="date" required />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">Submission Opens</label>
-            <input name="submission_open_at" type="datetime-local" className="w-full bg-card border border-border rounded px-3 py-2 text-foreground text-sm" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="bc-open">Submission Opens</Label>
+            <Input id="bc-open" name="submission_open_at" type="datetime-local" />
           </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">Submission Closes</label>
-            <input name="submission_close_at" type="datetime-local" className="w-full bg-card border border-border rounded px-3 py-2 text-foreground text-sm" />
+          <div className="space-y-1.5">
+            <Label htmlFor="bc-close">Submission Closes</Label>
+            <Input id="bc-close" name="submission_close_at" type="datetime-local" />
           </div>
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-danger text-sm">{error}</p>}
 
-        <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={pending}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground text-sm font-medium rounded transition-colors"
-          >
+        <div className="flex flex-wrap gap-3 pt-2">
+          <Button type="submit" disabled={pending}>
             {pending ? 'Creating...' : 'Create Cycle'}
-          </button>
-          <a href="/admin/bids" className="px-4 py-2 bg-muted hover:bg-gray-700 text-foreground text-sm font-medium rounded transition-colors">
-            Cancel
-          </a>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/admin/bids">Cancel</Link>
+          </Button>
         </div>
       </form>
     </div>

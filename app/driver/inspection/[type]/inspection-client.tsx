@@ -2,7 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { INSPECTION_CHECKLIST } from '@/lib/supabase'
 import { flagBusOutOfServiceAction } from '@/app/driver/actions'
 import DamageBoard from '@/components/damage-board'
@@ -188,29 +193,35 @@ export default function InspectionClient({ type, employee, shift, existingInspec
     return (
       <div className="text-center py-20 text-muted-foreground">
         <p>No active shift found for today.</p>
-        <a href="/driver" className="text-blue-400 hover:underline text-sm mt-2 block">← Back to dashboard</a>
+        <Link href="/driver" className="text-primary hover:underline text-sm mt-2 inline-flex items-center gap-1">
+          <ArrowLeft className="size-4" /> Back to dashboard
+        </Link>
       </div>
     )
   }
 
   return (
-    <div className="space-y-5 pb-20">
+    <div className="space-y-5 pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <a href="/driver" className="text-xs text-muted-foreground hover:text-foreground">← Dashboard</a>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <Link href="/driver" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+            <ArrowLeft className="size-3.5" /> Dashboard
+          </Link>
           <h1 className="text-xl font-bold text-foreground mt-0.5">{typeLabel}</h1>
         </div>
-        <div className="flex items-center gap-2">
-          {locked && <span className="bg-green-900 text-green-300 text-xs font-semibold px-3 py-1 rounded-full">Submitted</span>}
-          {hasDefects && <span className="bg-red-900 text-red-300 text-xs font-semibold px-3 py-1 rounded-full">Defects Found</span>}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {locked && <Badge variant="ok">Submitted</Badge>}
+          {hasDefects && <Badge variant="danger">Defects Found</Badge>}
         </div>
       </div>
 
-      {error && <div className="bg-red-900/40 border border-red-600 text-red-300 rounded p-3 text-sm">{error}</div>}
+      {error && (
+        <div className="bg-danger-surface border border-danger-border text-danger rounded-lg p-3 text-sm">{error}</div>
+      )}
 
       {/* Bus + times */}
-      <div className="bg-card border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+      <Card className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
         <div>
           <p className="text-muted-foreground text-xs">Bus</p>
           <p className="text-foreground font-medium">{shift.bus ? `#${shift.bus.bus_number}` : '—'}</p>
@@ -227,11 +238,11 @@ export default function InspectionClient({ type, employee, shift, existingInspec
           <p className="text-muted-foreground text-xs mb-1">End Time</p>
           <input type="time" value={endTime} disabled={locked} onChange={e => setEndTime(e.target.value)} className={INP_SM} />
         </div>
-      </div>
+      </Card>
 
       {/* Mileage */}
       {type === 'pre_trip' && (
-        <div className="bg-card border border-border rounded-xl p-4 grid grid-cols-2 gap-3">
+        <Card className="p-4 grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Beginning Mileage</label>
             <input type="number" min="0" value={mileage.beginning} disabled={locked}
@@ -241,10 +252,10 @@ export default function InspectionClient({ type, employee, shift, existingInspec
             <label className="text-xs text-muted-foreground block mb-1">Ending Mileage (post-trip)</label>
             <input type="number" disabled className={INP} placeholder="Entered on post-trip" />
           </div>
-        </div>
+        </Card>
       )}
       {type === 'post_trip' && (
-        <div className="bg-card border border-border rounded-xl p-4 grid grid-cols-2 gap-3">
+        <Card className="p-4 grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Beginning Mileage (from pre-trip)</label>
             <input type="number" min="0" value={mileage.beginning} disabled={locked}
@@ -260,43 +271,43 @@ export default function InspectionClient({ type, employee, shift, existingInspec
               <p className="text-muted-foreground text-xs">Miles Driven: <span className="text-foreground font-medium">{parseInt(mileage.ending) - parseInt(mileage.beginning)}</span></p>
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Checklist */}
       <div className="space-y-4">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Checklist {unchecked > 0 && !locked && <span className="text-yellow-400 font-normal normal-case ml-2">({unchecked} remaining)</span>}
+          Checklist {unchecked > 0 && !locked && <span className="text-warn font-normal normal-case ml-2">({unchecked} remaining)</span>}
         </h2>
         {categories.map(cat => {
           const catItems = items.filter(i => i.category === cat)
           return (
-            <div key={cat} className="bg-card border border-border rounded-xl overflow-hidden">
+            <Card key={cat} className="overflow-hidden">
               <div className="px-4 py-2 bg-muted/60 text-sm font-medium text-foreground">{cat}</div>
               <div className="divide-y divide-border">
                 {catItems.map((item, globalIdx) => {
                   const idx = items.findIndex(i => i.category === item.category && i.item_name === item.item_name)
                   return (
-                    <div key={idx} className="px-4 py-2">
+                    <div key={idx} className="px-4 py-2.5">
                       <div className="flex items-center gap-3">
-                        <span className="text-sm text-foreground flex-1">{item.item_name}</span>
-                        <div className="flex gap-1">
+                        <span className="text-sm text-foreground flex-1 min-w-0">{item.item_name}</span>
+                        <div className="flex gap-1.5">
                           <button
                             disabled={locked}
                             onClick={() => setItemOk(idx, true)}
-                            className={`text-xs px-2.5 py-1 rounded font-medium transition-colors ${
+                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                               item.is_ok === true
-                                ? 'bg-green-700 text-foreground'
-                                : 'bg-muted text-muted-foreground hover:bg-green-900 hover:text-green-300'
+                                ? 'bg-ok text-white'
+                                : 'bg-muted text-muted-foreground hover:bg-ok-surface hover:text-ok'
                             } disabled:cursor-default`}
                           >OK</button>
                           <button
                             disabled={locked}
                             onClick={() => setItemOk(idx, false)}
-                            className={`text-xs px-2.5 py-1 rounded font-medium transition-colors ${
+                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                               item.is_ok === false
-                                ? 'bg-red-700 text-foreground'
-                                : 'bg-muted text-muted-foreground hover:bg-red-900 hover:text-red-300'
+                                ? 'bg-danger text-white'
+                                : 'bg-muted text-muted-foreground hover:bg-danger-surface hover:text-danger'
                             } disabled:cursor-default`}
                           >DEF</button>
                         </div>
@@ -307,38 +318,38 @@ export default function InspectionClient({ type, employee, shift, existingInspec
                           value={item.notes}
                           disabled={locked}
                           onChange={e => setItemNote(idx, e.target.value)}
-                          className="mt-1 w-full bg-background border border-red-800 text-foreground text-xs rounded px-2 py-1"
+                          className="mt-2 w-full bg-card border border-danger-border text-foreground text-xs rounded-lg px-2.5 py-2"
                         />
                       )}
                     </div>
                   )
                 })}
               </div>
-            </div>
+            </Card>
           )
         })}
       </div>
 
       {/* Damage drawing — structured strokes, multiple diagram views (N11) */}
-      <div className="bg-card border border-border rounded-xl p-4">
+      <Card className="p-4">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Damage Diagram</h2>
         <DamageBoard value={damageStrokes} onChange={setDamageStrokes} disabled={locked} />
-      </div>
+      </Card>
 
       {/* Actions */}
       {!locked && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 flex gap-3">
-          <button onClick={handleSaveDraft} disabled={isPending} className="bg-muted hover:bg-gray-700 disabled:opacity-50 text-foreground text-sm px-4 py-2 rounded-lg">
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border p-4 flex gap-3">
+          <Button variant="secondary" size="lg" onClick={handleSaveDraft} disabled={isPending}>
             Save Draft
-          </button>
-          <button onClick={handleSubmit} disabled={isPending} className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground font-semibold py-2 rounded-lg text-sm">
+          </Button>
+          <Button size="lg" onClick={handleSubmit} disabled={isPending} className="flex-1">
             {isPending ? 'Submitting…' : `Submit ${type === 'pre_trip' ? 'Pre-Trip' : 'Post-Trip'}`}
-          </button>
+          </Button>
         </div>
       )}
     </div>
   )
 }
 
-const INP    = 'w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm disabled:opacity-50'
-const INP_SM = 'w-full bg-background border border-border text-foreground rounded px-2 py-1 text-sm disabled:opacity-50'
+const INP    = 'w-full bg-card border border-input text-foreground rounded-lg px-3 py-2 text-sm disabled:opacity-50'
+const INP_SM = 'w-full bg-card border border-input text-foreground rounded px-2 py-1 text-sm disabled:opacity-50'

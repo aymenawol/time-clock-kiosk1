@@ -1,6 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { Download } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge, type BadgeProps } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface NotificationLog {
   id:            string
@@ -11,6 +17,12 @@ interface NotificationLog {
   delivered_at:  string | null
   failed:        boolean
   failure_reason: string | null
+}
+
+// Per-channel semantic colors mapped to operational ramps.
+const CHANNEL_VARIANTS: Record<string, BadgeProps['variant']> = {
+  sms:  'ok',
+  push: 'info',
 }
 
 export default function NotificationsClient({ logs: initial }: { logs: NotificationLog[] }) {
@@ -47,104 +59,101 @@ export default function NotificationsClient({ logs: initial }: { logs: Notificat
   return (
     <div>
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <div className="text-foreground font-bold text-2xl">{logs.length}</div>
-          <div className="text-muted-foreground text-sm">Total notifications</div>
-        </div>
-        <div className="bg-green-950/40 border border-green-800 rounded-xl p-4 text-center">
-          <div className="text-green-400 font-bold text-2xl">{logs.length - totalFailed}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-foreground font-bold text-2xl">{logs.length}</div>
+            <div className="text-muted-foreground text-sm">Total notifications</div>
+          </CardContent>
+        </Card>
+        <div className="rounded-xl border border-ok-border bg-ok-surface p-4 text-center">
+          <div className="text-ok font-bold text-2xl">{logs.length - totalFailed}</div>
           <div className="text-muted-foreground text-sm">Delivered</div>
         </div>
-        <div className="bg-red-950/40 border border-red-800 rounded-xl p-4 text-center">
-          <div className="text-red-400 font-bold text-2xl">{totalFailed}</div>
+        <div className="rounded-xl border border-danger-border bg-danger-surface p-4 text-center">
+          <div className="text-danger font-bold text-2xl">{totalFailed}</div>
           <div className="text-muted-foreground text-sm">Failed</div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 mb-4 flex-wrap items-center">
-        <input
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:flex-wrap sm:items-center">
+        <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search recipient or event…"
-          className="bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm w-56"
+          className="w-full sm:w-56"
         />
         <select
           value={filterChannel}
           onChange={e => setFilterChannel(e.target.value)}
-          className="bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm"
+          className="h-10 rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:border-ring"
         >
           <option value="all">All channels</option>
           <option value="sms">SMS</option>
           <option value="push">Push / Email</option>
           <option value="in_app">In-App</option>
         </select>
-        <label className="flex items-center gap-2 text-muted-foreground text-sm cursor-pointer">
+        <Label className="flex items-center gap-2 text-muted-foreground font-normal">
           <input type="checkbox" checked={filterFailed} onChange={e => setFilterFailed(e.target.checked)} />
           Failures only
-        </label>
-        <div className="ml-auto">
-          <button
-            onClick={exportCsv}
-            className="bg-muted hover:bg-gray-700 text-foreground text-sm px-4 py-2 rounded-lg border border-border"
-          >
-            Export CSV
-          </button>
+        </Label>
+        <div className="sm:ml-auto">
+          <Button onClick={exportCsv} variant="outline" size="sm" className="w-full sm:w-auto">
+            <Download className="size-4" /> Export CSV
+          </Button>
         </div>
       </div>
 
       <div className="text-muted-foreground text-xs mb-2">{filtered.length} records</div>
 
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-muted-foreground text-xs">
-              <th className="text-left px-4 py-3">Recipient</th>
-              <th className="text-left px-4 py-3">Event</th>
-              <th className="text-left px-4 py-3">Channel</th>
-              <th className="text-left px-4 py-3">Sent At</th>
-              <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Failure Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center text-muted-foreground py-10">No records</td>
+      <Card className="overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-muted-foreground text-xs">
+                <th className="text-left px-4 py-3">Recipient</th>
+                <th className="text-left px-4 py-3">Event</th>
+                <th className="text-left px-4 py-3">Channel</th>
+                <th className="text-left px-4 py-3">Sent At</th>
+                <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-4 py-3">Failure Reason</th>
               </tr>
-            )}
-            {filtered.slice(0, 500).map(l => (
-              <tr key={l.id} className="border-b border-border/50 hover:bg-muted/20">
-                <td className="px-4 py-2.5 text-foreground">{l.recipient_name}</td>
-                <td className="px-4 py-2.5 text-muted-foreground text-xs">{l.event_type.replace(/_/g, ' ')}</td>
-                <td className="px-4 py-2.5">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    l.channel === 'sms'    ? 'bg-green-900 text-green-300' :
-                    l.channel === 'push'   ? 'bg-blue-900 text-blue-300'  :
-                                            'bg-muted text-muted-foreground'
-                  }`}>
-                    {l.channel}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                  {new Date(l.sent_at).toLocaleString('en-US', { hour12: false })}
-                </td>
-                <td className="px-4 py-2.5">
-                  {l.failed ? (
-                    <span className="text-xs text-red-400 font-medium">Failed</span>
-                  ) : l.delivered_at ? (
-                    <span className="text-xs text-green-400">Delivered</span>
-                  ) : (
-                    <span className="text-xs text-yellow-400">Sent</span>
-                  )}
-                </td>
-                <td className="px-4 py-2.5 text-red-400 text-xs">{l.failure_reason ?? ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center text-muted-foreground py-10">No records</td>
+                </tr>
+              )}
+              {filtered.slice(0, 500).map(l => (
+                <tr key={l.id} className="border-b border-border/50 hover:bg-muted/20">
+                  <td className="px-4 py-2.5 text-foreground">{l.recipient_name}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground text-xs">{l.event_type.replace(/_/g, ' ')}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge variant={CHANNEL_VARIANTS[l.channel] ?? 'neutral'}>
+                      {l.channel}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-nowrap">
+                    {new Date(l.sent_at).toLocaleString('en-US', { hour12: false })}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {l.failed ? (
+                      <span className="text-xs text-danger font-medium">Failed</span>
+                    ) : l.delivered_at ? (
+                      <span className="text-xs text-ok">Delivered</span>
+                    ) : (
+                      <span className="text-xs text-warn">Sent</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-danger text-xs">{l.failure_reason ?? ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   )
 }

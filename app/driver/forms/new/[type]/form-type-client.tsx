@@ -1,7 +1,14 @@
 'use client'
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { FormType, FORM_TYPE_LABELS } from '@/lib/supabase'
 import { submitFormAction } from '../../actions'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { ArrowLeft, AlertTriangle } from 'lucide-react'
 
 interface Props { formType: FormType }
 
@@ -22,41 +29,45 @@ export default function FormTypeClient({ formType }: Props) {
   }
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <a href="/driver/forms/new" className="text-sm text-muted-foreground hover:text-foreground mb-4 block">← Choose Form Type</a>
-      <h1 className="text-2xl font-bold text-foreground mb-6">{FORM_TYPE_LABELS[formType]}</h1>
+    <div className="space-y-6">
+      <Link href="/driver/forms/new" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 w-fit">
+        <ArrowLeft className="size-4" /> Choose Form Type
+      </Link>
+      <h1 className="text-2xl font-bold text-foreground">{FORM_TYPE_LABELS[formType]}</h1>
 
-      <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-6 space-y-4">
-        {formType === 'time_off' && <TimeOffFields />}
-        {formType === 'bid_vacation_change' && <BidVacationChangeFields />}
-        {formType === 'incident_report' && <IncidentReportFields />}
-        {formType === 'fmla_conversion' && <FmlaConversionFields />}
-        {formType === 'resignation' && <ResignationFields />}
+      <Card>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {formType === 'time_off' && <TimeOffFields />}
+          {formType === 'bid_vacation_change' && <BidVacationChangeFields />}
+          {formType === 'incident_report' && <IncidentReportFields />}
+          {formType === 'fmla_conversion' && <FmlaConversionFields />}
+          {formType === 'resignation' && <ResignationFields />}
 
-        {err && <p className="text-red-400 text-sm">{err}</p>}
+          {err && <p className="text-danger text-sm">{err}</p>}
 
-        <button type="submit" disabled={pending}
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-foreground font-medium rounded disabled:opacity-50">
-          Submit Form
-        </button>
-      </form>
+          <Button type="submit" size="lg" disabled={pending} className="w-full">
+            Submit Form
+          </Button>
+        </form>
+      </Card>
     </div>
   )
 }
 
 // ─── Field Sets ──────────────────────────────────────────────────────────────
 
+const selectClass = 'w-full bg-card border border-input rounded-lg px-3 py-2.5 text-foreground text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background'
+
 function Field({ label, name, type = 'text', required = false, rows }: {
   label: string; name: string; type?: string; required?: boolean; rows?: number
 }) {
-  const base = 'w-full bg-muted border border-border rounded px-3 py-2 text-foreground text-sm'
   return (
     <div>
-      <label className="block text-xs text-muted-foreground mb-1">{label}{required && ' *'}</label>
+      <Label className="block text-xs text-muted-foreground mb-1">{label}{required && ' *'}</Label>
       {rows ? (
-        <textarea name={name} rows={rows} required={required} className={base} />
+        <Textarea name={name} rows={rows} required={required} />
       ) : (
-        <input name={name} type={type} required={required} className={base} />
+        <Input name={name} type={type} required={required} />
       )}
     </div>
   )
@@ -68,8 +79,8 @@ function TimeOffFields() {
       <Field label="Start Date" name="start_date" type="date" required />
       <Field label="End Date" name="end_date" type="date" required />
       <div>
-        <label className="block text-xs text-muted-foreground mb-1">Type *</label>
-        <select name="leave_type" required className="w-full bg-muted border border-border rounded px-3 py-2 text-foreground text-sm">
+        <Label className="block text-xs text-muted-foreground mb-1">Type *</Label>
+        <select name="leave_type" required className={selectClass}>
           <option value="vacation">Vacation</option>
           <option value="pto">PTO</option>
           <option value="jury_duty">Jury Duty</option>
@@ -99,8 +110,8 @@ function IncidentReportFields() {
       <Field label="Bus Number" name="bus_number" />
       <Field label="Location / Route" name="location" required />
       <div>
-        <label className="block text-xs text-muted-foreground mb-1">Incident Type *</label>
-        <select name="incident_type" required className="w-full bg-muted border border-border rounded px-3 py-2 text-foreground text-sm">
+        <Label className="block text-xs text-muted-foreground mb-1">Incident Type *</Label>
+        <select name="incident_type" required className={selectClass}>
           <option value="vehicle_collision">Vehicle Collision</option>
           <option value="property_damage">Property Damage</option>
           <option value="personal_injury">Personal Injury</option>
@@ -113,8 +124,8 @@ function IncidentReportFields() {
       <Field label="Witnesses (if any)" name="witnesses" rows={2} />
       <Field label="Passenger Information (names / contact, if any)" name="passenger_info" rows={2} />
       <div>
-        <label className="block text-xs text-muted-foreground mb-1">Supervisor Contacted?</label>
-        <select name="supervisor_contacted" className="w-full bg-muted border border-border rounded px-3 py-2 text-foreground text-sm">
+        <Label className="block text-xs text-muted-foreground mb-1">Supervisor Contacted?</Label>
+        <select name="supervisor_contacted" className={selectClass}>
           <option value="">—</option>
           <option value="yes">Yes</option>
           <option value="no">No</option>
@@ -133,8 +144,8 @@ function FmlaConversionFields() {
       <Field label="Condition / Reason (medical information stays confidential)" name="condition_description" rows={3} required />
       <Field label="Healthcare Provider Name" name="provider_name" />
       <div>
-        <label className="block text-xs text-muted-foreground mb-1">Apply paid vacation/PTO during leave?</label>
-        <select name="vacation_pay_usage" className="w-full bg-muted border border-border rounded px-3 py-2 text-foreground text-sm">
+        <Label className="block text-xs text-muted-foreground mb-1">Apply paid vacation/PTO during leave?</Label>
+        <select name="vacation_pay_usage" className={selectClass}>
           <option value="">—</option>
           <option value="yes">Yes — use my vacation/PTO balance</option>
           <option value="no">No — unpaid FMLA</option>
@@ -150,8 +161,9 @@ function ResignationFields() {
     <>
       <Field label="Last Day of Work" name="last_day" type="date" required />
       <Field label="Reason for Resignation (optional)" name="reason" rows={3} />
-      <div className="bg-red-900/20 border border-red-800 rounded p-3">
-        <p className="text-red-400 text-xs">
+      <div className="bg-danger-surface border border-danger-border rounded-lg p-3 flex items-start gap-2">
+        <AlertTriangle className="size-4 text-danger shrink-0 mt-0.5" />
+        <p className="text-danger text-xs min-w-0">
           By submitting this form you are initiating the resignation process.
           Upon approval your system access will be deactivated on your last day.
         </p>

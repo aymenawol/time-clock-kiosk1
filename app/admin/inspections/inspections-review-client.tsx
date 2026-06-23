@@ -2,6 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, X, Check } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import DamageStrokesView from '@/components/damage-strokes-view'
 import { parseDamageStrokes, parseLegacyDamageImage } from '@/lib/damage'
 
@@ -56,19 +61,19 @@ export default function InspectionsReviewClient({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-foreground">Inspections</h1>
-        <div className="flex items-center gap-2">
-          <input
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
             type="date"
             value={dateFilter}
             onChange={(e) => navigate({ date: e.target.value, page: 1 })}
-            className="bg-card border border-border rounded-lg text-foreground px-3 py-2 text-sm"
+            className="h-9 w-auto text-sm"
           />
           <select
             value={typeFilter}
             onChange={(e) => navigate({ type: e.target.value, page: 1 })}
-            className="bg-card border border-border rounded-lg text-foreground px-3 py-2 text-sm"
+            className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
           >
             <option value="">All Types</option>
             <option value="pre_trip">Pre-Trip</option>
@@ -80,7 +85,7 @@ export default function InspectionsReviewClient({
       <p className="text-muted-foreground text-sm">{total} inspection{total !== 1 ? 's' : ''}</p>
 
       {inspections.length === 0 && (
-        <p className="text-gray-600 text-sm">No inspections found for this date/type.</p>
+        <p className="text-muted-foreground text-sm">No inspections found for this date/type.</p>
       )}
 
       {inspections.map((insp) => {
@@ -91,17 +96,17 @@ export default function InspectionsReviewClient({
         const hasDamage = (strokes?.length ?? 0) > 0 || parseLegacyDamageImage(insp.damage_drawing) !== null
 
         return (
-          <div key={insp.id} className="bg-card border border-border rounded-xl overflow-hidden">
+          <Card key={insp.id} className="overflow-hidden p-0">
             <button
-              className="w-full text-left p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+              className="w-full text-left p-4 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors"
               onClick={() => setExpanded(isExpanded ? null : insp.id)}
             >
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-3">
-                  <span className="text-foreground font-semibold">
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-foreground font-semibold truncate">
                     {insp.driver ? insp.driver.name : 'Unknown Driver'}
                   </span>
-                  <span className="text-muted-foreground text-sm">Bus {insp.bus?.bus_number ?? '—'}</span>
+                  <span className="text-muted-foreground text-sm shrink-0">Bus {insp.bus?.bus_number ?? '—'}</span>
                 </div>
                 <p className="text-muted-foreground text-xs">
                   {insp.inspection_type === 'pre_trip' ? 'Pre-Trip' : 'Post-Trip'} ·{' '}
@@ -110,23 +115,19 @@ export default function InspectionsReviewClient({
                     : 'Not submitted'}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
                 {insp.has_defects && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-red-900 text-red-300 font-medium">
-                    Defects
-                  </span>
+                  <Badge variant="danger">Defects</Badge>
                 )}
                 {hasDamage && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-orange-900 text-orange-300 font-medium">
-                    Damage
-                  </span>
+                  <Badge variant="warn">Damage</Badge>
                 )}
                 {insp.is_locked && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground font-medium">
-                    Locked
-                  </span>
+                  <Badge variant="neutral">Locked</Badge>
                 )}
-                <span className="text-muted-foreground text-lg">{isExpanded ? '▲' : '▼'}</span>
+                {isExpanded
+                  ? <ChevronUp className="size-4 text-muted-foreground" />
+                  : <ChevronDown className="size-4 text-muted-foreground" />}
               </div>
             </button>
 
@@ -143,17 +144,17 @@ export default function InspectionsReviewClient({
                         .filter((i) => i.passed === false)
                         .map((item) => (
                           <div key={item.id} className="flex items-center gap-2 text-sm">
-                            <span className="text-red-500">✗</span>
-                            <span className="text-red-300">{item.item_name}</span>
+                            <X className="size-4 text-danger shrink-0" />
+                            <span className="text-danger">{item.item_name}</span>
                           </div>
                         ))}
                     </div>
                   )}
                   {failCount === 0 && insp.inspection_items.length > 0 && (
-                    <p className="text-green-400 text-sm">All items passed</p>
+                    <p className="text-ok text-sm flex items-center gap-2"><Check className="size-4" /> All items passed</p>
                   )}
                   {insp.inspection_items.length === 0 && (
-                    <p className="text-gray-600 text-sm">No checklist items recorded</p>
+                    <p className="text-muted-foreground text-sm">No checklist items recorded</p>
                   )}
                 </div>
 
@@ -166,28 +167,30 @@ export default function InspectionsReviewClient({
                 )}
               </div>
             )}
-          </div>
+          </Card>
         )
       })}
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-2">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             disabled={page <= 1}
             onClick={() => navigate({ page: page - 1 })}
-            className="px-3 py-1.5 bg-muted hover:bg-gray-700 text-foreground text-sm rounded-lg disabled:opacity-40"
           >
-            ← Prev
-          </button>
+            <ChevronLeft /> Prev
+          </Button>
           <span className="text-muted-foreground text-sm">Page {page} of {totalPages}</span>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             disabled={page >= totalPages}
             onClick={() => navigate({ page: page + 1 })}
-            className="px-3 py-1.5 bg-muted hover:bg-gray-700 text-foreground text-sm rounded-lg disabled:opacity-40"
           >
-            Next →
-          </button>
+            Next <ChevronRight />
+          </Button>
         </div>
       )}
     </div>

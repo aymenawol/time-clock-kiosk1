@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation"
 import { inviteEmployeeAction } from "../actions"
 import type { InviteEmployeeInput } from "../types"
 import type { EmployeeRole } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 const ROLES: { value: EmployeeRole; label: string }[] = [
@@ -104,12 +109,13 @@ export default function NewEmployeePage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/admin/employees"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          ← Employees
+          <ArrowLeft className="size-4" />
+          Employees
         </Link>
         <h1 className="text-xl font-bold text-foreground">Add Employee</h1>
       </div>
@@ -119,35 +125,33 @@ export default function NewEmployeePage() {
         className="bg-card rounded-2xl p-6 border border-border space-y-5"
       >
         {/* Identity */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Employee ID *">
-            <input
+            <Input
               required
               value={form.employee_id}
               onChange={(e) => set("employee_id", e.target.value)}
               placeholder="e.g. 1234"
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="Full Name *">
-            <input
+            <Input
               required
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
               placeholder="First Last"
-              className={INPUT_CLS}
             />
           </Field>
         </div>
 
         {/* Role + Dept */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Role *">
             <select
               required
               value={form.role}
               onChange={(e) => set("role", e.target.value)}
-              className={INPUT_CLS}
+              className={SELECT_CLS}
             >
               <option value="">Select role…</option>
               {ROLES.map((r) => (
@@ -161,7 +165,7 @@ export default function NewEmployeePage() {
             <select
               value={form.department}
               onChange={(e) => set("department", e.target.value)}
-              className={INPUT_CLS}
+              className={SELECT_CLS}
             >
               <option value="">Select department…</option>
               {DEPARTMENTS.map((d) => (
@@ -174,136 +178,120 @@ export default function NewEmployeePage() {
         </div>
 
         {/* Contact */}
-        <hr className="border-border" />
+        <Separator />
         <p className="text-xs text-muted-foreground">
           An invite email will be sent so the employee can set their own password.
         </p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Email *">
-            <input
+            <Input
               type="email"
               required
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
               placeholder="employee@example.com"
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="Phone">
-            <input
+            <Input
               type="tel"
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
               placeholder="(555) 000-0000"
-              className={INPUT_CLS}
             />
           </Field>
         </div>
 
         {/* Employment details */}
-        <hr className="border-border" />
-        <div className="grid grid-cols-3 gap-4">
+        <Separator />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Hire Date">
-            <input
+            <Input
               type="date"
               value={form.hire_date}
               onChange={(e) => set("hire_date", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="Seniority #">
-            <input
+            <Input
               type="number"
               min={1}
               value={form.seniority_number}
               onChange={(e) => set("seniority_number", e.target.value)}
               placeholder="e.g. 42"
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="Shift">
-            <input
+            <Input
               value={form.shift}
               onChange={(e) => set("shift", e.target.value)}
               placeholder="e.g. AM / PM"
-              className={INPUT_CLS}
             />
           </Field>
         </div>
 
         {/* Leave balances */}
-        <hr className="border-border" />
+        <Separator />
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
           Leave Balances (hours)
         </p>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="PTO">
-            <input
+            <Input
               type="number"
               min={0}
               step={0.5}
               value={form.pto_balance}
               onChange={(e) => set("pto_balance", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="Vacation">
-            <input
+            <Input
               type="number"
               min={0}
               step={0.5}
               value={form.vacation_balance}
               onChange={(e) => set("vacation_balance", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
           <Field label="FMLA">
-            <input
+            <Input
               type="number"
               min={0}
               step={0.5}
               value={form.fmla_balance}
               onChange={(e) => set("fmla_balance", e.target.value)}
-              className={INPUT_CLS}
             />
           </Field>
         </div>
 
         {error && (
-          <div className="rounded-xl bg-red-950 border border-red-800 px-4 py-3 text-red-300 text-sm">
+          <div className="rounded-xl bg-danger-surface border border-danger-border px-4 py-3 text-danger text-sm">
             {error}
           </div>
         )}
 
         {invited && (
-          <div className="rounded-xl bg-green-950 border border-green-800 px-4 py-3 text-green-300 text-sm">
+          <div className="rounded-xl bg-ok-surface border border-ok-border px-4 py-3 text-ok text-sm">
             Invite sent to <strong>{invited}</strong>. Redirecting…
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Link
-            href="/admin/employees"
-            className="px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-700 transition-colors"
-          >
-            Cancel
-          </Link>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="px-6 py-2 rounded-xl text-sm font-semibold text-foreground disabled:opacity-50 transition-opacity"
-            style={{ backgroundColor: "#2563EB" }}
-          >
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-end">
+          <Button asChild variant="secondary">
+            <Link href="/admin/employees">Cancel</Link>
+          </Button>
+          <Button type="submit" disabled={isPending}>
             {isPending ? "Sending Invite…" : "Create & Send Invite"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
   )
 }
 
-const INPUT_CLS =
-  "w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-600"
+const SELECT_CLS =
+  "w-full h-10 px-3 py-2 rounded-lg bg-card border border-input text-foreground text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:border-ring"
 
 function Field({
   label,
@@ -313,10 +301,8 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div>
-      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-        {label}
-      </label>
+    <div className="space-y-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
       {children}
     </div>
   )

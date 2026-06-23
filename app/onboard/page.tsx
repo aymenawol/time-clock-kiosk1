@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 function redirectByRole(role: string | undefined, router: ReturnType<typeof useRouter>) {
   if (!role) { router.replace('/login'); return }
@@ -59,11 +63,8 @@ export default function OnboardPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-            style={{ backgroundColor: '#2563EB' }}
-          >
-            <span className="text-foreground text-2xl font-bold">RC</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-primary">
+            <span className="text-primary-foreground text-2xl font-bold">RC</span>
           </div>
           <h1 className="text-foreground text-2xl font-bold">
             Welcome{userName ? `, ${userName.split(' ')[0]}` : ''}!
@@ -73,51 +74,42 @@ export default function OnboardPage() {
           </p>
         </div>
 
-        <div className="bg-card rounded-2xl p-8 border border-border shadow-2xl">
+        <Card className="p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                New Password
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="onboard-password">New Password</Label>
+              <Input
+                id="onboard-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="Minimum 8 characters"
-                className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Confirm Password
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="onboard-confirm">Confirm Password</Label>
+              <Input
+                id="onboard-confirm"
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 placeholder="Repeat password"
-                className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
               />
             </div>
 
             {error && (
-              <div className="rounded-xl bg-red-950 border border-red-800 px-4 py-3 text-red-300 text-sm">
+              <div className="rounded-lg bg-danger-surface border border-danger-border px-4 py-3 text-danger text-sm">
                 {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl text-foreground font-semibold transition-opacity disabled:opacity-60"
-              style={{ backgroundColor: '#2563EB' }}
-            >
+            <Button type="submit" disabled={loading} size="lg" className="w-full">
               {loading ? 'Setting up…' : 'Set Password & Continue'}
-            </button>
+            </Button>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   )

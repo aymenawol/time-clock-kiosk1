@@ -2,6 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { CheckCircle2, X } from 'lucide-react'
 
 const LOCATIONS = [
   'On Bus',
@@ -88,50 +93,53 @@ export default function LostFoundForm({ employeeId, busId, busNumber }: Props) {
 
   if (submitted) {
     return (
-      <div className="bg-green-950/50 border border-green-700 rounded-xl p-8 text-center">
-        <div className="text-green-400 text-5xl mb-4">✓</div>
-        <h2 className="text-foreground font-bold text-xl mb-2">Item Reported</h2>
-        <p className="text-foreground mb-1">{description}</p>
-        <p className="text-muted-foreground text-sm">Location: {location} · Bus {busNumber}</p>
-        <p className="text-muted-foreground text-sm mt-4">Dispatch has been notified.</p>
-        <button
-          onClick={() => {
-            setSubmitted(false); setDescription(''); setLocation('On Bus')
-            setIsBag(false); setBagContents(''); setPhotos([]); setUploadProgress(0)
-          }}
-          className="mt-6 text-muted-foreground hover:text-foreground text-sm underline"
-        >
-          Report another item
-        </button>
-      </div>
+      <Card className="border-ok-border bg-ok-surface">
+        <CardContent className="p-8 text-center">
+          <CheckCircle2 className="size-12 text-ok mx-auto mb-4" />
+          <h2 className="text-foreground font-bold text-xl mb-2">Item Reported</h2>
+          <p className="text-foreground mb-1">{description}</p>
+          <p className="text-muted-foreground text-sm">Location: {location} · Bus {busNumber}</p>
+          <p className="text-muted-foreground text-sm mt-4">Dispatch has been notified.</p>
+          <Button
+            variant="link"
+            onClick={() => {
+              setSubmitted(false); setDescription(''); setLocation('On Bus')
+              setIsBag(false); setBagContents(''); setPhotos([]); setUploadProgress(0)
+            }}
+            className="mt-6"
+          >
+            Report another item
+          </Button>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-sm text-muted-foreground mb-1">Bus Number</label>
+        <Label className="block text-sm text-muted-foreground mb-1">Bus Number</Label>
         <div className="bg-muted border border-border rounded-xl px-4 py-3 text-foreground">{busNumber}</div>
       </div>
 
       <div>
-        <label className="block text-sm text-muted-foreground mb-1">Item Description <span className="text-red-400">*</span></label>
-        <textarea
+        <Label className="block text-sm text-muted-foreground mb-1">Item Description <span className="text-danger">*</span></Label>
+        <Textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
           required
           rows={3}
           placeholder="Describe the item found…"
-          className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:border-gray-500 resize-none"
+          className="rounded-xl px-4 py-3 resize-none"
         />
       </div>
 
       <div>
-        <label className="block text-sm text-muted-foreground mb-1">Where was it found?</label>
+        <Label className="block text-sm text-muted-foreground mb-1">Where was it found?</Label>
         <select
           value={location}
           onChange={e => setLocation(e.target.value)}
-          className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-gray-500"
+          className="w-full bg-card border border-input rounded-xl px-4 py-3 text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         >
           {LOCATIONS.map(l => (
             <option key={l} value={l}>{l}</option>
@@ -143,31 +151,31 @@ export default function LostFoundForm({ employeeId, busId, busNumber }: Props) {
         <button
           type="button"
           onClick={() => setIsBag(!isBag)}
-          className={`w-12 h-6 rounded-full transition-colors ${isBag ? 'bg-blue-600' : 'bg-gray-700'} relative`}
+          className={`w-12 h-6 rounded-full transition-colors ${isBag ? 'bg-primary' : 'bg-muted border border-border'} relative`}
         >
-          <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isBag ? 'translate-x-6' : ''}`} />
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-card rounded-full shadow transition-transform ${isBag ? 'translate-x-6' : ''}`} />
         </button>
-        <label className="text-sm text-foreground cursor-pointer" onClick={() => setIsBag(!isBag)}>
+        <label className="text-sm text-foreground" onClick={() => setIsBag(!isBag)}>
           This is a bag / backpack / luggage
         </label>
       </div>
 
       {isBag && (
         <div>
-          <label className="block text-sm text-muted-foreground mb-1">Bag Contents <span className="text-red-400">*</span></label>
-          <textarea
+          <Label className="block text-sm text-muted-foreground mb-1">Bag Contents <span className="text-danger">*</span></Label>
+          <Textarea
             value={bagContents}
             onChange={e => setBagContents(e.target.value)}
             required={isBag}
             rows={3}
             placeholder="Describe what the bag contains (for security)…"
-            className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none focus:border-gray-500 resize-none"
+            className="rounded-xl px-4 py-3 resize-none"
           />
         </div>
       )}
 
       <div>
-        <label className="block text-sm text-muted-foreground mb-1">Photos (optional, max 5)</label>
+        <Label className="block text-sm text-muted-foreground mb-1">Photos (optional, max 5)</Label>
         <div className="border-2 border-dashed border-border rounded-xl p-4 text-center">
           <input
             type="file"
@@ -198,9 +206,9 @@ export default function LostFoundForm({ employeeId, busId, busNumber }: Props) {
                 <button
                   type="button"
                   onClick={() => setPhotos(p => p.filter((_, j) => j !== i))}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-foreground rounded-full text-xs flex items-center justify-center"
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
                 >
-                  ×
+                  <X className="size-3" />
                 </button>
               </div>
             ))}
@@ -212,20 +220,21 @@ export default function LostFoundForm({ employeeId, busId, busNumber }: Props) {
         <div>
           <div className="text-xs text-muted-foreground mb-1">Uploading… {uploadProgress}%</div>
           <div className="bg-muted rounded-full h-1.5">
-            <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+            <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
           </div>
         </div>
       )}
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-danger text-sm">{error}</p>}
 
-      <button
+      <Button
         type="submit"
+        size="xl"
         disabled={isPending || !description.trim() || (isBag && !bagContents.trim())}
-        className="w-full bg-blue-600 hover:bg-blue-500 text-foreground font-bold py-4 rounded-xl text-lg disabled:opacity-40 transition-colors"
+        className="w-full font-bold"
       >
         {isPending ? 'Submitting…' : 'Submit Lost & Found Report'}
-      </button>
+      </Button>
     </form>
   )
 }

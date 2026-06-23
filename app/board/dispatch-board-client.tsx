@@ -1,11 +1,15 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 import { isPositionStale, minutesSinceLastPosition } from '@/lib/gps-utils'
 import { calcETA, type PositionSample } from '@/lib/gps-utils'
 import { TERMINALS } from '@/lib/terminals'
-import { busStatusColor, busStatusLabel } from '@/lib/constants/bus-status'
+import { busStatusLabel } from '@/lib/constants/bus-status'
+import type { BusStatus } from '@/lib/supabase'
+import { Badge } from '@/components/ui/badge'
+import { AlertTriangle, Map, Radio, X, MapPin, ArrowLeft, ArrowRight, Megaphone } from 'lucide-react'
 
 // ─────────────────────────────── Types ───────────────────────────────
 
@@ -48,7 +52,28 @@ interface Props {
 
 // ─────────────────────────────── Constants ───────────────────────────────
 
-// Bus-status colors/labels come from the canonical map in lib/constants/bus-status.
+// Bus-status labels come from the canonical map in lib/constants/bus-status.
+// Tile colors map each status to a tokenized operational ramp (DESIGN.md §4)
+// so the wall display reads correctly in both light and dark.
+const BUS_STATUS_RAMP: Record<BusStatus, string> = {
+  ready:              'bg-ok-surface text-ok border-ok-border',
+  in_service:         'bg-info-surface text-info border-info-border',
+  charging:           'bg-info-surface text-info border-info-border',
+  fuel:               'bg-warn-surface text-warn border-warn-border',
+  wash:               'bg-warn-surface text-warn border-warn-border',
+  fuel_wash:          'bg-warn-surface text-warn border-warn-border',
+  maintenance_pmi:    'bg-danger-surface text-danger border-danger-border',
+  shopped_dvir:       'bg-danger-surface text-danger border-danger-border',
+  maintenance_repair: 'bg-danger-surface text-danger border-danger-border',
+  safety_hold:        'bg-hazard-surface text-hazard border-hazard-border',
+  salvage:            'bg-neutral-surface text-neutral border-neutral-border',
+  training:           'bg-info-surface text-info border-info-border',
+}
+
+function busStatusRamp(status: string): string {
+  return (BUS_STATUS_RAMP as Record<string, string>)[status]
+    ?? 'bg-neutral-surface text-neutral border-neutral-border'
+}
 
 const RADIO_LABELS: Record<string, string> = {
   '10-8': 'In Service', '10-39': 'On Break', '10-37': 'Fueling/Wash',
@@ -136,72 +161,79 @@ export default function DispatchBoardClient({
   const selectedPosition  = selectedBusId ? positions[selectedBusId] : null
 
   return (
-    <div className="flex flex-col h-screen select-none">
+    <div className="flex flex-col h-screen select-none bg-background text-foreground">
       {/* ── Top Bar ── */}
-      <header className="flex items-center gap-4 bg-card border-b border-border px-4 h-10 shrink-0">
-        <div className="text-lg font-bold text-foreground tracking-widest uppercase">
+      <header className="flex items-center gap-3 sm:gap-4 bg-card border-b border-border px-3 sm:px-4 h-10 shrink-0 min-w-0">
+        <div className="text-lg font-bold text-foreground tracking-widest uppercase shrink-0">
           <MilitaryClock />
         </div>
-        <span className="text-muted-foreground text-sm">
+        <span className="text-muted-foreground text-sm hidden md:inline truncate">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
         </span>
 
-        <div className="ml-auto flex items-center gap-5 text-sm">
-          <span className="text-muted-foreground">Drivers Active: <span className="text-foreground font-bold">{activeDriverCount}</span></span>
-          <span className="text-muted-foreground">Available Buses: <span className="text-green-400 font-bold">{availableBusCount}</span></span>
-          <span className="text-muted-foreground">OOS: <span className="text-red-400 font-bold">{oosBusCount}</span></span>
+        <div className="ml-auto flex items-center gap-3 sm:gap-5 text-sm min-w-0">
+          <span className="text-muted-foreground whitespace-nowrap hidden sm:inline">Drivers Active: <span className="text-foreground font-bold">{activeDriverCount}</span></span>
+          <span className="text-muted-foreground whitespace-nowrap">Available: <span className="text-ok font-bold">{availableBusCount}</span></span>
+          <span className="text-muted-foreground whitespace-nowrap">OOS: <span className="text-danger font-bold">{oosBusCount}</span></span>
           {unresolvedAlerts.length > 0 && (
-            <span className="text-red-400 font-bold animate-pulse">
-              ⚠ {unresolvedAlerts.length} Fatigue Alert{unresolvedAlerts.length > 1 ? 's' : ''}
+            <span className="text-danger font-bold animate-pulse flex items-center gap-1 whitespace-nowrap">
+              <AlertTriangle className="size-4 shrink-0" aria-hidden />
+              {unresolvedAlerts.length} Fatigue Alert{unresolvedAlerts.length > 1 ? 's' : ''}
             </span>
           )}
         </div>
 
-        <a href="/admin/map" className="ml-4 text-xs text-muted-foreground hover:text-foreground border border-border px-2 py-1 rounded">
-          GPS Map →
-        </a>
-        <a href="/dispatcher" className="text-xs text-muted-foreground hover:text-foreground border border-border px-2 py-1 rounded">
-          Dispatcher ←
-        </a>
+        <Link href="/admin/map" className="ml-2 sm:ml-4 text-xs text-muted-foreground hover:text-foreground border border-border px-2 py-1 rounded flex items-center gap-1 whitespace-nowrap shrink-0">
+          <Map className="size-3.5 shrink-0" aria-hidden />
+          <span className="hidden sm:inline">GPS Map</span>
+          <ArrowRight className="size-3 shrink-0" aria-hidden />
+        </Link>
+        <Link href="/dispatcher" className="text-xs text-muted-foreground hover:text-foreground border border-border px-2 py-1 rounded flex items-center gap-1 whitespace-nowrap shrink-0">
+          <ArrowLeft className="size-3 shrink-0" aria-hidden />
+          <span className="hidden sm:inline">Dispatcher</span>
+        </Link>
       </header>
 
       {/* ── OT Banner ── */}
       {banner?.is_active && banner.message && (
-        <div className="bg-yellow-900/30 border-b border-yellow-700 px-4 py-1.5 text-yellow-200 text-sm">
-          📢 {banner.message}
+        <div className="bg-warn-surface border-b border-warn-border px-4 py-1.5 text-warn text-sm flex items-center gap-2">
+          <Megaphone className="size-4 shrink-0" aria-hidden />
+          <span className="min-w-0 truncate">{banner.message}</span>
         </div>
       )}
 
       {/* ── Main Area ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-w-0">
         {/* Bus Grid */}
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 overflow-y-auto p-3 min-w-0">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
             {buses.map(bus => {
               const shift  = shifts.find(s => s.bus_id === bus.id && s.status === 'active')
               const pos    = positions[bus.id]
               const stale  = pos ? isPositionStale(pos.recorded_at) : false
-              const colorCls = busStatusColor(bus.status)
+              const colorCls = busStatusRamp(bus.status)
               const isSelected = selectedBusId === bus.id
 
               return (
                 <button
                   key={bus.id}
                   onClick={() => setSelectedBusId(isSelected ? null : bus.id)}
-                  className={`rounded-xl border p-2.5 text-left transition-all ${colorCls} ${
-                    isSelected ? 'ring-2 ring-white' : 'hover:ring-1 hover:ring-gray-500'
+                  className={`rounded-xl border p-2.5 text-left transition-all min-w-0 ${colorCls} ${
+                    isSelected ? 'ring-2 ring-ring' : 'hover:ring-1 hover:ring-border'
                   }`}
                 >
                   {/* Bus number + type */}
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-foreground text-base">#{bus.bus_number}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
-                      bus.bus_type === 'EV' ? 'bg-teal-900 text-teal-300' : 'bg-muted text-muted-foreground'
-                    }`}>{bus.bus_type}</span>
+                  <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
+                    <span className="font-bold text-foreground text-base truncate">#{bus.bus_number}</span>
+                    {bus.bus_type === 'EV' ? (
+                      <Badge variant="info" className="shrink-0">EV</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="shrink-0">{bus.bus_type}</Badge>
+                    )}
                   </div>
 
                   {/* Status */}
-                  <p className="text-xs text-muted-foreground truncate">{busStatusLabel(bus.status)}</p>
+                  <p className="text-xs truncate">{busStatusLabel(bus.status)}</p>
 
                   {/* Driver */}
                   {shift?.employee ? (
@@ -209,12 +241,15 @@ export default function DispatchBoardClient({
                       {shift.employee.name}
                     </p>
                   ) : (
-                    <p className="text-xs text-gray-600 mt-0.5">No driver</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">No driver</p>
                   )}
 
                   {/* Radio code */}
                   {shift?.radio_status && (
-                    <p className="text-xs text-blue-400 truncate">{shift.radio_status} — {RADIO_LABELS[shift.radio_status] ?? ''}</p>
+                    <p className="text-xs text-info truncate flex items-center gap-1">
+                      <Radio className="size-3 shrink-0" aria-hidden />
+                      {shift.radio_status} — {RADIO_LABELS[shift.radio_status] ?? ''}
+                    </p>
                   )}
 
                   {/* Fuel/Battery */}
@@ -223,13 +258,13 @@ export default function DispatchBoardClient({
                       <div className="h-1 rounded bg-muted overflow-hidden">
                         <div
                           className={`h-full rounded ${
-                            (bus.fuel_level ?? 0) < 25 ? 'bg-red-500' :
-                            (bus.fuel_level ?? 0) < 50 ? 'bg-yellow-500' : 'bg-green-500'
+                            (bus.fuel_level ?? 0) < 25 ? 'bg-danger' :
+                            (bus.fuel_level ?? 0) < 50 ? 'bg-warn' : 'bg-ok'
                           }`}
                           style={{ width: `${bus.fuel_level ?? 0}%` }}
                         />
                       </div>
-                      <p className="text-xs text-gray-600 mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {bus.bus_type === 'EV' ? 'Charge' : 'Fuel'}: {bus.fuel_level?.toFixed(0)}%
                       </p>
                     </div>
@@ -237,8 +272,9 @@ export default function DispatchBoardClient({
 
                   {/* GPS indicator */}
                   {pos && (
-                    <p className={`text-xs mt-1 ${stale ? 'text-red-500' : 'text-green-500'}`}>
-                      {stale ? `GPS⚠ ${minutesSinceLastPosition(pos.recorded_at)}m` : '● GPS'}
+                    <p className={`text-xs mt-1 flex items-center gap-1 ${stale ? 'text-danger' : 'text-ok'}`}>
+                      <MapPin className="size-3 shrink-0" aria-hidden />
+                      {stale ? `GPS ${minutesSinceLastPosition(pos.recorded_at)}m` : 'GPS'}
                     </p>
                   )}
                 </button>
@@ -248,17 +284,23 @@ export default function DispatchBoardClient({
         </div>
 
         {/* Right sidebar: selected bus detail + alerts */}
-        <div className="w-72 bg-card border-l border-border flex flex-col overflow-hidden shrink-0">
+        <div className="w-64 sm:w-72 bg-card border-l border-border flex flex-col overflow-hidden shrink-0">
           {/* Selected bus detail */}
           {selectedBus && (
-            <div className="p-3 border-b border-border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-foreground">Bus #{selectedBus.bus_number}</span>
-                <button onClick={() => setSelectedBusId(null)} className="text-gray-600 hover:text-foreground text-xs">✕</button>
+            <div className="p-3 border-b border-border min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-2 min-w-0">
+                <span className="font-bold text-foreground truncate">Bus #{selectedBus.bus_number}</span>
+                <button
+                  onClick={() => setSelectedBusId(null)}
+                  aria-label="Close detail"
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
               </div>
 
               {selectedShift?.employee && (
-                <p className="text-foreground text-sm">
+                <p className="text-foreground text-sm truncate">
                   {selectedShift.employee.name}
                 </p>
               )}
@@ -279,50 +321,56 @@ export default function DispatchBoardClient({
                       }))
                       const eta = calcETA(samples, t)
                       return (
-                        <p key={t.id} className="text-xs text-foreground">
+                        <p key={t.id} className="text-xs text-foreground truncate">
                           {t.name}: {eta != null ? `~${eta} min` : '—'}
                         </p>
                       )
                     })}
                   </div>
 
-                  <p className="text-xs text-gray-600 mt-1">
+                  <p className={`text-xs mt-1 ${isPositionStale(selectedPosition.recorded_at) ? 'text-danger' : 'text-muted-foreground'}`}>
                     {isPositionStale(selectedPosition.recorded_at)
-                      ? `⚠ GPS lost ${minutesSinceLastPosition(selectedPosition.recorded_at)}m ago`
+                      ? `GPS lost ${minutesSinceLastPosition(selectedPosition.recorded_at)}m ago`
                       : `Live · ${minutesSinceLastPosition(selectedPosition.recorded_at)}m ago`}
                   </p>
                 </>
               )}
 
               {selectedShift && (
-                <a
+                <Link
                   href="/admin/map"
-                  className="mt-2 block text-xs text-blue-400 hover:text-blue-300"
+                  className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
                 >
-                  View on map →
-                </a>
+                  <Map className="size-3.5 shrink-0" aria-hidden />
+                  View on map
+                  <ArrowRight className="size-3 shrink-0" aria-hidden />
+                </Link>
               )}
             </div>
           )}
 
           {/* Fatigue / alert feed */}
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 overflow-y-auto p-3 min-w-0">
             <p className="text-muted-foreground text-xs uppercase tracking-wide font-semibold mb-2">
               Active Alerts ({unresolvedAlerts.length})
             </p>
             {unresolvedAlerts.length === 0 && (
-              <p className="text-gray-600 text-sm">No active alerts.</p>
+              <p className="text-muted-foreground text-sm">No active alerts.</p>
             )}
             {unresolvedAlerts.map(a => (
-              <div key={a.id} className="rounded-lg border border-red-800 bg-red-950/20 p-2.5 mb-2">
-                <p className="text-red-300 text-xs font-semibold capitalize">
-                  {a.alert_type.replace(/_/g, ' ')}
+              <div key={a.id} className="rounded-lg border border-danger-border bg-danger-surface p-2.5 mb-2 min-w-0">
+                <p className="text-danger text-xs font-semibold capitalize flex items-center gap-1">
+                  <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{a.alert_type.replace(/_/g, ' ')}</span>
                 </p>
                 {a.employees && (
-                  <p className="text-foreground text-xs">{a.employees.name}</p>
+                  <p className="text-foreground text-xs truncate">{a.employees.name}</p>
                 )}
-                <p className="text-gray-600 text-xs">{new Date(a.triggered_at).toLocaleTimeString()}</p>
-                <a href="/admin/fatigue" className="text-red-400 text-xs hover:text-red-300">Review →</a>
+                <p className="text-muted-foreground text-xs">{new Date(a.triggered_at).toLocaleTimeString()}</p>
+                <Link href="/admin/fatigue" className="text-danger text-xs hover:underline inline-flex items-center gap-1">
+                  Review
+                  <ArrowRight className="size-3 shrink-0" aria-hidden />
+                </Link>
               </div>
             ))}
           </div>

@@ -2,6 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge, type BadgeProps } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { transitionLostItemAction, type LostItemStatus } from './actions'
 
 interface StatusHistory {
@@ -39,12 +44,12 @@ const STATUS_TRANSITIONS: Record<LostItemStatus, LostItemStatus[]> = {
   disposed:            [],
 }
 
-const STATUS_COLORS: Record<LostItemStatus, string> = {
-  found:               'bg-blue-900 text-blue-200',
-  collected:           'bg-yellow-900 text-yellow-200',
-  returned_to_dispatch: 'bg-orange-900 text-orange-200',
-  claimed:             'bg-green-900 text-green-200',
-  disposed:            'bg-muted text-muted-foreground',
+const STATUS_VARIANTS: Record<LostItemStatus, BadgeProps['variant']> = {
+  found:               'info',
+  collected:           'warn',
+  returned_to_dispatch: 'warn',
+  claimed:             'ok',
+  disposed:            'neutral',
 }
 
 export default function LostFoundClient({ items: initialItems }: { items: LostItem[] }) {
@@ -126,7 +131,7 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
   }
 
   return (
-    <div className="flex gap-6">
+    <div className="flex flex-col lg:flex-row gap-6">
       {/* List */}
       <div className="flex-1 min-w-0">
         {/* Filter bar */}
@@ -137,8 +142,8 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
               onClick={() => setFilter(s)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                 filter === s
-                  ? 'bg-white text-gray-900 border-white'
-                  : 'bg-card text-muted-foreground border-border hover:border-gray-500'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-card text-muted-foreground border-border hover:bg-accent'
               }`}
             >
               {s === 'all' ? 'All' : s.replace(/_/g, ' ')}
@@ -159,19 +164,19 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
             <button
               key={item.id}
               onClick={() => openItem(item)}
-              className={`w-full text-left bg-card border rounded-xl p-4 hover:border-gray-600 transition-colors ${
-                selected?.id === item.id ? 'border-blue-600' : 'border-border'
+              className={`w-full text-left bg-card border rounded-xl p-4 shadow-sm hover:bg-accent transition-colors ${
+                selected?.id === item.id ? 'border-primary' : 'border-border'
               }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-foreground text-sm font-medium truncate">{item.item_description}</p>
                   <p className="text-muted-foreground text-xs mt-0.5">Bus {item.bus_number} · {item.location_found}</p>
-                  <p className="text-gray-600 text-xs">{new Date(item.found_at).toLocaleDateString()}</p>
+                  <p className="text-muted-foreground text-xs">{new Date(item.found_at).toLocaleDateString()}</p>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${STATUS_COLORS[item.status]}`}>
+                <Badge variant={STATUS_VARIANTS[item.status]} className="shrink-0">
                   {item.status.replace(/_/g, ' ')}
-                </span>
+                </Badge>
               </div>
             </button>
           ))}
@@ -180,18 +185,20 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
 
       {/* Detail panel */}
       {selected && (
-        <div className="w-96 shrink-0 bg-card border border-border rounded-2xl p-6 space-y-5 max-h-[calc(100vh-160px)] overflow-y-auto">
-          <div className="flex items-start justify-between">
-            <h3 className="text-foreground font-semibold text-lg leading-tight">{selected.item_description}</h3>
-            <button onClick={() => setSelected(null)} className="text-gray-600 hover:text-foreground text-xl leading-none">×</button>
+        <Card className="w-full lg:w-96 shrink-0 p-5 sm:p-6 space-y-5 lg:max-h-[calc(100vh-160px)] lg:overflow-y-auto">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-foreground font-semibold text-lg leading-tight min-w-0">{selected.item_description}</h3>
+            <Button onClick={() => setSelected(null)} variant="ghost" size="icon-sm" className="shrink-0">
+              <X className="size-4" />
+            </Button>
           </div>
 
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[selected.status]}`}>
+              <Badge variant={STATUS_VARIANTS[selected.status]}>
                 {selected.status.replace(/_/g, ' ')}
-              </span>
+              </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Bus</span>
@@ -212,7 +219,7 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
             {selected.is_bag && (
               <div>
                 <div className="text-muted-foreground mb-0.5">Bag contents</div>
-                <div className="text-yellow-200 bg-yellow-950/40 border border-yellow-800 rounded p-2 text-sm">
+                <div className="text-warn bg-warn-surface border border-warn-border rounded p-2 text-sm">
                   {selected.bag_contents}
                 </div>
               </div>
@@ -245,8 +252,8 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
                     onClick={() => { setTransitionStatus(s); setConfirmAction(false) }}
                     className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
                       transitionStatus === s
-                        ? 'bg-blue-700 border-blue-500 text-foreground'
-                        : 'bg-muted border-border text-muted-foreground hover:border-gray-500'
+                        ? 'bg-primary border-primary text-primary-foreground'
+                        : 'bg-muted border-border text-muted-foreground hover:bg-accent'
                     }`}
                   >
                     {s.replace(/_/g, ' ')}
@@ -254,48 +261,49 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
                 ))}
               </div>
               {transitionStatus === 'claimed' && (
-                <input
+                <Input
                   value={claimantName}
                   onChange={e => setClaimantName(e.target.value)}
                   placeholder="Claimant name (required)"
-                  className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm mb-2"
+                  className="mb-2"
                 />
               )}
               {transitionStatus === 'disposed' && (
-                <input
+                <Input
                   value={disposalReason}
                   onChange={e => setDisposalReason(e.target.value)}
                   placeholder="Disposal reason (required)"
-                  className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm mb-2"
+                  className="mb-2"
                 />
               )}
               {transitionStatus && !confirmAction && (
-                <button
+                <Button
                   onClick={() => setConfirmAction(true)}
                   disabled={
                     (transitionStatus === 'claimed'  && !claimantName.trim()) ||
                     (transitionStatus === 'disposed' && !disposalReason.trim())
                   }
-                  className="w-full bg-blue-700 hover:bg-blue-600 text-foreground py-2 rounded-lg text-sm font-medium disabled:opacity-40"
+                  className="w-full"
                 >
                   Confirm — Mark as {transitionStatus.replace(/_/g, ' ')}
-                </button>
+                </Button>
               )}
               {confirmAction && (
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     onClick={handleTransition}
                     disabled={isPending}
-                    className="flex-1 bg-green-700 hover:bg-green-600 text-foreground py-2 rounded-lg text-sm font-medium"
+                    variant="success"
+                    className="flex-1"
                   >
                     {isPending ? 'Saving…' : 'Yes, confirm'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => setConfirmAction(false)}
-                    className="text-muted-foreground hover:text-foreground text-sm px-3"
+                    variant="ghost"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -312,14 +320,14 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
                     <span className="text-foreground mx-2">
                       {h.old_status ? `${h.old_status.replace(/_/g, ' ')} → ` : ''}{h.new_status.replace(/_/g, ' ')}
                     </span>
-                    <span className="text-gray-600">by {h.changer}</span>
+                    <span className="text-muted-foreground">by {h.changer}</span>
                     {h.notes && <p className="text-muted-foreground mt-0.5">{h.notes}</p>}
                   </div>
                 ))}
               </div>
             </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   )

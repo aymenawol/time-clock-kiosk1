@@ -2,18 +2,21 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
+import { Plus } from 'lucide-react'
 import type { Bus, BusStatus } from '@/lib/supabase'
 import { BUS_STATUS_LABELS, BUS_STATUS_COLOR } from '@/lib/supabase'
+import { Button } from '@/components/ui/button'
 import { updateBusStatusAction } from './actions'
 
 const STATUS_COLUMNS: { key: BusStatus | 'shop'; label: string; statuses: BusStatus[]; header: string }[] = [
-  { key: 'ready',       label: 'Ready',       statuses: ['ready'],                                                    header: 'bg-green-900/40 text-green-300  border-green-700' },
-  { key: 'in_service',  label: 'In Service',  statuses: ['in_service'],                                               header: 'bg-blue-900/40  text-blue-300   border-blue-700' },
-  { key: 'shop',        label: 'Shop',        statuses: ['maintenance_pmi','shopped_dvir','maintenance_repair'],       header: 'bg-red-900/40   text-red-300    border-red-700' },
-  { key: 'fueling',     label: 'Fueling',     statuses: ['charging','fuel','wash','training'],                        header: 'bg-yellow-900/40 text-yellow-300 border-yellow-700' } as any,
-  { key: 'safety_hold', label: 'Safety Hold', statuses: ['safety_hold'],                                              header: 'bg-purple-900/40 text-purple-300 border-purple-700' },
-  { key: 'salvage',     label: 'Salvage',     statuses: ['salvage'],                                                  header: 'bg-muted     text-muted-foreground   border-border' },
+  { key: 'ready',       label: 'Ready',       statuses: ['ready'],                                                    header: 'bg-ok-surface text-ok border-ok-border' },
+  { key: 'in_service',  label: 'In Service',  statuses: ['in_service'],                                               header: 'bg-info-surface text-info border-info-border' },
+  { key: 'shop',        label: 'Shop',        statuses: ['maintenance_pmi','shopped_dvir','maintenance_repair'],       header: 'bg-danger-surface text-danger border-danger-border' },
+  { key: 'fueling',     label: 'Fueling',     statuses: ['charging','fuel','wash','training'],                        header: 'bg-warn-surface text-warn border-warn-border' } as any,
+  { key: 'safety_hold', label: 'Safety Hold', statuses: ['safety_hold'],                                              header: 'bg-hazard-surface text-hazard border-hazard-border' },
+  { key: 'salvage',     label: 'Salvage',     statuses: ['salvage'],                                                  header: 'bg-neutral-surface text-neutral border-neutral-border' },
 ]
 
 const ALL_STATUSES: { value: BusStatus; label: string }[] = [
@@ -77,31 +80,29 @@ export default function BusesClient({ initialBuses, serverError }: Props) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Fleet Status Board</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {totalActive} in service · {totalReady} ready · {activeBuses.length} total active
           </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => router.push('/admin/buses/new')}
-            className="bg-blue-600 hover:bg-blue-500 text-foreground text-sm font-medium px-4 py-2 rounded-lg"
-          >
-            + Add Bus
-          </button>
-        </div>
+        <Button asChild className="shrink-0">
+          <Link href="/admin/buses/new">
+            <Plus />
+            Add Bus
+          </Link>
+        </Button>
       </div>
 
       {serverError && (
-        <div className="bg-red-900/40 border border-red-600 text-red-300 rounded-lg p-3 text-sm">
+        <div className="bg-danger-surface border border-danger-border text-danger rounded-lg p-3 text-sm">
           {serverError}
         </div>
       )}
 
       {/* Kanban columns */}
-      <div className="grid grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {STATUS_COLUMNS.map(col => {
           const colBuses = activeBuses.filter(b => col.statuses.includes(b.status))
           return (
@@ -139,13 +140,13 @@ export default function BusesClient({ initialBuses, serverError }: Props) {
           </summary>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
             {buses.filter(b => !b.is_active).map(bus => (
-              <button
+              <Link
                 key={bus.id}
-                onClick={() => router.push(`/admin/buses/${bus.id}`)}
-                className="bg-card border border-border rounded-lg p-2 text-left text-sm text-muted-foreground hover:text-foreground"
+                href={`/admin/buses/${bus.id}`}
+                className="bg-card border border-border rounded-lg p-2 text-left text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
               >
                 {bus.bus_number}
-              </button>
+              </Link>
             ))}
           </div>
         </details>
@@ -171,13 +172,13 @@ function BusCard({
   return (
     <div className={`relative border rounded-lg p-3 text-sm cursor-default ${BUS_STATUS_COLOR[bus.status]}`}>
       <div className="flex items-start justify-between gap-1">
-        <button onClick={onDetail} className="font-bold text-base leading-none hover:underline">
+        <button onClick={onDetail} className="font-bold text-base leading-none hover:underline min-w-0 truncate">
           #{bus.bus_number}
         </button>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
           bus.bus_type === 'EV'
-            ? 'bg-teal-900 text-teal-300 border border-teal-700'
-            : 'bg-muted text-muted-foreground border border-border'
+            ? 'bg-info-surface text-info border-info-border'
+            : 'bg-muted text-muted-foreground border-border'
         }`}>
           {bus.bus_type}
         </span>
@@ -189,11 +190,11 @@ function BusCard({
             <span>{bus.bus_type === 'EV' ? 'Charge' : 'Fuel'}</span>
             <span>{bus.fuel_level.toFixed(0)}%</span>
           </div>
-          <div className="h-1 rounded-full bg-black/30">
+          <div className="h-1 rounded-full bg-neutral-surface">
             <div
               className={`h-1 rounded-full transition-all ${
-                bus.fuel_level > 50 ? 'bg-green-400' :
-                bus.fuel_level > 25 ? 'bg-yellow-400' : 'bg-red-400'
+                bus.fuel_level > 50 ? 'bg-ok' :
+                bus.fuel_level > 25 ? 'bg-warn' : 'bg-danger'
               }`}
               style={{ width: `${bus.fuel_level}%` }}
             />
@@ -211,9 +212,9 @@ function BusCard({
       </div>
 
       {isChangingStatus && (
-        <div className="absolute left-0 top-full z-10 mt-1 w-48 bg-background border border-border rounded-lg shadow-xl p-2">
+        <div className="absolute left-0 top-full z-10 mt-1 w-48 bg-popover border border-border rounded-lg shadow-xl p-2">
           <select
-            className="w-full bg-card border border-border text-foreground text-sm rounded px-2 py-1"
+            className="w-full bg-card border border-input text-foreground text-sm rounded px-2 py-1"
             value={pendingStatus}
             onChange={e => onPendingChange(e.target.value)}
             autoFocus
@@ -224,16 +225,17 @@ function BusCard({
             ))}
           </select>
           <div className="flex gap-1 mt-2">
-            <button
+            <Button
+              size="sm"
+              className="flex-1"
               disabled={!pendingStatus || isPending}
               onClick={() => onStatusChange(bus.id, pendingStatus as BusStatus)}
-              className="flex-1 bg-blue-600 disabled:opacity-40 text-foreground text-xs rounded py-1"
             >
               Apply
-            </button>
-            <button onClick={onClose} className="flex-1 bg-muted text-foreground text-xs rounded py-1">
+            </Button>
+            <Button size="sm" variant="secondary" className="flex-1" onClick={onClose}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}

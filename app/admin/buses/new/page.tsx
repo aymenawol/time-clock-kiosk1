@@ -2,6 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { createBusAction } from '../actions'
 
 export default function NewBusPage() {
@@ -42,35 +46,36 @@ export default function NewBusPage() {
   }
 
   return (
-    <div className="p-6 max-w-xl">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Add New Bus</h1>
+    <div className="max-w-xl space-y-6">
+      <h1 className="text-2xl font-bold text-foreground">Add New Bus</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="bg-red-900/40 border border-red-600 text-red-300 rounded-lg p-3 text-sm">
+          <div className="bg-danger-surface border border-danger-border text-danger rounded-lg p-3 text-sm">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">Bus Number *</label>
-            <input
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="bus_number">Bus Number *</Label>
+            <Input
+              id="bus_number"
               name="bus_number"
               required
               value={form.bus_number}
               onChange={handleChange}
               placeholder="e.g. 42"
-              className="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm"
             />
           </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">Type *</label>
+          <div className="space-y-1.5">
+            <Label htmlFor="bus_type">Type *</Label>
             <select
+              id="bus_type"
               name="bus_type"
               value={form.bus_type}
               onChange={handleChange}
-              className="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm"
+              className="flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:border-ring"
             >
               <option value="Diesel">Diesel</option>
               <option value="EV">EV</option>
@@ -78,23 +83,24 @@ export default function NewBusPage() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm text-muted-foreground mb-1">VIN</label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="vin">VIN</Label>
+          <Input
+            id="vin"
             name="vin"
             value={form.vin}
             onChange={handleChange}
             placeholder="Vehicle Identification Number"
-            className="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="fuel_level">
               {form.bus_type === 'EV' ? 'Charge Level (%)' : 'Fuel Level (%)'}
-            </label>
-            <input
+            </Label>
+            <Input
+              id="fuel_level"
               name="fuel_level"
               type="number"
               min="0"
@@ -103,49 +109,40 @@ export default function NewBusPage() {
               value={form.fuel_level}
               onChange={handleChange}
               placeholder="0–100"
-              className="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm"
             />
           </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">Current Mileage</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="current_mileage">Current Mileage</Label>
+            <Input
+              id="current_mileage"
               name="current_mileage"
               type="number"
               min="0"
               value={form.current_mileage}
               onChange={handleChange}
               placeholder="Odometer reading"
-              className="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm"
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm text-muted-foreground mb-1">Notes</label>
-          <textarea
+        <div className="space-y-1.5">
+          <Label htmlFor="notes">Notes</Label>
+          <Textarea
+            id="notes"
             name="notes"
             value={form.notes}
             onChange={handleChange}
             rows={3}
-            className="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm"
           />
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex-1 bg-muted hover:bg-gray-700 text-foreground font-medium py-2 rounded-lg text-sm"
-          >
+          <Button type="button" variant="secondary" className="flex-1" onClick={() => router.back()}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground font-medium py-2 rounded-lg text-sm"
-          >
+          </Button>
+          <Button type="submit" disabled={isPending} className="flex-1">
             {isPending ? 'Adding…' : 'Add Bus'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

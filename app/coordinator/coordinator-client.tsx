@@ -3,6 +3,11 @@
 import { Fragment, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { AlertTriangle, Check, X, Pencil, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
 import { saveShiftNotesAction, saveComplianceVerdictAction } from './actions'
 import { useDebouncedRefresh } from '@/lib/use-debounced-refresh'
 
@@ -30,19 +35,21 @@ function suggestedVerdict(s: Shift): 'ok' | 'flag' {
   return missed || !closed ? 'flag' : 'ok'
 }
 
-const BREAK_STATUS_COLOR: Record<string, string> = {
-  pending:   'bg-gray-700 text-muted-foreground',
-  active:    'bg-yellow-800 text-yellow-200',
-  completed: 'bg-green-900 text-green-300',
-  missed:    'bg-red-900 text-red-300',
-  overrun:   'bg-orange-900 text-orange-300',
+type BadgeVariant = 'ok' | 'warn' | 'danger' | 'hazard' | 'info' | 'neutral'
+
+const BREAK_STATUS_VARIANT: Record<string, BadgeVariant> = {
+  pending:   'neutral',
+  active:    'info',
+  completed: 'ok',
+  missed:    'danger',
+  overrun:   'danger',
 }
 
-const RADIO_COLOR: Record<string, string> = {
-  '10-8':  'bg-green-900 text-green-300',
-  '10-39': 'bg-yellow-900 text-yellow-300',
-  '10-37': 'bg-blue-900 text-blue-300',
-  '10-7':  'bg-red-900 text-red-300',
+const RADIO_VARIANT: Record<string, BadgeVariant> = {
+  '10-8':  'ok',
+  '10-39': 'warn',
+  '10-37': 'info',
+  '10-7':  'danger',
 }
 
 export default function CoordinatorClient({ initialShifts, today }: { initialShifts: Shift[]; today: string }) {
@@ -98,23 +105,25 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
       </div>
 
       {/* Summary pills */}
-      <div className="flex gap-3 flex-wrap">
-        <Pill label="Active Drivers" value={active.length} color="bg-blue-950 text-blue-300 border-blue-800" />
-        <Pill label="Scheduled" value={scheduled.length} color="bg-muted text-foreground border-border" />
-        <Pill label="Completed" value={completed.length} color="bg-green-950 text-green-300 border-green-800" />
-        <Pill label="Total" value={initialShifts.length} color="bg-muted text-foreground border-border" />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Pill label="Active Drivers" value={active.length} variant="info" />
+        <Pill label="Scheduled" value={scheduled.length} variant="neutral" />
+        <Pill label="Completed" value={completed.length} variant="ok" />
+        <Pill label="Total" value={initialShifts.length} variant="neutral" />
       </div>
 
       {/* Break alerts */}
       {alertBreaks.length > 0 && (
-        <div className="bg-yellow-950/50 border border-yellow-700 rounded-xl p-4">
-          <h2 className="text-yellow-300 font-semibold text-sm mb-3 uppercase tracking-wide">Break Alerts</h2>
+        <div className="bg-warn-surface border border-warn-border rounded-xl p-4">
+          <h2 className="text-warn font-semibold text-sm mb-3 uppercase tracking-wide flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" /> Break Alerts
+          </h2>
           <div className="space-y-2">
             {alertBreaks.map(b => (
-              <div key={b.id} className="flex items-center gap-3 text-sm">
-                <span className={`text-xs px-2 py-0.5 rounded font-medium ${BREAK_STATUS_COLOR[b.status] ?? 'bg-gray-700 text-muted-foreground'}`}>
+              <div key={b.id} className="flex flex-wrap items-center gap-2 text-sm">
+                <Badge variant={BREAK_STATUS_VARIANT[b.status] ?? 'neutral'}>
                   {b.status.toUpperCase()}
-                </span>
+                </Badge>
                 <span className="text-foreground font-medium">
                   {b.driver?.name}
                 </span>
@@ -135,10 +144,11 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Active Drivers</h2>
         {active.length === 0 ? (
-          <div className="bg-card border border-border rounded-xl p-6 text-center text-gray-600 text-sm">No active shifts</div>
+          <Card className="p-6 text-center text-muted-foreground text-sm">No active shifts</Card>
         ) : (
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+          <Card className="overflow-hidden">
+           <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="border-b border-border text-muted-foreground text-xs uppercase">
                   <th className="px-4 py-2 text-left">Driver</th>
@@ -160,57 +170,54 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                         <td className="px-4 py-3 text-foreground font-medium">
                           {s.employee?.name}
                           {s.employee?.seniority_number && (
-                            <span className="text-gray-600 text-xs ml-1">#{s.employee.seniority_number}</span>
+                            <span className="text-muted-foreground text-xs ml-1">#{s.employee.seniority_number}</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-foreground">
                           {s.bus ? `#${s.bus.bus_number}` : '—'}
-                          {s.bus && <span className="text-gray-600 text-xs ml-1">{s.bus.bus_type}</span>}
+                          {s.bus && <span className="text-muted-foreground text-xs ml-1">{s.bus.bus_type}</span>}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{s.scheduled_start ?? '—'}</td>
                         <td className="px-4 py-3 text-center">
-                          {b1 ? <BreakBadge brk={b1} /> : <span className="text-gray-700 text-xs">—</span>}
+                          {b1 ? <BreakBadge brk={b1} /> : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {b2 ? <BreakBadge brk={b2} /> : <span className="text-gray-700 text-xs">—</span>}
+                          {b2 ? <BreakBadge brk={b2} /> : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
                         <td className="px-4 py-3">
                           {s.radio_status ? (
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${RADIO_COLOR[s.radio_status] ?? 'bg-muted text-muted-foreground'}`}>
+                            <Badge variant={RADIO_VARIANT[s.radio_status] ?? 'neutral'}>
                               {s.radio_status}
-                            </span>
-                          ) : <span className="text-gray-700 text-xs">—</span>}
+                            </Badge>
+                          ) : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
                         <td className="px-2 py-3 text-center">
-                          <button
+                          <Button
+                            variant={openNotes[s.id] ? 'secondary' : 'ghost'}
+                            size="icon-sm"
                             onClick={() => setOpenNotes(p => ({ ...p, [s.id]: !p[s.id] }))}
                             title={s.notes ? 'Edit notes' : 'Add notes'}
-                            className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${
-                              openNotes[s.id]
-                                ? 'border-blue-500 text-blue-300 bg-blue-950'
-                                : s.notes
-                                  ? 'border-yellow-700 text-yellow-500 hover:text-yellow-300'
-                                  : 'border-border text-gray-600 hover:text-foreground'
-                            }`}
-                          >{s.notes ? '✎' : '+'}</button>
+                            className={s.notes && !openNotes[s.id] ? 'text-warn' : undefined}
+                          >{s.notes ? <Pencil /> : <Plus />}</Button>
                         </td>
                       </tr>
                       {openNotes[s.id] && (
-                        <tr className="bg-background">
+                        <tr className="bg-muted/30">
                           <td colSpan={7} className="px-4 pb-3 pt-1">
                             <div className="flex gap-2 items-start">
-                              <textarea
+                              <Textarea
                                 value={noteDrafts[s.id] ?? ''}
                                 onChange={e => setNoteDrafts(p => ({ ...p, [s.id]: e.target.value }))}
                                 placeholder="Coordinator notes for this shift…"
                                 rows={2}
-                                className="flex-1 bg-card border border-border text-foreground text-xs rounded px-2 py-1.5 resize-none"
+                                className="flex-1 min-h-0 text-xs resize-none"
                               />
-                              <button
+                              <Button
                                 onClick={() => saveNote(s.id)}
                                 disabled={isPending}
-                                className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground px-3 py-1.5 rounded whitespace-nowrap"
-                              >{isPending ? 'Saving…' : 'Save'}</button>
+                                size="sm"
+                                className="whitespace-nowrap"
+                              >{isPending ? 'Saving…' : 'Save'}</Button>
                             </div>
                           </td>
                         </tr>
@@ -220,7 +227,8 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                 })}
               </tbody>
             </table>
-          </div>
+           </div>
+          </Card>
         )}
       </div>
 
@@ -228,8 +236,9 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
       {scheduled.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Scheduled</h2>
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+          <Card className="overflow-hidden">
+           <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
               <thead>
                 <tr className="border-b border-border text-muted-foreground text-xs uppercase">
                   <th className="px-4 py-2 text-left">Driver</th>
@@ -249,7 +258,8 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                 ))}
               </tbody>
             </table>
-          </div>
+           </div>
+          </Card>
         </div>
       )}
 
@@ -257,37 +267,35 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
       {completed.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Completed — EOS Reports</h2>
-          <div className="bg-card border border-border rounded-xl divide-y divide-border">
+          <Card className="divide-y divide-border">
             {completed.map(s => (
               <div key={s.id} className="p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-foreground font-medium text-sm">
                       {s.employee?.name}
                       {s.employee?.seniority_number && (
-                        <span className="text-gray-600 text-xs ml-1">#{s.employee.seniority_number}</span>
+                        <span className="text-muted-foreground text-xs ml-1">#{s.employee.seniority_number}</span>
                       )}
                     </p>
                     <p className="text-muted-foreground text-xs mt-0.5">
                       Bus {s.bus ? `#${s.bus.bus_number}` : '—'} &bull;{' '}
                       {s.actual_start ?? s.scheduled_start ?? '?'} – {s.actual_end ?? s.scheduled_end ?? '?'}
                       {s.breaks.filter(b => b.status === 'completed').length > 0 && (
-                        <span className="ml-2 text-green-600">
+                        <span className="ml-2 text-ok">
                           {s.breaks.filter(b => b.status === 'completed').length} break(s)
                         </span>
                       )}
                     </p>
                   </div>
-                  <button
+                  <Button
                     onClick={() => setOpenNotes(p => ({ ...p, [s.id]: !p[s.id] }))}
-                    className={`shrink-0 text-xs px-2.5 py-1 rounded border transition-colors ${
-                      openNotes[s.id]
-                        ? 'bg-blue-800 border-blue-600 text-blue-200'
-                        : s.notes
-                          ? 'bg-yellow-950 border-yellow-700 text-yellow-400 hover:text-yellow-200'
-                          : 'bg-muted border-border text-muted-foreground hover:text-foreground'
-                    }`}
-                  >{s.notes ? '✎ Edit Report' : '+ EOS Report'}</button>
+                    variant={openNotes[s.id] ? 'secondary' : 'outline'}
+                    size="sm"
+                    className={`shrink-0 ${s.notes && !openNotes[s.id] ? 'text-warn' : ''}`}
+                  >
+                    {s.notes ? <><Pencil /> Edit Report</> : <><Plus /> EOS Report</>}
+                  </Button>
                 </div>
                 {s.notes && !openNotes[s.id] && (
                   <p className="mt-2 text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1.5">{s.notes}</p>
@@ -301,27 +309,23 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                     const suggested = suggestedVerdict(s)
                     return (
                       <>
-                        <button
+                        <Button
                           onClick={() => saveVerdict(s.id, 'ok')}
                           disabled={isPending}
-                          className={`text-xs px-2.5 py-1 rounded border font-semibold transition-colors disabled:opacity-50 ${
-                            current === 'ok'
-                              ? 'bg-green-700 border-green-500 text-foreground'
-                              : 'bg-muted border-border text-green-400 hover:border-green-600'
-                          }`}
-                        >✓ OK</button>
-                        <button
+                          size="sm"
+                          variant={current === 'ok' ? 'success' : 'outline'}
+                          className={current === 'ok' ? undefined : 'text-ok'}
+                        ><Check /> OK</Button>
+                        <Button
                           onClick={() => saveVerdict(s.id, 'flag')}
                           disabled={isPending}
-                          className={`text-xs px-2.5 py-1 rounded border font-semibold transition-colors disabled:opacity-50 ${
-                            current === 'flag'
-                              ? 'bg-red-700 border-red-500 text-foreground'
-                              : 'bg-muted border-border text-red-400 hover:border-red-600'
-                          }`}
-                        >✗ Flag</button>
+                          size="sm"
+                          variant={current === 'flag' ? 'destructive' : 'outline'}
+                          className={current === 'flag' ? undefined : 'text-danger'}
+                        ><X /> Flag</Button>
                         {!current && (
-                          <span className="text-gray-600 text-xs">
-                            (suggested: {suggested === 'ok' ? '✓ OK' : '✗ Flag'})
+                          <span className="text-muted-foreground text-xs flex items-center gap-1">
+                            (suggested: {suggested === 'ok' ? <><Check className="h-3 w-3" /> OK</> : <><X className="h-3 w-3" /> Flag</>})
                           </span>
                         )}
                         {s.compliance_note && (
@@ -333,32 +337,41 @@ export default function CoordinatorClient({ initialShifts, today }: { initialShi
                 </div>
                 {openNotes[s.id] && (
                   <div className="mt-3 space-y-2">
-                    <textarea
+                    <Textarea
                       value={noteDrafts[s.id] ?? ''}
                       onChange={e => setNoteDrafts(p => ({ ...p, [s.id]: e.target.value }))}
                       placeholder="End-of-shift notes, incidents, or observations…"
                       rows={3}
-                      className="w-full bg-background border border-border text-foreground text-sm rounded-lg px-3 py-2 resize-none"
+                      className="resize-none"
                     />
-                    <button
+                    <Button
                       onClick={() => saveNote(s.id)}
                       disabled={isPending}
-                      className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-foreground px-4 py-1.5 rounded-lg font-medium"
-                    >{isPending ? 'Saving…' : 'Save EOS Report'}</button>
+                      size="sm"
+                    >{isPending ? 'Saving…' : 'Save EOS Report'}</Button>
                   </div>
                 )}
               </div>
             ))}
-          </div>
+          </Card>
         </div>
       )}
     </div>
   )
 }
 
-function Pill({ label, value, color }: { label: string; value: number; color: string }) {
+const PILL_STYLE: Record<BadgeVariant, string> = {
+  ok: 'bg-ok-surface text-ok border-ok-border',
+  warn: 'bg-warn-surface text-warn border-warn-border',
+  danger: 'bg-danger-surface text-danger border-danger-border',
+  hazard: 'bg-hazard-surface text-hazard border-hazard-border',
+  info: 'bg-info-surface text-info border-info-border',
+  neutral: 'bg-muted text-foreground border-border',
+}
+
+function Pill({ label, value, variant }: { label: string; value: number; variant: BadgeVariant }) {
   return (
-    <div className={`border rounded-lg px-3 py-2 text-sm ${color}`}>
+    <div className={`border rounded-lg px-3 py-2 text-sm ${PILL_STYLE[variant]}`}>
       <span className="font-bold text-lg leading-none block">{value}</span>
       <span className="text-xs opacity-70">{label}</span>
     </div>
@@ -366,10 +379,9 @@ function Pill({ label, value, color }: { label: string; value: number; color: st
 }
 
 function BreakBadge({ brk }: { brk: Break }) {
-  const color = BREAK_STATUS_COLOR[brk.status] ?? 'bg-gray-700 text-muted-foreground'
   return (
-    <span className={`text-xs px-1.5 py-0.5 rounded ${color}`}>
+    <Badge variant={BREAK_STATUS_VARIANT[brk.status] ?? 'neutral'} className="px-1.5">
       {brk.status === 'completed' ? '✓' : brk.status === 'active' ? '●' : brk.status === 'missed' ? '✗' : '○'}
-    </span>
+    </Badge>
   )
 }
