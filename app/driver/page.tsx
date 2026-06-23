@@ -9,14 +9,21 @@ export default async function DriverPage() {
 
   const today = new Date().toISOString().slice(0, 10)
 
-  // Get employee record for current user
-  const { data: employee } = await supabase
-    .from('employees')
-    .select('id, name, seniority_number')
-    .eq('auth_user_id', user?.id)
-    .single()
+  // Employee (needs user.id) and the OT banner (independent) can load together.
+  const [{ data: employee }, { data: otBanner }] = await Promise.all([
+    supabase
+      .from('employees')
+      .select('id, name, seniority_number')
+      .eq('auth_user_id', user?.id)
+      .single(),
+    supabase
+      .from('ot_banner')
+      .select('*')
+      .eq('id', 'singleton')
+      .maybeSingle(),
+  ])
 
-  // Get today's active shift with breaks
+  // Get today's active shift with breaks (depends on the employee row)
   const { data: shift } = employee
     ? await supabase
         .from('shifts')
@@ -33,13 +40,6 @@ export default async function DriverPage() {
         .limit(1)
         .maybeSingle()
     : { data: null }
-
-  // OT banner
-  const { data: otBanner } = await supabase
-    .from('ot_banner')
-    .select('*')
-    .eq('id', 'singleton')
-    .maybeSingle()
 
   return (
     <div className="p-4 max-w-2xl mx-auto">

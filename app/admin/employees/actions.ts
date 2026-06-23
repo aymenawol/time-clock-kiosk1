@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createSupabaseAdmin } from "@/lib/supabase-admin"
-import { createSupabaseServerClient } from "@/lib/supabase-server"
+import { createSupabaseServerClient, getServerUser } from "@/lib/supabase-server"
 import type { Employee, EmployeeRole, EmployeeStatus } from "@/lib/supabase"
 import { type ActionResult, ok, fail, failValidation } from "@/lib/actions/result"
 import { CreateEmployeeSchema, InviteEmployeeSchema, UpdateEmployeeSchema } from "@/lib/schemas/employee"
@@ -20,10 +20,7 @@ import { EMPLOYEES_PAGE_SIZE } from "./types"
 // ── Shared role guard ────────────────────────────────────────────────────────
 
 async function requireAdminRole() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await getServerUser()
   if (!user) throw new Error("Unauthenticated")
   const role = user.app_metadata?.role as string | undefined
   if (role !== "admin" && role !== "management") throw new Error("Forbidden")
@@ -312,9 +309,13 @@ export async function getAllEmployeesAction() {
 
   const admin = createSupabaseAdmin()
 
+  // Projected to exactly the columns the CSV export consumes — avoids hauling
+  // every employee column (incl. large/unused fields) for the full-roster read.
   const { data, error } = await admin
     .from("employees")
-    .select("*")
+    .select(
+      "id, employee_id, name, email, phone, department, shift, seniority_number, hire_date, role, status, pto_balance, vacation_balance, fmla_balance"
+    )
     .order("seniority_number", { ascending: true, nullsFirst: false })
     .order("hire_date", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true })

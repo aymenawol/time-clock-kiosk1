@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 import { isPositionStale, minutesSinceLastPosition } from '@/lib/gps-utils'
@@ -79,6 +79,90 @@ const RADIO_LABELS: Record<string, string> = {
   '10-8': 'In Service', '10-39': 'On Break', '10-37': 'Fueling/Wash',
   '10-7': 'OOS', '10-51': 'Assist Needed', '10-33': 'HAZARD',
 }
+
+// One bus tile, memoized so a realtime tick only re-renders the tiles whose
+// own bus/shift/position/selection actually changed — not all 50+ at once.
+const BusTile = memo(function BusTile({
+  bus,
+  shift,
+  pos,
+  isSelected,
+  onSelect,
+}: {
+  bus: Bus
+  shift: Shift | undefined
+  pos: BusPosition | undefined
+  isSelected: boolean
+  onSelect: (busId: string) => void
+}) {
+  const stale = pos ? isPositionStale(pos.recorded_at) : false
+  const colorCls = busStatusRamp(bus.status)
+
+  return (
+    <button
+      onClick={() => onSelect(bus.id)}
+      className={`rounded-xl border p-2.5 text-left transition-all min-w-0 ${colorCls} ${
+        isSelected ? 'ring-2 ring-ring' : 'hover:ring-1 hover:ring-border'
+      }`}
+    >
+      {/* Bus number + type */}
+      <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
+        <span className="font-bold text-foreground text-base truncate">#{bus.bus_number}</span>
+        {bus.bus_type === 'EV' ? (
+          <Badge variant="info" className="shrink-0">EV</Badge>
+        ) : (
+          <Badge variant="secondary" className="shrink-0">{bus.bus_type}</Badge>
+        )}
+      </div>
+
+      {/* Status */}
+      <p className="text-xs truncate">{busStatusLabel(bus.status)}</p>
+
+      {/* Driver */}
+      {shift?.employee ? (
+        <p className="text-xs text-foreground truncate mt-0.5">
+          {shift.employee.name}
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground mt-0.5">No driver</p>
+      )}
+
+      {/* Radio code */}
+      {shift?.radio_status && (
+        <p className="text-xs text-info truncate flex items-center gap-1">
+          <Radio className="size-3 shrink-0" aria-hidden />
+          {shift.radio_status} — {RADIO_LABELS[shift.radio_status] ?? ''}
+        </p>
+      )}
+
+      {/* Fuel/Battery */}
+      {bus.fuel_level != null && (
+        <div className="mt-1.5">
+          <div className="h-1 rounded bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded ${
+                (bus.fuel_level ?? 0) < 25 ? 'bg-danger' :
+                (bus.fuel_level ?? 0) < 50 ? 'bg-warn' : 'bg-ok'
+              }`}
+              style={{ width: `${bus.fuel_level ?? 0}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {bus.bus_type === 'EV' ? 'Charge' : 'Fuel'}: {bus.fuel_level?.toFixed(0)}%
+          </p>
+        </div>
+      )}
+
+      {/* GPS indicator */}
+      {pos && (
+        <p className={`text-xs mt-1 flex items-center gap-1 ${stale ? 'text-danger' : 'text-ok'}`}>
+          <MapPin className="size-3 shrink-0" aria-hidden />
+          {stale ? `GPS ${minutesSinceLastPosition(pos.recorded_at)}m` : 'GPS'}
+        </p>
+      )}
+    </button>
+  )
+})
 
 function MilitaryClock() {
   const [time, setTime] = useState('')
@@ -160,6 +244,22 @@ export default function DispatchBoardClient({
   const selectedBus       = selectedBusId ? buses.find(b => b.id === selectedBusId) : null
   const selectedPosition  = selectedBusId ? positions[selectedBusId] : null
 
+  // Index active shifts by bus once per shifts change, so the tile grid is O(buses)
+  // instead of O(buses × shifts) (was a shifts.find() per tile on every render).
+  const activeShiftByBus = useMemo(() => {
+    const m: Record<string, Shift> = {}
+    for (const s of shifts) {
+      if (s.status === 'active' && s.bus_id) m[s.bus_id] = s
+    }
+    return m
+  }, [shifts])
+
+  // Stable identity so memoized tiles don't re-render just because the parent did.
+  const handleSelect = useCallback(
+    (busId: string) => setSelectedBusId(prev => (prev === busId ? null : busId)),
+    []
+  )
+
   return (
     <div className="flex flex-col h-screen select-none bg-background text-foreground">
       {/* ── Top Bar ── */}
@@ -207,79 +307,16 @@ export default function DispatchBoardClient({
         {/* Bus Grid */}
         <div className="flex-1 overflow-y-auto p-3 min-w-0">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-            {buses.map(bus => {
-              const shift  = shifts.find(s => s.bus_id === bus.id && s.status === 'active')
-              const pos    = positions[bus.id]
-              const stale  = pos ? isPositionStale(pos.recorded_at) : false
-              const colorCls = busStatusRamp(bus.status)
-              const isSelected = selectedBusId === bus.id
-
-              return (
-                <button
-                  key={bus.id}
-                  onClick={() => setSelectedBusId(isSelected ? null : bus.id)}
-                  className={`rounded-xl border p-2.5 text-left transition-all min-w-0 ${colorCls} ${
-                    isSelected ? 'ring-2 ring-ring' : 'hover:ring-1 hover:ring-border'
-                  }`}
-                >
-                  {/* Bus number + type */}
-                  <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
-                    <span className="font-bold text-foreground text-base truncate">#{bus.bus_number}</span>
-                    {bus.bus_type === 'EV' ? (
-                      <Badge variant="info" className="shrink-0">EV</Badge>
-                    ) : (
-                      <Badge variant="secondary" className="shrink-0">{bus.bus_type}</Badge>
-                    )}
-                  </div>
-
-                  {/* Status */}
-                  <p className="text-xs truncate">{busStatusLabel(bus.status)}</p>
-
-                  {/* Driver */}
-                  {shift?.employee ? (
-                    <p className="text-xs text-foreground truncate mt-0.5">
-                      {shift.employee.name}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground mt-0.5">No driver</p>
-                  )}
-
-                  {/* Radio code */}
-                  {shift?.radio_status && (
-                    <p className="text-xs text-info truncate flex items-center gap-1">
-                      <Radio className="size-3 shrink-0" aria-hidden />
-                      {shift.radio_status} — {RADIO_LABELS[shift.radio_status] ?? ''}
-                    </p>
-                  )}
-
-                  {/* Fuel/Battery */}
-                  {bus.fuel_level != null && (
-                    <div className="mt-1.5">
-                      <div className="h-1 rounded bg-muted overflow-hidden">
-                        <div
-                          className={`h-full rounded ${
-                            (bus.fuel_level ?? 0) < 25 ? 'bg-danger' :
-                            (bus.fuel_level ?? 0) < 50 ? 'bg-warn' : 'bg-ok'
-                          }`}
-                          style={{ width: `${bus.fuel_level ?? 0}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {bus.bus_type === 'EV' ? 'Charge' : 'Fuel'}: {bus.fuel_level?.toFixed(0)}%
-                      </p>
-                    </div>
-                  )}
-
-                  {/* GPS indicator */}
-                  {pos && (
-                    <p className={`text-xs mt-1 flex items-center gap-1 ${stale ? 'text-danger' : 'text-ok'}`}>
-                      <MapPin className="size-3 shrink-0" aria-hidden />
-                      {stale ? `GPS ${minutesSinceLastPosition(pos.recorded_at)}m` : 'GPS'}
-                    </p>
-                  )}
-                </button>
-              )
-            })}
+            {buses.map(bus => (
+              <BusTile
+                key={bus.id}
+                bus={bus}
+                shift={activeShiftByBus[bus.id]}
+                pos={positions[bus.id]}
+                isSelected={selectedBusId === bus.id}
+                onSelect={handleSelect}
+              />
+            ))}
           </div>
         </div>
 

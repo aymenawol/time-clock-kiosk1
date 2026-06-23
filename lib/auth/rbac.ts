@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getServerUser } from '@/lib/supabase-server'
 import type { User } from '@supabase/supabase-js'
 import type { EmployeeRole } from '@/lib/supabase'
 
@@ -17,10 +17,9 @@ export type AuthResult = AuthOk | AuthFail
 
 /** Require an authenticated session. Role may be null. */
 export async function requireUser(): Promise<AuthResult> {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getServerUser() is request-memoized (React cache), so repeated guard calls
+  // within one Server Action share a single Auth round-trip.
+  const { user } = await getServerUser()
   if (!user) return { ok: false, error: 'You must be signed in.', status: 401 }
   const role = (user.app_metadata?.role as EmployeeRole | undefined) ?? null
   return { ok: true, user, role }

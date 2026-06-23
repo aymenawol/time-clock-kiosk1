@@ -10,7 +10,9 @@ export default async function AdminSafetyMeetingsPage() {
 
   const [{ data: meetings }, { data: signins }] = await Promise.all([
     supabase.from('safety_meetings').select('*').order('scheduled_date', { ascending: false }),
-    supabase.from('safety_meeting_signins').select('*, employees(name)'),
+    // Project to only the fields the client renders — avoids hauling every signin
+    // column (signature/device payloads) across all meetings.
+    supabase.from('safety_meeting_signins').select('id, meeting_id, signed_in_at, employees(name)'),
   ])
 
   const signinsByMeeting: Record<string, any[]> = {}

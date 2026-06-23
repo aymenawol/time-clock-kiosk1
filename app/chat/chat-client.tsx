@@ -126,6 +126,31 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
+
+    // Receipt events (confirm/deliver/read) carry only a message_id. Locate the
+    // single message, clone ONLY its room, and return `prev` untouched when there
+    // is no change — was rebuilding every room's array per event (O(rooms×msgs)
+    // churn + re-render of all rooms on every receipt).
+    const applyReceipt = (
+      messageId: string,
+      field: 'confirmed_by' | 'delivered_by' | 'read_by',
+      who: string
+    ) => {
+      setMessages(prev => {
+        for (const roomId in prev) {
+          const msgs = prev[roomId]
+          const idx = msgs.findIndex(m => m.id === messageId)
+          if (idx === -1) continue
+          const m = msgs[idx]
+          if (m[field].includes(who)) return prev // already recorded → no re-render
+          const nextMsgs = msgs.slice()
+          nextMsgs[idx] = { ...m, [field]: [...m[field], who] }
+          return { ...prev, [roomId]: nextMsgs }
+        }
+        return prev // message not loaded on this client → no-op
+      })
+    }
+
     const ch = supabase
       .channel('chat-messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, payload => {
@@ -149,45 +174,15 @@ export default function ChatClient({ rooms, currentEmployeeId, currentRole, init
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_confirmations' }, payload => {
         const c = payload.new as { message_id: string; confirmer_id: string }
-        setMessages(prev => {
-          const next = { ...prev }
-          for (const [roomId, msgs] of Object.entries(next)) {
-            next[roomId] = msgs.map(m =>
-              m.id === c.message_id && !m.confirmed_by.includes(c.confirmer_id)
-                ? { ...m, confirmed_by: [...m.confirmed_by, c.confirmer_id] }
-                : m
-            )
-          }
-          return next
-        })
+        applyReceipt(c.message_id, 'confirmed_by', c.confirmer_id)
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_deliveries' }, payload => {
         const d = payload.new as { message_id: string; recipient_id: string }
-        setMessages(prev => {
-          const next = { ...prev }
-          for (const [roomId, msgs] of Object.entries(next)) {
-            next[roomId] = msgs.map(m =>
-              m.id === d.message_id && !m.delivered_by.includes(d.recipient_id)
-                ? { ...m, delivered_by: [...m.delivered_by, d.recipient_id] }
-                : m
-            )
-          }
-          return next
-        })
+        applyReceipt(d.message_id, 'delivered_by', d.recipient_id)
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_reads' }, payload => {
         const r = payload.new as { message_id: string; reader_id: string }
-        setMessages(prev => {
-          const next = { ...prev }
-          for (const [roomId, msgs] of Object.entries(next)) {
-            next[roomId] = msgs.map(m =>
-              m.id === r.message_id && !m.read_by.includes(r.reader_id)
-                ? { ...m, read_by: [...m.read_by, r.reader_id] }
-                : m
-            )
-          }
-          return next
-        })
+        applyReceipt(r.message_id, 'read_by', r.reader_id)
       })
       .subscribe()
 

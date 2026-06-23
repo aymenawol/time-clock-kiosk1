@@ -22,7 +22,8 @@ export default async function MapPage() {
   if (busIds.length > 0) {
     const { data: positions } = await supabase
       .from('latest_bus_positions')
-      .select('*')
+      // Only the fields MapClient renders — the view carries many more GPS columns.
+      .select('bus_id, latitude, longitude, speed, heading, recorded_at')
       .in('bus_id', busIds)
     latestPositions = positions ?? []
   }

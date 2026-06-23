@@ -17,7 +17,7 @@ export default function DamageStrokesView({ drawing }: { drawing: unknown }) {
     const img = parseLegacyDamageImage(drawing)
     if (img) {
       // eslint-disable-next-line @next/next/no-img-element
-      return <img src={img} alt="Damage diagram" className="w-full border border-border rounded bg-background" />
+      return <img src={img} alt="Damage diagram" loading="lazy" decoding="async" className="w-full border border-border rounded bg-background" />
     }
     return <p className="text-muted-foreground text-xs">No damage diagram recorded.</p>
   }

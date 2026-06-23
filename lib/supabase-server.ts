@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { cache } from 'react'
 
 /**
  * Creates a Supabase client for use in Server Components, Server Actions,
@@ -32,16 +33,32 @@ export async function createSupabaseServerClient() {
 }
 
 /**
+ * Validates the session against Supabase Auth and returns the user (or null).
+ *
+ * `supabase.auth.getUser()` is a NETWORK round-trip to the Auth server, and it
+ * used to fire independently in the role layout, the page, and every guard —
+ * 2–3+ sequential auth calls per navigation. React `cache()` memoizes the result
+ * for the lifetime of a single server render, so the layout + page + guards in
+ * one request now share ONE round-trip. (Server Actions are separate requests
+ * and get their own cached entry, deduped within that action.)
+ */
+const getCachedUser = cache(
+  async (): Promise<import('@supabase/supabase-js').User | null> => {
+    const supabase = await createSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    return user
+  }
+)
+
+/**
  * Returns the currently authenticated user from the session, or null.
  * Always returns { user } so callers can destructure: const { user } = await getServerUser()
- * Safe to call from Server Components.
+ * Safe to call from Server Components. Deduped per-request (see getCachedUser).
  */
 export async function getServerUser(): Promise<{ user: import('@supabase/supabase-js').User | null }> {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  return { user }
+  return { user: await getCachedUser() }
 }
 
 /**
@@ -59,19 +76,17 @@ export async function getServerUserRole(): Promise<string | null> {
  * the auth user, role, display name (from the employees roster), and email.
  * One round-trip; safe to call from any role layout.
  */
-export async function getShellUser(): Promise<{
+export const getShellUser = cache(async (): Promise<{
   user: import('@supabase/supabase-js').User | null
   role: string | null
   name: string | null
   email: string | null
-}> {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+}> => {
+  const user = await getCachedUser()
   if (!user) return { user: null, role: null, name: null, email: null }
 
   const role = (user.app_metadata?.role as string) ?? null
+  const supabase = await createSupabaseServerClient()
   const { data: emp } = await supabase
     .from('employees')
     .select('name')
@@ -79,4 +94,4 @@ export async function getShellUser(): Promise<{
     .maybeSingle()
 
   return { user, role, name: emp?.name ?? null, email: user.email ?? null }
-}
+})

@@ -9,7 +9,9 @@ export default async function AdminOvertimePage() {
   const supabase = await createSupabaseServerClient()
 
   const [{ data: shiftsRaw }, { data: offDayRequests }, { data: bannerData }, { data: employees }] = await Promise.all([
-    supabase.from('overtime_shifts').select('*').order('date', { ascending: false }),
+    // Time-series table — bound to the 200 most recent shifts (newest first) so
+    // the page payload doesn't grow without limit as history accumulates.
+    supabase.from('overtime_shifts').select('*').order('date', { ascending: false }).limit(200),
     supabase.from('off_day_requests').select('*, employees(name)').order('requested_date', { ascending: false }).limit(100),
     supabase.from('ot_banner').select('*').eq('id', 'singleton').single(),
     supabase.from('employees').select('id, name').eq('is_active', true).order('name'),

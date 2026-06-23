@@ -1,20 +1,17 @@
 'use server'
 
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServerClient, getServerUser } from '@/lib/supabase-server'
 import { type ActionResult, ok, fail } from '@/lib/actions/result'
 import { fetchReport, isReportTab, REPORT_CONFIG, type ReportTab } from './report-data'
 
 async function requireReportsRole() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await getServerUser()
   if (!user) throw new Error('Unauthenticated')
   const role = user.app_metadata?.role as string | undefined
   if (role !== 'admin' && role !== 'management' && role !== 'payroll') {
     throw new Error('Forbidden')
   }
-  return supabase
+  return await createSupabaseServerClient()
 }
 
 function toCsv(cols: string[], rows: Record<string, any>[]): string {

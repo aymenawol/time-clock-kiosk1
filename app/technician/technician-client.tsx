@@ -239,7 +239,7 @@ export default function TechnicianClient({ initialRepairNotes, buses }: Props) {
                       <div className="flex flex-wrap gap-2 mt-2">
                         {(photoUrlsMap[note.id] ?? []).map((url, i) => (
                           <a key={i} href={url} target="_blank" rel="noreferrer">
-                            <img src={url} alt={`Repair photo ${i + 1}`}
+                            <img src={url} alt={`Repair photo ${i + 1}`} loading="lazy" decoding="async"
                               className="w-16 h-16 object-cover rounded-lg border border-border hover:opacity-80" />
                           </a>
                         ))}

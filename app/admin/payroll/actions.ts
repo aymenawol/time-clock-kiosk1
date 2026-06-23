@@ -11,26 +11,6 @@ import { enqueueNotificationBatch } from '@/lib/notifications'
 import { failValidation } from '@/lib/actions/result'
 import { DailyHoursCorrectionSchema } from '@/lib/schemas/payroll'
 
-/** Insert a weekly fatigue alert unless an open one of the same type already exists. */
-async function raiseWeeklyFatigueAlert(
-  admin: ReturnType<typeof createSupabaseAdmin>,
-  employeeId: string,
-  alertType: 'consecutive_days' | 'ot_threshold',
-  extra: { consecutive_count?: number; weekly_ot_hours?: number }
-) {
-  const { data: existing } = await admin
-    .from('fatigue_alerts')
-    .select('id')
-    .eq('employee_id', employeeId)
-    .eq('alert_type', alertType)
-    .is('shift_id', null)
-    .is('resolved_at', null)
-    .is('dismissed_at', null)
-    .maybeSingle()
-  if (existing) return
-  await admin.from('fatigue_alerts').insert({ employee_id: employeeId, alert_type: alertType, ...extra })
-}
-
 // ─────────────────────────────────────────────────────────────
 // Create pay period
 // ─────────────────────────────────────────────────────────────
@@ -93,6 +73,12 @@ export async function calculatePayPeriodHoursAction(payPeriodId: string) {
     missed_breaks: number; is_incomplete: boolean
   }[] = []
 
+  // Accumulate single-shift fatigue alerts and write them in ONE batched upsert
+  // after the loop (was a per-row upsert inside the loop — O(n) round-trips).
+  const singleShiftFatigue: {
+    employee_id: string; alert_type: 'single_shift'; shift_id: string; shift_hours: number
+  }[] = []
+
   for (const shift of (shifts ?? [])) {
     if (!shift.actual_start) continue
 
@@ -120,15 +106,22 @@ export async function calculatePayPeriodHoursAction(payPeriodId: string) {
       is_incomplete:  !hasClockOut,
     })
 
-    // Raise fatigue alert if single shift > 10h
+    // Raise fatigue alert if single shift > 10h (collected, batched after loop)
     if (hasClockOut && shouldRaiseFatigueAlert(totalHours)) {
-      await admin.from('fatigue_alerts').upsert({
+      singleShiftFatigue.push({
         employee_id: shift.employee_id,
         alert_type: 'single_shift',
         shift_id: shift.id,
         shift_hours: totalHours,
-      }, { onConflict: 'employee_id,shift_id,alert_type', ignoreDuplicates: true })
+      })
     }
+  }
+
+  if (singleShiftFatigue.length) {
+    await admin.from('fatigue_alerts').upsert(singleShiftFatigue, {
+      onConflict: 'employee_id,shift_id,alert_type',
+      ignoreDuplicates: true,
+    })
   }
 
   // Apply weekly 40-hour OT check per employee
@@ -157,16 +150,42 @@ export async function calculatePayPeriodHoursAction(payPeriodId: string) {
 
   // N8 — weekly fatigue thresholds (spec: flag >5 days/week or high weekly OT).
   // The fatigue_alert_notify trigger fans these out to the driver + dispatch.
+  // Collect candidates, then dedupe against open alerts and bulk-insert — was a
+  // per-employee select+insert loop (O(n) sequential round-trips).
+  const weeklyCandidates: {
+    employee_id: string
+    alert_type: 'consecutive_days' | 'ot_threshold'
+    consecutive_count?: number
+    weekly_ot_hours?: number
+  }[] = []
   for (const [employeeId, recs] of Object.entries(empMap)) {
     const workDates = recs.map(r => r.work_date)
     const maxDays = maxDaysInAnyWeek(workDates)
     if (maxDays > WEEKLY_DAYS_LIMIT) {
-      await raiseWeeklyFatigueAlert(admin, employeeId, 'consecutive_days', { consecutive_count: maxDays })
+      weeklyCandidates.push({ employee_id: employeeId, alert_type: 'consecutive_days', consecutive_count: maxDays })
     }
     const otByWeek = weeklyOtHours(finalRecords.filter(r => r.employee_id === employeeId))
     const peakWeeklyOt = Math.max(0, ...Object.values(otByWeek))
     if (peakWeeklyOt >= WEEKLY_OT_ALERT_HOURS) {
-      await raiseWeeklyFatigueAlert(admin, employeeId, 'ot_threshold', { weekly_ot_hours: peakWeeklyOt })
+      weeklyCandidates.push({ employee_id: employeeId, alert_type: 'ot_threshold', weekly_ot_hours: peakWeeklyOt })
+    }
+  }
+
+  if (weeklyCandidates.length) {
+    // One query to find which (employee, type) already have an OPEN weekly alert,
+    // then one insert for the rest — preserves the "skip if already open" rule.
+    const { data: openAlerts } = await admin
+      .from('fatigue_alerts')
+      .select('employee_id, alert_type')
+      .in('employee_id', weeklyCandidates.map(c => c.employee_id))
+      .in('alert_type', ['consecutive_days', 'ot_threshold'])
+      .is('shift_id', null)
+      .is('resolved_at', null)
+      .is('dismissed_at', null)
+    const open = new Set((openAlerts ?? []).map(a => `${a.employee_id}:${a.alert_type}`))
+    const toInsert = weeklyCandidates.filter(c => !open.has(`${c.employee_id}:${c.alert_type}`))
+    if (toInsert.length) {
+      await admin.from('fatigue_alerts').insert(toInsert)
     }
   }
 
@@ -206,23 +225,26 @@ export async function closePayPeriodAction(payPeriodId: string) {
   if (error) return { error: error.message }
 
   // N8 — auto-send the closed period to payroll staff (in-app + email via processor).
-  const { data: period } = await admin
-    .from('pay_periods')
-    .select('period_start, period_end')
-    .eq('id', payPeriodId)
-    .maybeSingle()
-  const { data: totals } = await admin
-    .from('daily_hours_records')
-    .select('regular_hours, overtime_hours')
-    .eq('pay_period_id', payPeriodId)
+  // These three reads are independent — run them in parallel instead of serially.
+  const [{ data: period }, { data: totals }, { data: payrollStaff }] = await Promise.all([
+    admin
+      .from('pay_periods')
+      .select('period_start, period_end')
+      .eq('id', payPeriodId)
+      .maybeSingle(),
+    admin
+      .from('daily_hours_records')
+      .select('regular_hours, overtime_hours')
+      .eq('pay_period_id', payPeriodId),
+    admin
+      .from('employees')
+      .select('id')
+      .eq('status', 'active')
+      .not('auth_user_id', 'is', null)
+      .in('role', ['payroll', 'admin', 'management']),
+  ])
   const regSum = (totals ?? []).reduce((s, r) => s + (r.regular_hours || 0), 0)
   const otSum = (totals ?? []).reduce((s, r) => s + (r.overtime_hours || 0), 0)
-  const { data: payrollStaff } = await admin
-    .from('employees')
-    .select('id')
-    .eq('status', 'active')
-    .not('auth_user_id', 'is', null)
-    .in('role', ['payroll', 'admin', 'management'])
   if (payrollStaff?.length) {
     await enqueueNotificationBatch(
       payrollStaff.map((e: { id: string }) => ({

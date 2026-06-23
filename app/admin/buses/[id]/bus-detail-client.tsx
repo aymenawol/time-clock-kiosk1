@@ -296,7 +296,7 @@ export default function BusDetailClient({ bus, history, shifts, repairs, inspect
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {images.map((img, idx) => (
-                      <img key={idx} src={img.data} alt={`Damage ${idx + 1}`} className="rounded-lg border border-border max-w-xs" />
+                      <img key={idx} src={img.data} alt={`Damage ${idx + 1}`} loading="lazy" decoding="async" className="rounded-lg border border-border max-w-xs" />
                     ))}
                   </div>
                 </div>

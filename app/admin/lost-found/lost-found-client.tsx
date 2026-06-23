@@ -234,7 +234,7 @@ export default function LostFoundClient({ items: initialItems }: { items: LostIt
                 {photoUrls.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noreferrer">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" className="w-20 h-20 object-cover rounded-lg" />
+                    <img src={url} alt="" loading="lazy" decoding="async" className="w-20 h-20 object-cover rounded-lg" />
                   </a>
                 ))}
               </div>

@@ -129,12 +129,20 @@ export async function submitEndOfShiftAction(data: {
 
   const admin = createSupabaseAdmin()
 
-  // Get employee id
-  const { data: emp } = await admin
-    .from('employees')
-    .select('id')
-    .eq('auth_user_id', auth.user.id)
-    .single()
+  // Two independent reads (employee + shift row) — fetch in parallel. Writes
+  // below stay sequential to preserve early-return-on-error semantics.
+  const [{ data: emp }, { data: shiftRow }] = await Promise.all([
+    admin
+      .from('employees')
+      .select('id')
+      .eq('auth_user_id', auth.user.id)
+      .single(),
+    admin
+      .from('shifts')
+      .select('actual_start, tablet_id, status')
+      .eq('id', data.shiftId)
+      .single(),
+  ])
 
   if (!emp) return { error: 'Employee record not found' }
 
@@ -174,12 +182,7 @@ export async function submitEndOfShiftAction(data: {
   }
 
   // ── Close the shift (keystone): stamp end time, compute hours, free tablet ──
-  const { data: shiftRow } = await admin
-    .from('shifts')
-    .select('actual_start, tablet_id, status')
-    .eq('id', data.shiftId)
-    .single()
-
+  // (shiftRow was read up-front, in parallel with the employee lookup)
   const nowIso = new Date().toISOString()
   let totalHours: number | null = null
   if (shiftRow?.actual_start) {
