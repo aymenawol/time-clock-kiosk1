@@ -63,8 +63,9 @@ export default function OnboardPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-primary">
-            <span className="text-primary-foreground text-2xl font-bold">RC</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/rolecall-logo.svg" alt="Rolecall" className="size-16 rounded-2xl" />
           </div>
           <h1 className="text-foreground text-2xl font-bold">
             Welcome{userName ? `, ${userName.split(' ')[0]}` : ''}!

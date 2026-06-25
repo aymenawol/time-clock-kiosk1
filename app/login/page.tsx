@@ -139,9 +139,8 @@ function LoginForm() {
           }}
         />
         <div className="relative flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-white/15 text-lg font-bold backdrop-blur">
-            RC
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/rolecall-logo.svg" alt="Rolecall" className="size-10 rounded-xl" />
           <span className="text-lg font-bold tracking-tight">Rolecall</span>
         </div>
 
@@ -180,9 +179,8 @@ function LoginForm() {
         <div className="w-full max-w-sm">
           {/* Compact brand for mobile */}
           <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground">
-              RC
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/rolecall-logo.svg" alt="Rolecall" className="size-14 rounded-2xl" />
             <h1 className="mt-4 text-2xl font-bold text-foreground">Rolecall</h1>
           </div>
 

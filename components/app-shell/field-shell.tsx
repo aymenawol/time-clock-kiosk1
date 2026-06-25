@@ -54,9 +54,8 @@ export function FieldShell({
         </button>
 
         <Link href={homeHref} className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-            RC
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/rolecall-logo.svg" alt="Rolecall" className="size-8 rounded-lg" />
           <span className="flex flex-col leading-tight">
             <span className="text-sm font-bold text-foreground">Rolecall</span>
             <span className="text-[11px] text-muted-foreground">{label}</span>
@@ -73,9 +72,8 @@ export function FieldShell({
         <SheetContent side="left" className="flex w-72 flex-col p-0">
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <div className="flex h-14 shrink-0 items-center border-b border-border px-4">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-              RC
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/rolecall-logo.svg" alt="Rolecall" className="size-8 rounded-lg" />
             <span className="ml-2.5 text-sm font-bold text-foreground">Rolecall</span>
           </div>
           <div className="flex-1 overflow-y-auto scrollbar-thin">
