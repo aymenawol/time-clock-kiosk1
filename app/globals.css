@@ -1,285 +1,120 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
+/* RoleCall design tokens (docs/design.md section 4.1). Components use these
+   through Tailwind utilities such as bg-surface, text-muted, border-border. */
 :root {
-  /* Light is the default surface model: a faint cool-gray canvas with pure-white
-     elevated surfaces (cards, sidebar, top bar) so panels lift off the page. */
-  --background: oklch(0.975 0.002 264);
-  --foreground: oklch(0.18 0.01 264);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.01 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.01 264);
-  /* N2 spec: brand primary is Rolecall BLUE (not red). */
-  --primary: oklch(0.546 0.215 262.9);
-  --primary-foreground: oklch(0.985 0 0);
-
-  /* ── N2 semantic operational ramps (light) ───────────────────────────────
-     Each ramp: solid (fg-on-light / icon) · surface (tinted bg) · border.
-     green=ok/ready · amber=warn/break/fuel-wash · red=danger/OOS/missed
-     purple=hazard · blue=in_service/info · gray=salvage/neutral. */
-  --brand: oklch(0.546 0.215 262.9);
-  --brand-fg: oklch(0.985 0 0);
-  --ok: oklch(0.62 0.17 150);
-  --ok-surface: oklch(0.96 0.04 150);
-  --ok-border: oklch(0.85 0.09 150);
-  --warn: oklch(0.72 0.16 70);
-  --warn-surface: oklch(0.96 0.05 75);
-  --warn-border: oklch(0.86 0.1 75);
-  --danger: oklch(0.6 0.23 27);
-  --danger-surface: oklch(0.96 0.04 27);
-  --danger-border: oklch(0.85 0.1 27);
-  --hazard: oklch(0.55 0.24 300);
-  --hazard-surface: oklch(0.96 0.04 300);
-  --hazard-border: oklch(0.85 0.1 300);
-  --info: oklch(0.546 0.215 262.9);
-  --info-surface: oklch(0.96 0.04 263);
-  --info-border: oklch(0.85 0.09 263);
-  --neutral: oklch(0.55 0 0);
-  --neutral-surface: oklch(0.96 0 0);
-  --neutral-border: oklch(0.88 0 0);
-  --secondary: oklch(0.965 0.003 264);
-  --secondary-foreground: oklch(0.22 0.01 264);
-  --muted: oklch(0.965 0.003 264);
-  --muted-foreground: oklch(0.52 0.012 264);
-  --accent: oklch(0.965 0.003 264);
-  --accent-foreground: oklch(0.22 0.01 264);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.916 0.004 264);
-  --input: oklch(0.916 0.004 264);
-  --ring: oklch(0.546 0.215 262.9);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.18 0.01 264);
-  --sidebar-primary: oklch(0.546 0.215 262.9);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.965 0.003 264);
-  --sidebar-accent-foreground: oklch(0.22 0.01 264);
-  --sidebar-border: oklch(0.916 0.004 264);
-  --sidebar-ring: oklch(0.546 0.215 262.9);
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --surface-3: #e3e8ef;
+  --border: #dce1e8;
+  --border-strong: #c3cbd6;
+  --text: #0e1726;
+  --text-muted: #5b6676;
+  --primary: #095ffc;
+  --primary-hover: #0750d6;
+  --primary-fg: #ffffff;
+  --primary-soft: #e6efff;
+  --accent: #f5a524;
+  --accent-soft: #fff4e0;
+  --success: #13804b;
+  --success-soft: #e3f5ec;
+  --warning: #b26a00;
+  --warning-soft: #fff3dc;
+  --danger: #c62828;
+  --danger-soft: #fdeaea;
+  --info: #0b6bcb;
+  --info-soft: #e5f1fc;
+  --ring: rgb(9 95 252 / 0.45);
+  --shadow-pop: 0 10px 30px -10px rgb(14 23 38 / 0.25), 0 2px 6px -2px rgb(14 23 38 / 0.12);
+  color-scheme: light;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  /* Cards/popovers sit slightly above the near-black background so tokenized
-     surfaces keep the gray-900-on-gray-950 elevation the UI was designed with. */
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  /* N2 spec: brand primary is Rolecall BLUE (not red), brighter on dark. */
-  --primary: oklch(0.62 0.19 262.9);
-  --primary-foreground: oklch(0.985 0 0);
-
-  /* ── N2 semantic operational ramps (dark) ──────────────────────────────── */
-  --brand: oklch(0.62 0.19 262.9);
-  --brand-fg: oklch(0.985 0 0);
-  --ok: oklch(0.72 0.17 150);
-  --ok-surface: oklch(0.28 0.06 150);
-  --ok-border: oklch(0.42 0.1 150);
-  --warn: oklch(0.8 0.16 75);
-  --warn-surface: oklch(0.3 0.06 75);
-  --warn-border: oklch(0.45 0.1 75);
-  --danger: oklch(0.7 0.2 27);
-  --danger-surface: oklch(0.3 0.09 27);
-  --danger-border: oklch(0.45 0.13 27);
-  --hazard: oklch(0.7 0.2 300);
-  --hazard-surface: oklch(0.3 0.09 300);
-  --hazard-border: oklch(0.45 0.13 300);
-  --info: oklch(0.7 0.17 262.9);
-  --info-surface: oklch(0.3 0.07 263);
-  --info-border: oklch(0.45 0.11 263);
-  --neutral: oklch(0.708 0 0);
-  --neutral-surface: oklch(0.28 0 0);
-  --neutral-border: oklch(0.42 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.62 0.19 262.9);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --bg: #0b0f14;
+  --surface: #121821;
+  --surface-2: #18202b;
+  --surface-3: #212b38;
+  --border: #253041;
+  --border-strong: #34425a;
+  --text: #e7ecf3;
+  --text-muted: #93a0b2;
+  --primary: #5b8cff;
+  --primary-hover: #7aa2ff;
+  --primary-fg: #0b0f14;
+  --primary-soft: #16264a;
+  --accent: #f7b547;
+  --accent-soft: #3a2a0c;
+  --success: #3dd68c;
+  --success-soft: #0f2e20;
+  --warning: #f5b649;
+  --warning-soft: #33260b;
+  --danger: #ff6b6b;
+  --danger-soft: #3a1416;
+  --info: #5cb8ff;
+  --info-soft: #0f2638;
+  --ring: rgb(91 140 255 / 0.5);
+  --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, 'Cascadia Code', 'Courier New', monospace;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  /* N2 semantic ramps → utility classes (bg-brand, text-ok, border-hazard-border, …) */
-  --color-brand: var(--brand);
-  --color-brand-fg: var(--brand-fg);
-  --color-ok: var(--ok);
-  --color-ok-surface: var(--ok-surface);
-  --color-ok-border: var(--ok-border);
-  --color-warn: var(--warn);
-  --color-warn-surface: var(--warn-surface);
-  --color-warn-border: var(--warn-border);
-  --color-danger: var(--danger);
-  --color-danger-surface: var(--danger-surface);
-  --color-danger-border: var(--danger-border);
-  --color-hazard: var(--hazard);
-  --color-hazard-surface: var(--hazard-surface);
-  --color-hazard-border: var(--hazard-border);
-  --color-info: var(--info);
-  --color-info-surface: var(--info-surface);
-  --color-info-border: var(--info-border);
-  --color-neutral: var(--neutral);
-  --color-neutral-surface: var(--neutral-surface);
-  --color-neutral-border: var(--neutral-border);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-border: var(--border);
-  --color-input: var(--input);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--text);
+  --color-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --shadow-pop: var(--shadow-pop);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-tile: 16px;
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  html {
+    -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-background text-foreground;
-    /* Crisper text on both themes */
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11";
   }
-
-  /* A pointer cursor on everything that's actually clickable. Disabled and
-     aria-disabled controls keep the "not-allowed" affordance. */
-  button:not(:disabled),
-  [role='button']:not([aria-disabled='true']),
-  a[href],
-  label[for],
-  summary,
-  select:not(:disabled),
-  [data-clickable] {
-    cursor: pointer;
-  }
-  button:disabled,
-  [aria-disabled='true'],
-  [data-disabled] {
-    cursor: not-allowed;
-  }
-
-  /* Keyboard focus ring — visible, branded, never on mouse clicks. */
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
-
-  /* Comfortable tap targets on touch devices without bloating the desktop UI. */
-  @media (pointer: coarse) {
-    button,
-    [role='button'],
-    a[href] {
-      touch-action: manipulation;
-    }
+  ::selection {
+    background: var(--primary-soft);
   }
 }
 
-@layer utilities {
-  /* Hide scrollbars while keeping scroll (horizontal nav strips, etc.) */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Thin, theme-aware scrollbar for sidebars and long panels */
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: var(--border);
-    border-radius: 9999px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  /* Respect reduced-motion preferences for our custom animations */
-  @media (prefers-reduced-motion: reduce) {
-    .animate-slide-in,
-    .animate-pulse {
-      animation: none !important;
-    }
-  }
+@utility tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Notification slide-in animation */
-@keyframes slide-in-right {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.animate-slide-in {
-  animation: slide-in-right 0.3s ease-out forwards;
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }

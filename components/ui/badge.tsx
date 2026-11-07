@@ -1,35 +1,46 @@
-import * as React from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from '@/lib/utils'
+import * as React from "react";
+import { cn } from "@/lib/cn";
 
-// Variants map to the OKLCH operational ramps (ok/warn/danger/hazard/info/neutral)
-// so a single <Badge variant="warn"> reads correctly in both light and dark.
-const badgeVariants = cva(
-  'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium leading-none transition-colors whitespace-nowrap',
-  {
-    variants: {
-      variant: {
-        default: 'border-transparent bg-primary text-primary-foreground',
-        secondary: 'border-border bg-secondary text-secondary-foreground',
-        outline: 'border-border text-foreground',
-        ok: 'border-ok-border bg-ok-surface text-ok',
-        warn: 'border-warn-border bg-warn-surface text-warn',
-        danger: 'border-danger-border bg-danger-surface text-danger',
-        hazard: 'border-hazard-border bg-hazard-surface text-hazard',
-        info: 'border-info-border bg-info-surface text-info',
-        neutral: 'border-neutral-border bg-neutral-surface text-neutral',
-      },
-    },
-    defaultVariants: { variant: 'default' },
-  }
-)
+export type Tone = "neutral" | "primary" | "success" | "warning" | "danger" | "info" | "accent";
 
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement>,
-    VariantProps<typeof badgeVariants> {}
+const tones: Record<Tone, string> = {
+  neutral: "bg-surface-2 text-muted",
+  primary: "bg-primary-soft text-primary",
+  success: "bg-success-soft text-success",
+  warning: "bg-warning-soft text-warning",
+  danger: "bg-danger-soft text-danger",
+  info: "bg-info-soft text-info",
+  accent: "bg-accent-soft text-warning",
+};
 
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return <span className={cn(badgeVariants({ variant }), className)} {...props} />
+const dots: Record<Tone, string> = {
+  neutral: "bg-muted",
+  primary: "bg-primary",
+  success: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-danger",
+  info: "bg-info",
+  accent: "bg-accent",
+};
+
+export function Badge({
+  tone = "neutral",
+  dot,
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLSpanElement> & { tone?: Tone; dot?: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium",
+        tones[tone],
+        className,
+      )}
+      {...props}
+    >
+      {dot ? <span className={cn("size-1.5 rounded-full", dots[tone])} aria-hidden /> : null}
+      {children}
+    </span>
+  );
 }
-
-export { Badge, badgeVariants }

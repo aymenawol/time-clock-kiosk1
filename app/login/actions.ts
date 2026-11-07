@@ -1,137 +1,55 @@
-'use server'
+"use server";
 
-import { createSupabaseAdmin } from '@/lib/supabase-admin'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { homeFor } from "@/lib/auth/permissions";
+import { createClient } from "@/lib/supabase/server";
 
-/**
- * N1 — Hybrid login.
- *
- * Drivers / kiosk operators sign in with their 4-digit Employee ID + password.
- * The Employee ID → email mapping is resolved server-side (never exposed to the
- * browser) using the service-role client, then handed to Supabase Auth's
- * email/password sign-in. Attempts are rate-limited per Employee ID to blunt
- * brute-force / enumeration.
- *
- * Staff (office) continue to sign in with email + password directly on the
- * client; that path is unchanged.
- */
+const schema = z.object({
+  email: z.email("Enter a valid email").max(200),
+  password: z.string().min(1, "Enter your password").max(200),
+  next: z.string().optional(),
+});
 
-export type EmployeeLoginResult =
-  | { ok: true; role: string | null }
-  | { ok: false; error: string }
+export type LoginState = { error?: string } | undefined;
 
-// ── Rate limiting (durable, DB-backed, with in-memory fallback) ─────────────
-// Brute-force counter lives in Postgres (register_login_attempt RPC) so the cap
-// holds across every serverless instance. If the RPC is unavailable (e.g. the
-// migration is not yet deployed), we degrade to a per-instance in-memory window
-// so login still works and is never left completely unprotected.
-const MAX_ATTEMPTS = 5
-const WINDOW_SECS = 15 * 60 // 15 minutes
-const WINDOW_MS = WINDOW_SECS * 1000
-const attempts = new Map<string, { count: number; first: number }>()
-
-function checkRateLimitMemory(key: string): { allowed: boolean; retryAfterMin?: number } {
-  const now = Date.now()
-  const rec = attempts.get(key)
-  if (!rec || now - rec.first > WINDOW_MS) {
-    attempts.set(key, { count: 1, first: now })
-    return { allowed: true }
-  }
-  if (rec.count >= MAX_ATTEMPTS) {
-    const retryAfterMin = Math.ceil((WINDOW_MS - (now - rec.first)) / 60000)
-    return { allowed: false, retryAfterMin }
-  }
-  rec.count += 1
-  return { allowed: true }
+/** Only same-site relative paths are allowed after sign-in. */
+function safeNext(next: string | undefined): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return null;
+  if (next.startsWith("/login") || next.startsWith("/auth")) return null;
+  return next;
 }
 
-async function checkRateLimit(
-  admin: ReturnType<typeof createSupabaseAdmin>,
-  key: string
-): Promise<{ allowed: boolean; retryAfterMin?: number }> {
-  const { data, error } = await admin.rpc('register_login_attempt', {
-    p_key: key,
-    p_max: MAX_ATTEMPTS,
-    p_window_secs: WINDOW_SECS,
-  })
-  if (error) return checkRateLimitMemory(key) // RPC missing / DB hiccup → fall back
-  const res = data as { allowed: boolean; retry_after_min?: number }
-  return { allowed: res.allowed, retryAfterMin: res.retry_after_min }
-}
+export async function signIn(_prev: LoginState, form: FormData): Promise<LoginState> {
+  const parsed = schema.safeParse({
+    email: form.get("email"),
+    password: form.get("password"),
+    next: form.get("next") || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
-async function clearRateLimit(admin: ReturnType<typeof createSupabaseAdmin>, key: string) {
-  attempts.delete(key)
-  await admin.rpc('clear_login_attempts', { p_key: key }).then(undefined, () => {})
-}
-
-const GENERIC_ERROR = 'Invalid Employee ID or password.'
-
-export async function signInWithEmployeeId(
-  employeeId: string,
-  password: string
-): Promise<EmployeeLoginResult> {
-  const id = (employeeId ?? '').trim()
-
-  // Format guard — Employee IDs are short numeric codes.
-  if (!/^\d{3,8}$/.test(id)) {
-    return { ok: false, error: 'Enter your numeric Employee ID.' }
-  }
-  if (!password) {
-    return { ok: false, error: 'Enter your password.' }
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email.toLowerCase(),
+    password: parsed.data.password,
+  });
+  if (error || !data.user) {
+    // Same message for unknown email and wrong password.
+    return { error: error?.status === 429 ? "Too many attempts. Wait a minute and try again." : "Email or password is incorrect." };
   }
 
-  // RLS-bypassing admin client — also backs the durable rate limiter.
-  const admin = createSupabaseAdmin()
-
-  const rl = await checkRateLimit(admin, id)
-  if (!rl.allowed) {
-    return {
-      ok: false,
-      error: `Too many attempts. Try again in ${rl.retryAfterMin} minute${
-        rl.retryAfterMin === 1 ? '' : 's'
-      }, or sign in with your email.`,
-    }
+  const { data: membership } = await supabase
+    .from("employees")
+    .select("role")
+    .eq("user_id", data.user.id)
+    .neq("status", "terminated")
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
+  if (!membership) {
+    await supabase.auth.signOut();
+    return { error: "Your account is not active in any organization. Contact your admin." };
   }
-
-  // Resolve Employee ID → email server-side.
-  const { data: employee, error: lookupError } = await admin
-    .from('employees')
-    .select('email, status')
-    .eq('employee_id', id)
-    .maybeSingle()
-
-  if (lookupError) {
-    return { ok: false, error: 'Sign-in is temporarily unavailable. Please try again.' }
-  }
-
-  // Don't leak whether the ID exists — same generic error either way.
-  if (!employee?.email) {
-    return { ok: false, error: GENERIC_ERROR }
-  }
-  if (employee.status === 'terminated') {
-    return { ok: false, error: 'This account is inactive. Contact your administrator.' }
-  }
-
-  // Sign in via the cookie-bound server client so the session is established.
-  const supabase = await createSupabaseServerClient()
-  const { data, error: authError } = await supabase.auth.signInWithPassword({
-    email: employee.email,
-    password,
-  })
-
-  if (authError || !data.user) {
-    return { ok: false, error: GENERIC_ERROR }
-  }
-
-  const role = (data.user.app_metadata?.role as string | undefined) ?? null
-  if (!role) {
-    await supabase.auth.signOut()
-    return {
-      ok: false,
-      error: 'Your account does not have an assigned role. Contact your administrator.',
-    }
-  }
-
-  await clearRateLimit(admin, id)
-  return { ok: true, role }
+  if (data.user.user_metadata?.must_change_password) redirect("/auth/set-password");
+  redirect(safeNext(parsed.data.next) ?? homeFor(membership.role));
 }
