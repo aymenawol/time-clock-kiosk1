@@ -1,0 +1,57 @@
+airlines: id:uuid!, name:text!, terminal:text, phone:text, wheelchair_contact:text, notes:text, is_active:bool
+app_settings: id:text!, break_rules:jsonb!, overtime_rules:jsonb!, notification_preferences:jsonb!, created_at:timestamptz!, updated_at:timestamptz!
+breaks: id:uuid!, shift_id:uuid!, employee_id:uuid!, break_number:int2!, scheduled_start:timestamptz, window_open:timestamptz, window_close:timestamptz, actual_start:timestamptz, actual_end:timestamptz, duration_minutes:int2!, status:text!, sms_reminder_sent:bool!, overrun_alert_sent:bool!, dispatcher_override_by:uuid, dispatcher_override_at:timestamptz, notes:text, created_at:timestamptz!, updated_at:timestamptz!
+bus_positions: id:uuid!, bus_id:uuid!, driver_id:uuid, shift_id:uuid, latitude:numeric!, longitude:numeric!, speed:numeric, heading:numeric, accuracy:numeric, recorded_at:timestamptz!
+bus_status_history: id:uuid!, bus_id:uuid!, from_status:text, to_status:text!, changed_by:uuid, reason:text, fuel_level:numeric, mileage:int4, created_at:timestamptz!
+buses: id:uuid!, bus_number:text!, vin:text, bus_type:text!, status:text!, fuel_level:numeric, current_mileage:int4, notes:text, is_active:bool!, created_at:timestamptz!, updated_at:timestamptz!
+chat_confirmations: message_id:uuid!, confirmer_id:uuid!, confirmed_at:timestamptz
+chat_deliveries: message_id:uuid!, recipient_id:uuid!, delivered_at:timestamptz
+chat_messages: id:uuid!, room_id:uuid!, sender_id:uuid, content:text!, message_type:text!, requires_confirmation:bool, sent_at:timestamptz, is_deleted:bool
+chat_reads: message_id:uuid!, reader_id:uuid!, read_at:timestamptz
+chat_room_members: room_id:uuid!, employee_id:uuid!, joined_at:timestamptz
+chat_rooms: id:uuid!, name:text!, type:text!, department:text, created_by:uuid, created_at:timestamptz, is_active:bool
+counting_rows: id:uuid!, sheet_id:uuid!, row_order:int2!, departure_time:time, rac:int2!, t1:int2!, t3:int2!, term1:int2!, term3_west:int2!, term3_east:int2!, created_at:timestamptz!, updated_at:timestamptz!
+counting_sheet_revisions: id:uuid!, sheet_id:uuid!, revised_by:uuid!, revised_at:timestamptz!, previous_rows:jsonb!, new_rows:jsonb!, reason:text
+counting_sheets: id:uuid!, shift_id:uuid!, date:date!, driver_id:uuid!, bus_id:uuid, start_time:timestamptz, end_time:timestamptz, status:text!, submitted_at:timestamptz, created_at:timestamptz!, updated_at:timestamptz!, locked_at:timestamptz, correction_note:text
+current_bus_positions: bus_id:uuid!, driver_id:uuid, shift_id:uuid, latitude:float8, longitude:float8, speed:float8, heading:float8, accuracy:float8, recorded_at:timestamptz!
+daily_hours_records: id:uuid!, employee_id:uuid!, pay_period_id:uuid, work_date:date!, shift_id:uuid, clock_in:timestamptz, clock_out:timestamptz, regular_hours:numeric!, overtime_hours:numeric!, pto_hours:numeric!, fmla_hours:numeric!, missed_breaks:int4!, total_paid_hours:numeric, is_incomplete:bool!, audit_log:jsonb!, created_at:timestamptz!, updated_at:timestamptz!
+driver_performance_snapshots: id:uuid!, employee_id:uuid!, snapshot_date:date!, shift_id:uuid, attendance_status:text!, missed_breaks_count:int4!, safety_meetings_attended:int4!, safety_meetings_missed:int4!, inspections_completed:int4!, inspections_missed:int4!, counting_sheets_submitted:int4!, counting_sheets_missed:int4!, ot_bids_submitted:int4!, ot_awarded:int4!, created_at:timestamptz
+email_templates: id:uuid!, template_key:text!, subject:text!, body_html:text!, created_at:timestamptz, updated_at:timestamptz
+emergency_acknowledgements: event_id:uuid!, employee_id:uuid!, acknowledged_at:timestamptz
+emergency_events: id:uuid!, triggered_by:uuid!, triggered_at:timestamptz, event_type:text!, message:text!, resolved_by:uuid, resolved_at:timestamptz, is_active:bool!
+employees: id:uuid!, employee_id:text!, name:text!, pin:text!, is_active:bool!, created_at:timestamptz!, auth_user_id:uuid, email:text, phone:text, hire_date:date, seniority_number:int4, department:text, role:text, status:text!, shift:text, pto_balance:numeric!, vacation_balance:numeric!, fmla_balance:numeric!
+end_of_shift_submissions: id:uuid!, shift_id:uuid!, bus_id:uuid, employee_id:uuid, bus_type:text, fuel_level_pct:numeric, fuel_label:text, ev_battery_pct:numeric, status_submitted:text!, notes:text, submitted_at:timestamptz!
+fatigue_alerts: id:uuid!, employee_id:uuid!, alert_type:text!, shift_id:uuid, shift_hours:numeric, consecutive_count:int4, weekly_ot_hours:numeric, triggered_at:timestamptz!, resolved_by:uuid, resolved_at:timestamptz, notes:text, dismissed_by:uuid, dismissed_at:timestamptz, dismiss_reason:text, created_at:timestamptz!
+form_acknowledgements: id:uuid!, submission_id:uuid!, employee_id:uuid!, acknowledged_at:timestamptz!
+form_submissions: id:uuid!, employee_id:uuid!, form_type:text!, version:int4!, payload:jsonb!, status:text!, submitted_at:timestamptz!, reviewed_by:uuid, reviewed_at:timestamptz, reviewer_comments:text, parent_id:uuid, created_at:timestamptz!, updated_at:timestamptz!
+inspection_items: id:uuid!, inspection_id:uuid!, category:text!, item_name:text!, is_ok:bool, notes:text, created_at:timestamptz!
+latest_bus_positions: bus_id:uuid, driver_id:uuid, shift_id:uuid, latitude:float8, longitude:float8, speed:float8, heading:float8, accuracy:float8, recorded_at:timestamptz
+login_attempts: attempt_key:text!, count:int4!, window_start:timestamptz!, updated_at:timestamptz!
+lost_item_status_history: id:uuid!, item_id:uuid!, old_status:text, new_status:text!, changed_by:uuid, changed_at:timestamptz, notes:text
+lost_items: id:uuid!, bus_id:uuid, reported_by:uuid, item_description:text!, location_found:text!, is_bag:bool, bag_contents:text, status:text!, found_at:timestamptz, collected_by:uuid, collected_at:timestamptz, returned_to_dispatch_at:timestamptz, claimed_at:timestamptz, claimant_name:text, claimant_id:text, disposed_at:timestamptz, disposal_reason:text, photo_paths:_text
+notification_log: id:uuid!, recipient_id:uuid, event_type:text!, channel:text!, payload:jsonb, sent_at:timestamptz, delivered_at:timestamptz, failed:bool, failure_reason:text
+notification_queue: id:uuid!, recipient_id:uuid!, event_type:text!, channel:text!, payload:jsonb!, queued_at:timestamptz, processed_at:timestamptz, retry_count:int4!, status:text!
+notifications: id:uuid!, user_id:uuid!, employee_id:uuid, type:text!, title:text!, body:text, data:jsonb!, channels:_text!, is_read:bool!, read_at:timestamptz, created_at:timestamptz!
+off_day_requests: id:uuid!, employee_id:uuid!, requested_date:date!, posted_by:uuid, message:text, response:text, available_start_time:time, available_hours:numeric, custom_availability:text, responded_at:timestamptz, created_at:timestamptz!
+offline_sync_conflicts: id:uuid!, employee_id:uuid, conflict_type:text!, offline_data:jsonb!, server_data:jsonb, resolution:text!, logged_at:timestamptz, reviewed_by:uuid, reviewed_at:timestamptz
+ot_banner: id:text!, is_active:bool!, message:text!, updated_by:uuid, updated_at:timestamptz!
+overtime_awards: id:uuid!, overtime_shift_id:uuid!, employee_id:uuid!, award_method:text!, awarded_at:timestamptz!, awarded_by:uuid, notified:bool!
+overtime_bids: id:uuid!, overtime_shift_id:uuid!, employee_id:uuid!, submitted_at:timestamptz!
+overtime_shifts: id:uuid!, date:date!, start_time:time!, duration_hours:numeric!, slots_available:int4!, description:text, posted_by:uuid, bid_close_at:timestamptz, status:text!, created_at:timestamptz!, updated_at:timestamptz!
+pay_periods: id:uuid!, period_start:date!, period_end:date!, pay_date:date, status:text!, created_by:uuid, closed_by:uuid, closed_at:timestamptz, created_at:timestamptz!
+payroll_exports: id:uuid!, pay_period_id:uuid!, exported_at:timestamptz!, exported_by:uuid, row_count:int4!
+profiles: id:uuid!, employee_id:text, role:text!, is_active:bool!, created_at:timestamptz!, updated_at:timestamptz!
+repair_notes: id:uuid!, bus_id:uuid!, inspection_id:uuid, technician_id:uuid, defect_category:text, defect_item:text, notes:text!, photo_urls:_text!, is_resolved:bool!, resolved_at:timestamptz, created_at:timestamptz!, updated_at:timestamptz!
+safety_meeting_schedules: id:uuid!, title:text!, month:text!, year:int4!, instruction:text!, meetings:jsonb!, is_active:bool, share_token:text, created_at:timestamptz, updated_at:timestamptz
+safety_meeting_signins: id:uuid!, meeting_id:uuid!, employee_id:uuid!, signed_in_at:timestamptz!, attendance_status:text!, added_by_admin:bool!, admin_note:text
+safety_meetings: id:uuid!, title:text!, department:text!, scheduled_date:date!, scheduled_time:time!, location:text, notes:text, status:text!, created_by:uuid, completed_at:timestamptz, created_at:timestamptz!, updated_at:timestamptz!
+session_overrides: id:uuid!, admin_id:uuid!, employee_id:uuid!, override_type:text!, reason:text!, shift_id:uuid, expires_at:timestamptz!, created_at:timestamptz, is_active:bool
+shift_bid_awards: id:uuid!, cycle_id:uuid!, employee_id:uuid!, slot_id:uuid!, preference_rank:int4, award_method:text!, override_reason:text, awarded_at:timestamptz!, awarded_by:uuid, notification_sent:bool!
+shift_bid_cycles: id:uuid!, name:text!, description:text, start_date:date!, end_date:date!, submission_open_at:timestamptz, submission_close_at:timestamptz, status:text!, created_by:uuid, awarded_at:timestamptz, awarded_by:uuid, created_at:timestamptz!, updated_at:timestamptz!
+shift_bid_slots: id:uuid!, cycle_id:uuid!, bid_number:int4!, shift_start:time!, shift_end:time!, report_time:time!, days_sun:bool!, days_mon:bool!, days_tue:bool!, days_wed:bool!, days_thu:bool!, days_fri:bool!, days_sat:bool!, route_type:text!, max_drivers:int4!, notes:text, created_at:timestamptz!
+shift_bid_submissions: id:uuid!, cycle_id:uuid!, employee_id:uuid!, preferences:jsonb!, submitted_at:timestamptz!, updated_at:timestamptz!
+shifts: id:uuid!, date:date!, employee_id:uuid!, bus_id:uuid, tablet_id:uuid, dispatcher_id:uuid, scheduled_start:time, scheduled_end:time, actual_start:timestamptz, actual_end:timestamptz, has_lunch:bool!, lunch_waiver:bool!, signature_data:text, total_hours:numeric, status:text!, radio_status:text, notes:text, created_at:timestamptz!, updated_at:timestamptz!, compliance_verdict:text, compliance_note:text, compliance_by:uuid, compliance_at:timestamptz
+tablets: id:uuid!, tablet_number:text!, serial_number:text, is_available:bool!, notes:text, created_at:timestamptz!, updated_at:timestamptz!
+terminal_coordinates: id:uuid!, code:text!, name:text!, latitude:numeric!, longitude:numeric!, radius_meters:int4!
+vehicle_inspections: id:uuid!, shift_id:uuid!, inspection_type:text!, bus_id:uuid, driver_id:uuid!, inspection_date:date!, start_time:time, end_time:time, beginning_mileage:int4, ending_mileage:int4, miles_driven:int4, time_worked:text, damage_drawing:jsonb!, has_defects:bool!, is_locked:bool!, submitted_at:timestamptz, created_at:timestamptz!, updated_at:timestamptz!
+wheelchair_requests: id:uuid!, driver_id:uuid, bus_id:uuid, passenger_name:text!, airline_id:uuid, flight_number:text, submitted_at:timestamptz, status:text!, dispatcher_response:text, responded_at:timestamptz, escalated_at:timestamptz, closed_without_response_reason:text
