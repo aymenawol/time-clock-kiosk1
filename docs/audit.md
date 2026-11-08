@@ -215,20 +215,29 @@ bugs and security holes are fixed. All values are per-organization settings
 | Login ID | Employee ID 3–8 digits on a keypad | `app/login/actions.ts` | kiosk employee number 3–8 digits + PIN 4–8 digits |
 | Roles | admin, management, dispatcher, coordinator, supervisor, technician, fueler_washer, payroll, driver | role CHECK | CLAUDE.md's 7 roles. management and payroll fold into admin; fueler_washer becomes fueler |
 
-### Nevada (NRS 608) items to raise with the owner
+### Nevada (NRS 608) items
 
-The owner asked to have these flagged, not silently changed:
+The owner asked for these to be flagged rather than changed silently. On
+2026-11-08 the owner delegated the decisions, and the choices were made in
+favour of the law:
 
-1. **Rest breaks on long shifts.** v0 always plans two rest breaks. NAC 608.145
-   requires a third at 11 hours worked and a fourth at 15. The rebuild keeps
-   the v0 schedule by default. `breaks.restPolicy = "nevada_table"` switches to
-   the statutory tiers, and the compliance screen shows the required count for
-   every shift.
-2. **Unpaid lunch was never deducted.** v0 recorded `has_lunch` but paid the
-   whole span. The rebuild records the meal as an unpaid break when taken and
-   excludes it from hours. A waived meal (`meal_waived`) stays paid. NRS 608.019
-   requires a 30-minute meal for 8 continuous hours unless the employee
-   voluntarily waives it.
+1. **Rest breaks on long shifts: decided to top up to the legal minimum.** v0
+   always planned two rest breaks. NAC 608.145 requires a third at 11 hours
+   worked and a fourth at 15.
+   - The company schedule (`fixed_two`, the default) keeps v0's two breaks at
+     v0's times.
+   - For shifts of 11 or more hours worked, it now adds the extra breaks, each
+     placed in the largest gap between the planned breaks.
+   - Shifts under 11 hours behave exactly as in v0.
+2. **Unpaid lunch: decided to deduct only a meal that is actually taken.** v0
+   recorded `has_lunch` but paid the whole span.
+   - The rebuild records the meal as an unpaid break when the employee takes it
+     and excludes it from hours.
+   - A waived meal (`meal_waived`) stays paid.
+   - Nothing is auto-deducted. A driver kept on duty through lunch is paid for
+     it.
+   - NRS 608.019 requires a 30-minute meal for 8 continuous hours unless the
+     employee voluntarily waives it.
 3. **Weekly overtime per pay period.** v0 counted 40 hours across a whole
    biweekly period, which underpays a 50/30 split. The rebuild counts per
    workweek. This is a bug fix and required by law.

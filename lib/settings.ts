@@ -25,8 +25,9 @@ export const orgSettingsSchema = z.object({
       /**
        * "fixed_two" is the v0 operation: two paid rest breaks, the first opening
        * `firstBreakAfterMinutes` after clock-in and the second opening
-       * `secondBreakBeforeEndMinutes` before the planned end. "nevada_table"
-       * spreads one rest per NAC 608.145 tier (adds a third on 11 h+ shifts).
+       * `secondBreakBeforeEndMinutes` before the planned end. Shifts of 11 h
+       * or more worked get the extra rests NAC 608.145 requires. "nevada_table"
+       * spreads the statutory count evenly instead.
        */
       restPolicy: z.enum(["fixed_two", "nevada_table"]).default("fixed_two"),
       firstBreakAfterMinutes: z.number().int().min(30).max(600).default(135),

@@ -49,7 +49,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: "Break rules",
     description: "Read by the break planner, reminders and compliance checks.",
     fields: [
-      { key: "restPolicy", label: "Breaks per shift", type: "select", options: [{ value: "fixed_two", label: "2 paid breaks (company schedule)" }, { value: "nevada_table", label: "Nevada table (1 per 4 h worked, NAC 608.145)" }], hint: "The company schedule plans two breaks on every shift. The Nevada table adds a third break on 11-hour shifts." },
+      { key: "restPolicy", label: "Breaks per shift", type: "select", options: [{ value: "fixed_two", label: "Company schedule (2 paid breaks, more on long shifts)" }, { value: "nevada_table", label: "Nevada table only (1 per 4 h worked, NAC 608.145)" }], hint: "The company schedule plans two breaks at the times below. Shifts of 11 or more hours worked get the extra breaks Nevada requires. The Nevada table spreads the legal minimum evenly instead." },
       { key: "firstBreakAfterMinutes", label: "Break 1 after start (min)", type: "number", min: 30, max: 600, step: 5 },
       { key: "secondBreakBeforeEndMinutes", label: "Break 2 before end (min)", type: "number", min: 30, max: 600, step: 5 },
       { key: "restMinutes", label: "Break duration (min)", type: "number", min: 10, max: 60, step: 1, hint: "Paid rest break. Nevada requires 10 minutes per 4 hours worked." },

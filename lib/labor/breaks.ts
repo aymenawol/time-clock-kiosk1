@@ -34,11 +34,16 @@ export interface BreakPolicy {
 }
 
 /**
- * The v0 schedule: two paid rest breaks. Break 1 opens `firstBreakAfterMinutes`
- * after clock-in, break 2 opens `secondBreakBeforeEndMinutes` before the
- * planned end; each window lasts `windowMinutes`. A 30-minute unpaid meal is
- * added at mid-shift for shifts of 8 hours or more on duty (NRS 608.019),
- * which v0 tracked as the "lunch" / "lunch waiver" flags.
+ * The v0 schedule, topped up to the Nevada minimum. Two paid rest breaks: break
+ * 1 opens `firstBreakAfterMinutes` after clock-in, break 2 opens
+ * `secondBreakBeforeEndMinutes` before the planned end, and each window lasts
+ * `windowMinutes`.
+ *
+ * A 30-minute unpaid meal is added at mid-shift for shifts of 8 hours or more
+ * on duty (NRS 608.019). v0 tracked it as the "lunch" / "lunch waiver" flags.
+ *
+ * Shifts of 11 hours or more worked get the extra rest breaks NAC 608.145
+ * requires, which v0 never planned.
  */
 function planFixedTwo(clockIn: Date, plannedMinutes: number, policy: BreakPolicy): PlannedBreak[] {
   const start = clockIn.getTime();
@@ -66,8 +71,9 @@ function planFixedTwo(clockIn: Date, plannedMinutes: number, policy: BreakPolicy
       windowEnd: new Date(clamp(b2 + flex, policy.restMinutes)),
     });
   }
-  if (mealRequired(plannedMinutes)) {
-    const mid = clamp((start + end) / 2 - flex / 2, policy.mealMinutes);
+  const meal = mealRequired(plannedMinutes);
+  const mid = clamp((start + end) / 2 - flex / 2, policy.mealMinutes);
+  if (meal) {
     out.push({
       kind: "meal",
       paid: false,
@@ -77,7 +83,40 @@ function planFixedTwo(clockIn: Date, plannedMinutes: number, policy: BreakPolicy
       windowEnd: new Date(clamp(mid + flex, policy.mealMinutes)),
     });
   }
-  return out.sort((a, b) => a.windowStart.getTime() - b.windowStart.getTime());
+
+  // Nevada minimum (NAC 608.145): long shifts need a third rest break at 11
+  // hours worked and a fourth at 15. Each extra break goes into the largest
+  // gap between the breaks already planned, so the v0 timing of breaks 1 and 2
+  // never changes.
+  const worked = plannedMinutes - (meal ? policy.mealMinutes : 0);
+  const extra = requiredRestBreaks(worked) - out.filter((b) => b.kind === "rest").length;
+  const anchors = out.map((b) => b.windowStart.getTime());
+  for (let i = 0; i < extra; i++) {
+    anchors.sort((a, b) => a - b);
+    let at = 0;
+    let gap = -1;
+    for (let j = 1; j < anchors.length; j++) {
+      if (anchors[j] - anchors[j - 1] > gap) {
+        gap = anchors[j] - anchors[j - 1];
+        at = j;
+      }
+    }
+    const t = clamp(anchors[at - 1] + gap / 2, policy.restMinutes);
+    anchors.push(t);
+    out.push({
+      kind: "rest",
+      paid: true,
+      sequence: 0,
+      plannedMinutes: policy.restMinutes,
+      windowStart: new Date(t),
+      windowEnd: new Date(clamp(t + flex, policy.restMinutes)),
+    });
+  }
+
+  out.sort((a, b) => a.windowStart.getTime() - b.windowStart.getTime());
+  let seq = 0;
+  for (const b of out) if (b.kind === "rest") b.sequence = ++seq;
+  return out;
 }
 
 export interface PlannedBreak {

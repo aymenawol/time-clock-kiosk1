@@ -86,4 +86,27 @@ describe("planBreaks: v0 fixed_two schedule", () => {
     expect(planBreaks(clockIn, h(8), v0).some((b) => b.kind === "meal")).toBe(true);
     expect(planBreaks(clockIn, h(6), v0).some((b) => b.kind === "meal")).toBe(false);
   });
+
+  it("keeps two rest breaks under 11 hours worked and adds a third at 11", () => {
+    // 11 h shift minus the 30-minute meal = 10.5 h worked; 11.5 h shift = 11 h worked.
+    expect(planBreaks(clockIn, h(11), v0).filter((b) => b.kind === "rest")).toHaveLength(2);
+    expect(planBreaks(clockIn, h(11.5), v0).filter((b) => b.kind === "rest")).toHaveLength(3);
+  });
+
+  it("tops up to the Nevada minimum on long shifts, keeping breaks 1 and 2 where v0 put them", () => {
+    for (const [len, want] of [
+      [12, 3],
+      [16, 4],
+    ] as const) {
+      const plan = planBreaks(clockIn, h(len), v0);
+      const rests = plan.filter((b) => b.kind === "rest");
+      expect(rests).toHaveLength(want);
+      expect(rests.map((b) => b.sequence)).toEqual(Array.from({ length: want }, (_, i) => i + 1));
+      expect(min(rests[0].windowStart)).toBe(135);
+      expect(min(rests[rests.length - 1].windowStart)).toBe(len * 60 - 120);
+      // No two breaks (meal included) open within one window of each other.
+      const starts = plan.map((b) => min(b.windowStart)).sort((a, b) => a - b);
+      for (let i = 1; i < starts.length; i++) expect(starts[i] - starts[i - 1]).toBeGreaterThanOrEqual(45);
+    }
+  });
 });
