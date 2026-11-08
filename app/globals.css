@@ -118,3 +118,11 @@
 @utility safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* Horizontal scrollers contain their absolutely positioned descendants (e.g.
+   sr-only table captions), so wide tables never widen the page on phones. */
+@layer base {
+  .overflow-x-auto {
+    position: relative;
+  }
+}

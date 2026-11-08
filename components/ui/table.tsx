@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 /** Scrolls horizontally inside its container so the page never does. */
 export function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="relative w-full overflow-x-auto">
       <table className={cn("w-full border-collapse text-sm", className)} {...props} />
     </div>
   );

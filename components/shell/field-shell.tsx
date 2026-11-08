@@ -28,7 +28,7 @@ export function FieldShell({
         <NotificationBell employeeId={user.employeeId} />
         <UserMenu user={user} compact />
       </header>
-      <main id="main" className="mx-auto w-full max-w-xl flex-1 px-4 pb-28 pt-4">
+      <main id="main" className="mx-auto w-full min-w-0 max-w-xl flex-1 px-4 pb-28 pt-4">
         {children}
       </main>
       <nav

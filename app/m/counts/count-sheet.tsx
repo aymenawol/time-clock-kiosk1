@@ -120,8 +120,8 @@ export function CountSheet({
         </dl>
       </Card>
 
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+      <Card className="min-w-0 max-w-full overflow-hidden">
+        <div className="relative max-w-full overflow-x-auto">
           <table className="w-full min-w-max border-collapse text-sm">
             <caption className="sr-only">Passengers counted per departure and location</caption>
             <thead>
