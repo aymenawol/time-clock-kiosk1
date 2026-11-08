@@ -3380,6 +3380,24 @@ export type Database = {
         Args: { p_employee_ids: string[]; p_method: string; p_offer_id: string }
         Returns: number
       }
+      claim_email_notifications: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          body: string
+          email: string
+          first_name: string
+          id: string
+          link: string
+          organization_name: string
+          severity: string
+          title: string
+        }[]
+      }
+      complete_email_notification: {
+        Args: { p_error?: string; p_id: string; p_status: string }
+        Returns: undefined
+      }
       end_break: {
         Args: never
         Returns: {
