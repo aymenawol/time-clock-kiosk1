@@ -4,8 +4,6 @@ import { z } from "zod";
 import { must } from "@/components/records/must";
 import { action, ActionError, audit, check, zId } from "@/lib/actions";
 
-const EDIT_ROLES = ["admin", "supervisor", "dispatcher"];
-
 const rowSchema = z.object({
   departure_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 14:30"),
   counts: z.record(z.string(), z.number().int().min(0).max(999)),
@@ -18,10 +16,9 @@ export const updateCountSheet = action(
       rows: z.array(rowSchema).max(60),
       reason: z.string().trim().min(3, "Give a reason for the edit").max(500),
     }),
-    capability: "counts",
+    capability: "countsEdit",
   },
   async ({ id, rows, reason }, ctx) => {
-    if (!EDIT_ROLES.includes(ctx.employee.role)) throw new ActionError("You don't have permission to edit counting sheets.");
     const sheet = must(
       check(await ctx.supabase.from("count_sheets").select("rows, status").eq("id", id).eq("organization_id", ctx.org.id).single()),
     );

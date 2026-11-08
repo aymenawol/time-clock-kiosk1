@@ -36,7 +36,7 @@ export default async function BidsPage() {
   return (
     <>
       <PageHeader
-        title="Shift bids"
+        title="Shift Bid Cycles"
         description="Publish schedule lines, collect ranked choices and award them by seniority."
         actions={<CycleForm initial={initial} timeZone={tz} />}
       />

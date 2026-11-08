@@ -93,12 +93,12 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
           <Table>
             <THead>
               <TR className="hover:bg-transparent">
-                <TH>Name</TH>
+                <TH>Employee</TH>
                 <TH>#</TH>
                 <TH>Role</TH>
+                <TH>Seniority</TH>
                 <TH>Status</TH>
                 <TH>Hired</TH>
-                <TH className="text-right">Seniority</TH>
                 <TH>Login</TH>
                 <TH>PIN set</TH>
               </TR>
@@ -120,13 +120,13 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                     </TD>
                     <TD className="tabular">{e.employee_number}</TD>
                     <TD>{ROLE_LABEL[e.role]}</TD>
+                    <TD className="tabular">{e.seniority_number ?? "-"}</TD>
                     <TD>
                       <Badge tone={st.tone} dot>
                         {st.label}
                       </Badge>
                     </TD>
                     <TD className="whitespace-nowrap">{fmtLocalDate(e.hire_date, "MMM d, yyyy")}</TD>
-                    <TD className="tabular text-right">{e.seniority_number ?? "-"}</TD>
                     <TD>{e.user_id ? <Badge tone="primary">Yes</Badge> : <span className="text-muted">No</span>}</TD>
                     <TD>
                       {pin ? pin.pinSet ? <Badge tone="success">Yes</Badge> : <Badge tone="warning">No</Badge> : <span className="text-muted">-</span>}

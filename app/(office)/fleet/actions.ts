@@ -86,8 +86,7 @@ export const changeVehicleStatus = action(
     );
     if (current.status === "retired") throw new ActionError("This vehicle is retired. An admin can edit it from its page.");
     if (current.status === status) throw new ActionError("The vehicle already has that status.");
-    check(await ctx.supabase.from("vehicles").update({ status }).eq("id", id).eq("organization_id", ctx.org.id));
-    await audit(ctx, "vehicle.status", "vehicles", id, { from: current.status, to: status, reason });
+    check(await ctx.supabase.rpc("set_vehicle_status", { p_vehicle_id: id, p_status: status, p_reason: reason }));
   },
 );
 

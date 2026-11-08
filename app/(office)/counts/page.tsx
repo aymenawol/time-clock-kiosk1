@@ -17,7 +17,7 @@ import { can } from "@/lib/auth/permissions";
 import { requireAuth } from "@/lib/auth/session";
 import { fmtDateTime, fmtLocalDate, todayIn } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Counting sheets" };
+export const metadata: Metadata = { title: "Counting Sheets" };
 
 export default async function CountsPage({ searchParams }: { searchParams: SearchParams }) {
   const auth = await requireAuth("counts");
@@ -26,7 +26,7 @@ export default async function CountsPage({ searchParams }: { searchParams: Searc
   const { sheets, columns, vehicleNumber, routeName } = await loadCountSheets(auth, date);
   const people = await loadPeople(auth);
   const columnIds = columns.map((c) => c.id);
-  const canEdit = ["admin", "supervisor", "dispatcher"].includes(auth.employee.role) && can(auth.employee.role, "counts");
+  const canEdit = can(auth.employee.role, "countsEdit");
 
   const { data: revisions } = sheets.length
     ? await auth.supabase
@@ -48,7 +48,7 @@ export default async function CountsPage({ searchParams }: { searchParams: Searc
     <>
       <LiveRefresh organizationId={auth.org.id} tables={["shifts"]} />
       <PageHeader
-        title="Counting sheets"
+        title="Counting Sheets"
         description={`${fmtLocalDate(date, "EEEE, MMM d")}: ${sheets.length} sheet${sheets.length === 1 ? "" : "s"}, ${grand} passengers`}
         actions={sheets.length ? <CsvLink href={`/counts/export?date=${date}`} /> : undefined}
       />
@@ -75,7 +75,8 @@ export default async function CountsPage({ searchParams }: { searchParams: Searc
                   title={
                     <span className="flex flex-wrap items-center gap-2">
                       {people.name(s.employee_id)}
-                      <Badge tone={s.status === "submitted" ? "success" : "warning"}>{s.status === "submitted" ? "Submitted" : "Draft"}</Badge>
+                      <span className="text-sm font-normal text-muted">Total Riders <strong className="tabular text-base text-foreground">{colTotals.reduce((a, b) => a + b, 0)}</strong></span>
+                      <Badge tone={s.status === "submitted" ? "success" : "warning"}>{s.status === "submitted" ? "Submitted" : "In progress"}</Badge>
                     </span>
                   }
                   description={

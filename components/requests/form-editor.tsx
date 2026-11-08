@@ -6,64 +6,76 @@ import { createForm, resubmitForm } from "@/app/m/forms/actions";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { useAction } from "@/components/ui/use-action";
-import { formSchemas, LEAVE_LABEL, type FormType, type LeaveKind } from "@/lib/forms";
+import { formSchemas, INCIDENT_LABEL, INCIDENT_TYPES, LEAVE_LABEL, TIME_OFF_LABEL, TIME_OFF_TYPES, type FormType, type LeaveKind } from "@/lib/forms";
 import { ErrorNote } from "./back-header";
 
 type FieldDef = {
   name: string;
   label: string;
-  kind: "date" | "number" | "text" | "textarea" | "datetime" | "select";
+  kind: "date" | "number" | "text" | "textarea" | "select";
+  rows?: number;
   hint?: string;
   options?: { value: string; label: string }[];
   /** Only show when another field has this value. */
   showWhen?: { field: string; equals: string };
 };
 
+const yesNoOptions = (yes: string, no: string) => [
+  { value: "", label: "-" },
+  { value: "yes", label: yes },
+  { value: "no", label: no },
+];
+
+// Field order and labels follow the v0 forms.
 const FIELDS: Record<FormType, FieldDef[]> = {
   time_off: [
+    { name: "start_date", label: "Start Date", kind: "date" },
+    { name: "end_date", label: "End Date", kind: "date" },
     {
-      name: "leave_kind",
-      label: "Leave type",
+      name: "leave_type",
+      label: "Type",
       kind: "select",
-      options: (["pto", "vacation", "sick"] as const).map((v) => ({ value: v, label: LEAVE_LABEL[v] })),
+      options: TIME_OFF_TYPES.map((v) => ({ value: v, label: TIME_OFF_LABEL[v] })),
     },
-    { name: "start_date", label: "First day off", kind: "date" },
-    { name: "end_date", label: "Last day off", kind: "date" },
-    { name: "hours", label: "Total hours", kind: "number", hint: "For example 8 for one day." },
-    { name: "reason", label: "Reason (optional)", kind: "textarea" },
+    { name: "comments", label: "Comments", kind: "textarea" },
   ],
   bid_vacation_change: [
-    { name: "current", label: "Current line or dates", kind: "text" },
-    { name: "requested", label: "What you want instead", kind: "text" },
-    { name: "reason", label: "Why", kind: "textarea" },
-  ],
-  incident_report: [
-    { name: "occurred_at", label: "When it happened", kind: "datetime" },
-    { name: "location", label: "Where", kind: "text" },
-    { name: "vehicle_number", label: "Vehicle number (optional)", kind: "text" },
-    { name: "description", label: "What happened", kind: "textarea", hint: "At least 10 characters." },
-    {
-      name: "injuries",
-      label: "Was anyone hurt?",
-      kind: "select",
-      options: [
-        { value: "no", label: "No" },
-        { value: "yes", label: "Yes" },
-      ],
-    },
-    { name: "injury_details", label: "Injury details", kind: "textarea", showWhen: { field: "injuries", equals: "yes" } },
-    { name: "witnesses", label: "Witnesses (optional)", kind: "textarea" },
-    { name: "police_report", label: "Police report number (optional)", kind: "text" },
-  ],
-  fmla_conversion: [
-    { name: "start_date", label: "First day", kind: "date" },
-    { name: "end_date", label: "Last day", kind: "date" },
-    { name: "hours", label: "Total hours", kind: "number" },
+    { name: "current_assignment", label: "Current Assignment / Shift", kind: "text" },
+    { name: "requested_change", label: "Requested Change", kind: "text" },
     { name: "reason", label: "Reason", kind: "textarea" },
   ],
+  incident_report: [
+    { name: "incident_date", label: "Incident Date", kind: "date" },
+    { name: "bus_number", label: "Bus Number", kind: "text" },
+    { name: "location", label: "Location / Route", kind: "text" },
+    {
+      name: "incident_type",
+      label: "Incident Type",
+      kind: "select",
+      options: INCIDENT_TYPES.map((v) => ({ value: v, label: INCIDENT_LABEL[v] })),
+    },
+    { name: "description", label: "Description of Incident", kind: "textarea", rows: 5 },
+    { name: "witnesses", label: "Witnesses (if any)", kind: "textarea", rows: 2 },
+    { name: "passenger_info", label: "Passenger Information (names / contact, if any)", kind: "textarea", rows: 2 },
+    { name: "supervisor_contacted", label: "Supervisor Contacted?", kind: "select", options: yesNoOptions("Yes", "No") },
+    { name: "injuries_damage", label: "Injuries / Damage Details", kind: "textarea" },
+  ],
+  fmla_conversion: [
+    { name: "leave_start_date", label: "Leave Start Date", kind: "date" },
+    { name: "estimated_return_date", label: "Estimated Return Date", kind: "date" },
+    { name: "condition_description", label: "Condition / Reason (medical information stays confidential)", kind: "textarea" },
+    { name: "provider_name", label: "Healthcare Provider Name", kind: "text" },
+    {
+      name: "vacation_pay_usage",
+      label: "Apply paid vacation/PTO during leave?",
+      kind: "select",
+      options: yesNoOptions("Yes - use my vacation/PTO balance", "No - unpaid FMLA"),
+    },
+    { name: "hours_used", label: "Estimated Hours Used", kind: "number" },
+  ],
   resignation: [
-    { name: "last_day", label: "Your last day", kind: "date" },
-    { name: "reason", label: "Reason (optional)", kind: "textarea" },
+    { name: "last_day", label: "Last Day of Work", kind: "date" },
+    { name: "reason", label: "Reason for Resignation (optional)", kind: "textarea" },
   ],
 };
 
@@ -75,8 +87,8 @@ function initialValues(type: FormType, payload?: Record<string, unknown>): Value
     const raw = payload?.[f.name];
     v[f.name] = raw !== undefined && raw !== null ? String(raw) : "";
   }
-  if (type === "time_off" && !v.leave_kind) v.leave_kind = "pto";
-  if (type === "incident_report" && !v.injuries) v.injuries = "no";
+  if (type === "time_off" && !v.leave_type) v.leave_type = "vacation";
+  if (type === "incident_report" && !v.incident_type) v.incident_type = "vehicle_collision";
   return v;
 }
 
@@ -133,18 +145,19 @@ export function FormEditor({
   }
 
   const set = (name: string, value: string) => setValues((v) => ({ ...v, [name]: value }));
-  const kind = values.leave_kind;
-  const balance = type === "time_off" && balances ? (balances[kind] ?? 0) : null;
-  const requested = Number(values.hours);
+  const kind = values.leave_type;
+  const balance = type === "time_off" && balances && (kind === "pto" || kind === "vacation") ? (balances[kind] ?? 0) : null;
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
       {balance !== null ? (
         <div className="rounded-[var(--radius-card)] border border-border bg-surface-2 p-3 text-sm">
           Your {LEAVE_LABEL[kind as LeaveKind] ?? kind} balance is <strong className="tabular">{balance.toFixed(2)} h</strong>.
-          {requested > balance ? (
-            <span className="mt-1 block text-warning">This is more than your balance. You can still send it.</span>
-          ) : null}
+        </div>
+      ) : null}
+      {type === "resignation" ? (
+        <div role="note" className="rounded-[var(--radius-card)] border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+          By submitting this form you are initiating the resignation process. Upon approval your system access will be deactivated on your last day.
         </div>
       ) : null}
       {FIELDS[type].map((f) => {
@@ -154,7 +167,7 @@ export function FormEditor({
         return (
           <Field key={f.name} label={f.label} htmlFor={id} hint={f.hint} error={errors[f.name]}>
             {f.kind === "textarea" ? (
-              <Textarea {...common} onChange={(e) => set(f.name, e.target.value)} />
+              <Textarea {...common} rows={f.rows ?? 3} onChange={(e) => set(f.name, e.target.value)} />
             ) : f.kind === "select" ? (
               <Select {...common} className="h-12" onChange={(e) => set(f.name, e.target.value)}>
                 {f.options?.map((o) => (
@@ -167,7 +180,7 @@ export function FormEditor({
               <Input
                 {...common}
                 className="h-12 text-base"
-                type={f.kind === "datetime" ? "datetime-local" : f.kind === "number" ? "number" : f.kind}
+                type={f.kind}
                 inputMode={f.kind === "number" ? "decimal" : undefined}
                 step={f.kind === "number" ? "0.25" : undefined}
                 onChange={(e) => set(f.name, e.target.value)}

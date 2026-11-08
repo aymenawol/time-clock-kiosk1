@@ -73,13 +73,11 @@ export const putVehicleInShop = action(
     if (vehicle.status === "shop") throw new ActionError("The vehicle is already in the shop.");
     if (vehicle.status === "retired") throw new ActionError("This vehicle is retired.");
     check(
-      await ctx.supabase.from("vehicles").update({ status: "shop" }).eq("id", defect.vehicle_id).eq("organization_id", ctx.org.id),
+      await ctx.supabase.rpc("set_vehicle_status", {
+        p_vehicle_id: defect.vehicle_id,
+        p_status: "shop",
+        p_reason: `Critical defect: ${defect.item}`,
+      }),
     );
-    await audit(ctx, "vehicle.status", "vehicles", defect.vehicle_id, {
-      from: vehicle.status,
-      to: "shop",
-      reason: `Critical defect: ${defect.item}`,
-      defect_id: defectId,
-    });
   },
 );

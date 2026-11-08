@@ -40,14 +40,14 @@ export function AddEmployee({ minimumWage }: { minimumWage: string }) {
             void run({ ...formValues(e.currentTarget), daily_ot_exempt: exempt, create_login: login } as never);
           }}
         >
+          <Field label="Employee ID" htmlFor="ae-num" hint="3 to 8 digits, unique in your organization" error={err("employee_number")}>
+            <Input id="ae-num" name="employee_number" required inputMode="numeric" pattern="\d{3,8}" maxLength={8} autoComplete="off" />
+          </Field>
           <Field label="First name" htmlFor="ae-first" error={err("first_name")}>
             <Input id="ae-first" name="first_name" required maxLength={80} autoComplete="off" />
           </Field>
           <Field label="Last name" htmlFor="ae-last" error={err("last_name")}>
             <Input id="ae-last" name="last_name" required maxLength={80} autoComplete="off" />
-          </Field>
-          <Field label="Employee number" htmlFor="ae-num" hint="3 to 8 digits, unique in your organization" error={err("employee_number")}>
-            <Input id="ae-num" name="employee_number" required inputMode="numeric" pattern="\d{3,8}" maxLength={8} autoComplete="off" />
           </Field>
           <Field label="Role" htmlFor="ae-role" error={err("role")}>
             <Select id="ae-role" name="role" defaultValue="driver">
@@ -58,20 +58,20 @@ export function AddEmployee({ minimumWage }: { minimumWage: string }) {
               ))}
             </Select>
           </Field>
+          <Field label="Job title" htmlFor="ae-title" error={err("job_title")}>
+            <Input id="ae-title" name="job_title" maxLength={80} />
+          </Field>
           <Field label="Email" htmlFor="ae-email" error={err("email")}>
             <Input id="ae-email" name="email" type="email" autoComplete="off" />
           </Field>
           <Field label="Phone" htmlFor="ae-phone" error={err("phone")}>
             <Input id="ae-phone" name="phone" type="tel" autoComplete="off" />
           </Field>
-          <Field label="Job title" htmlFor="ae-title" error={err("job_title")}>
-            <Input id="ae-title" name="job_title" maxLength={80} />
+          <Field label="Seniority #" htmlFor="ae-sen" hint="1 is most senior. Used for bids and overtime." error={err("seniority_number")}>
+            <Input id="ae-sen" name="seniority_number" type="number" min={1} step={1} />
           </Field>
           <Field label="Hire date" htmlFor="ae-hire" error={err("hire_date")}>
             <Input id="ae-hire" name="hire_date" type="date" />
-          </Field>
-          <Field label="Seniority number" htmlFor="ae-sen" hint="1 is most senior. Used for bids and overtime." error={err("seniority_number")}>
-            <Input id="ae-sen" name="seniority_number" type="number" min={1} step={1} />
           </Field>
           <Field label="Pay rate ($ per hour)" htmlFor="ae-rate" error={err("pay_rate")}>
             <Input id="ae-rate" name="pay_rate" type="number" min={0} step="0.01" required defaultValue="0" />

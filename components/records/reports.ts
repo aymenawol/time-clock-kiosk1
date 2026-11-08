@@ -9,11 +9,11 @@ import { FORM_META, type FormType } from "@/lib/forms";
 import { dayRange } from "./params";
 
 export const REPORTS = {
-  hours: "Hours by employee",
-  overtime: "Overtime awards",
-  requests: "Requests",
-  safety: "Safety attendance",
-  bids: "Bid awards",
+  hours: "Employee Hours",
+  overtime: "Overtime Awards",
+  requests: "Form Submissions",
+  safety: "Safety Meetings",
+  bids: "Bid Awards",
   inspections: "Inspection completion",
   fuel: "Fuel usage",
   lostfound: "Lost and found",

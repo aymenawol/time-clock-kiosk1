@@ -88,7 +88,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
     );
   }
 
-  const [inspRes, itemsRes] = await Promise.all([
+  const [inspRes, itemsRes, preRes] = await Promise.all([
     auth.supabase
       .from("inspections")
       .select("id, vehicle_id, odometer, results, damage, notes, submitted_at, defect_count, updated_at, vehicle:vehicles(number)")
@@ -102,6 +102,15 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
       .eq("organization_id", auth.org.id)
       .eq("active", true)
       .order("sort"),
+    kind === "post_trip"
+      ? auth.supabase
+          .from("inspections")
+          .select("odometer")
+          .eq("organization_id", auth.org.id)
+          .eq("shift_id", shift.id)
+          .eq("kind", "pre_trip")
+          .maybeSingle()
+      : null,
   ]);
 
   if (inspRes.error || itemsRes.error) {
@@ -150,7 +159,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
                 <dd className={`text-2xl font-semibold tabular ${failed.length ? "text-danger" : "text-fg"}`}>{failed.length}</dd>
               </div>
               <div className="px-2 py-3">
-                <dt className="text-xs text-muted">Odometer</dt>
+                <dt className="text-xs text-muted">{kind === "pre_trip" ? "Beginning" : "Ending"} mileage</dt>
                 <dd className="font-mono text-lg font-semibold text-fg tabular">
                   {inspection.odometer !== null ? inspection.odometer.toLocaleString("en-US") : "-"}
                 </dd>
@@ -242,6 +251,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
         kind={kind}
         vehicleNumber={shift.vehicle.number}
         lastOdometer={shift.vehicle.odometer}
+        preOdometer={preRes?.data?.odometer ?? null}
         items={items}
         initial={{
           answers,

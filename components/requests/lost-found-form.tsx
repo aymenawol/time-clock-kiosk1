@@ -4,22 +4,13 @@ import { CheckCircle2, Camera } from "lucide-react";
 import { useState } from "react";
 import { reportLostItem } from "@/app/m/lost-found/actions";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Checkbox, Field, Select, Textarea } from "@/components/ui/input";
 import { useAction } from "@/components/ui/use-action";
 import { createClient } from "@/lib/supabase/client";
 import { ErrorNote } from "./back-header";
 
-const CATEGORIES = [
-  { value: "bag", label: "Bag or luggage" },
-  { value: "electronics", label: "Phone or electronics" },
-  { value: "document", label: "Document or wallet" },
-  { value: "clothing", label: "Clothing" },
-  { value: "jewelry", label: "Jewelry" },
-  { value: "other", label: "Something else" },
-] as const;
-
 const MAX_BYTES = 10 * 1024 * 1024;
-const MAX_PHOTOS = 6;
+const MAX_PHOTOS = 5;
 
 function extensionOf(file: File): string {
   const fromName = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -36,7 +27,7 @@ export function LostFoundForm({
   locations: { id: string; name: string }[];
   vehicles: { id: string; number: string }[];
 }) {
-  const [category, setCategory] = useState("bag");
+  const [isBag, setIsBag] = useState(false);
   const [description, setDescription] = useState("");
   const [contents, setContents] = useState("");
   const [locationId, setLocationId] = useState("");
@@ -45,6 +36,7 @@ export function LostFoundForm({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reference, setReference] = useState<string | null>(null);
+  const [reported, setReported] = useState<{ description: string; place: string; bus: string } | null>(null);
   const [run, pending] = useAction(reportLostItem, { onSuccess: (d) => setReference(d.reference) });
 
   function pick(list: FileList | null) {
@@ -60,6 +52,7 @@ export function LostFoundForm({
     e.preventDefault();
     setError(null);
     if (description.trim().length === 0) return setError("Describe the item first.");
+    if (isBag && contents.trim().length === 0) return setError("Describe what the bag contains.");
     const itemId = crypto.randomUUID();
     const photoPaths: string[] = [];
     if (files.length > 0) {
@@ -76,11 +69,16 @@ export function LostFoundForm({
       }
       setUploading(false);
     }
+    setReported({
+      description: description.trim(),
+      place: locations.find((l) => l.id === locationId)?.name ?? "Not sure",
+      bus: vehicles.find((v) => v.id === vehicleId)?.number ?? "N/A",
+    });
     await run({
       itemId,
       description,
-      category: category as (typeof CATEGORIES)[number]["value"],
-      contents: contents || undefined,
+      category: isBag ? "bag" : "other",
+      contents: isBag ? contents || undefined : undefined,
       locationId: locationId || null,
       vehicleId: vehicleId || null,
       photoPaths,
@@ -91,8 +89,14 @@ export function LostFoundForm({
     return (
       <div className="flex flex-col items-center gap-3 rounded-[var(--radius-card)] border border-success bg-success-soft p-6 text-center">
         <CheckCircle2 className="size-10 text-success" aria-hidden />
-        <p className="font-semibold">Item reported</p>
-        <p className="text-sm text-muted">Write this reference on the item tag.</p>
+        <p className="text-lg font-bold">Item Reported</p>
+        {reported ? (
+          <>
+            <p>{reported.description}</p>
+            <p className="text-sm text-muted">Location: {reported.place} · Bus {reported.bus}</p>
+          </>
+        ) : null}
+        <p className="text-sm text-muted">Dispatch has been notified. Write this reference on the item tag.</p>
         <p className="text-3xl font-bold tracking-widest tabular">{reference}</p>
         <Button
           size="lg"
@@ -101,6 +105,7 @@ export function LostFoundForm({
             setReference(null);
             setDescription("");
             setContents("");
+            setIsBag(false);
             setFiles([]);
           }}
         >
@@ -112,19 +117,20 @@ export function LostFoundForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
-      <Field label="What is it?" htmlFor="lf-description" hint="Colour, brand, size.">
-        <Input id="lf-description" className="h-12 text-base" maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
-      </Field>
-      <Field label="Type" htmlFor="lf-category">
-        <Select id="lf-category" className="h-12" value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
+      <Field label="Bus Number" htmlFor="lf-vehicle">
+        <Select id="lf-vehicle" className="h-12" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
+          <option value="">Not on a bus</option>
+          {vehicles.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.number}
             </option>
           ))}
         </Select>
       </Field>
-      <Field label="Where did you find it?" htmlFor="lf-location">
+      <Field label="Item Description *" htmlFor="lf-description">
+        <Textarea id="lf-description" rows={3} maxLength={500} placeholder="Describe the item found..." value={description} onChange={(e) => setDescription(e.target.value)} />
+      </Field>
+      <Field label="Where was it found?" htmlFor="lf-location">
         <Select id="lf-location" className="h-12" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
           <option value="">Not sure</option>
           {locations.map((l) => (
@@ -134,20 +140,16 @@ export function LostFoundForm({
           ))}
         </Select>
       </Field>
-      <Field label="Which vehicle?" htmlFor="lf-vehicle">
-        <Select id="lf-vehicle" className="h-12" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-          <option value="">Not on a vehicle</option>
-          {vehicles.map((v) => (
-            <option key={v.id} value={v.id}>
-              Bus {v.number}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label="Contents (optional)" htmlFor="lf-contents" hint="Anything visible inside that helps identify the owner.">
-        <Textarea id="lf-contents" maxLength={2000} value={contents} onChange={(e) => setContents(e.target.value)} />
-      </Field>
-      <Field label="Photos (optional)" htmlFor="lf-photos" hint={`Up to ${MAX_PHOTOS} images, 10 MB each.`}>
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+        <Checkbox className="size-5" checked={isBag} onChange={(e) => setIsBag(e.target.checked)} />
+        This is a bag / backpack / luggage
+      </label>
+      {isBag ? (
+        <Field label="Bag Contents *" htmlFor="lf-contents">
+          <Textarea id="lf-contents" rows={3} maxLength={2000} placeholder="Describe what the bag contains (for security)..." value={contents} onChange={(e) => setContents(e.target.value)} />
+        </Field>
+      ) : null}
+      <Field label="Photos (optional, max 5)" htmlFor="lf-photos" hint="Images, 10 MB each.">
         <label className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-control)] border border-dashed border-border-strong text-sm font-medium text-primary hover:bg-surface-2">
           <Camera className="size-4" aria-hidden /> Add photos
           <input
@@ -178,7 +180,7 @@ export function LostFoundForm({
       ) : null}
       {error ? <ErrorNote>{error}</ErrorNote> : null}
       <Button type="submit" size="xl" className="w-full" loading={pending || uploading}>
-        {uploading ? "Uploading photos" : "Report item"}
+        {uploading ? "Uploading photos" : "Submit Lost & Found Report"}
       </Button>
     </form>
   );

@@ -52,16 +52,16 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
   return (
     <>
       <LiveRefresh organizationId={org.id} tables={["defects"]} />
-      <PageHeader title="Inspections" description={`${rows.length} on this day`} />
+      <PageHeader title="Inspections" description={`${rows.length} inspection${rows.length === 1 ? "" : "s"}`} />
       <FilterForm clearHref="/fleet/inspections">
         <FilterField label="Date">
           <Input type="date" name="date" defaultValue={date} />
         </FilterField>
-        <FilterField label="Kind">
+        <FilterField label="Type">
           <Select name="kind" defaultValue={kind}>
-            <option value="">Pre and post-trip</option>
-            <option value="pre_trip">Pre-trip</option>
-            <option value="post_trip">Post-trip</option>
+            <option value="">All Types</option>
+            <option value="pre_trip">Pre-Trip</option>
+            <option value="post_trip">Post-Trip</option>
           </Select>
         </FilterField>
         <FilterField label="Vehicle">
@@ -108,10 +108,10 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
                         {vehicleNumber.get(i.vehicle_id) ?? "-"}
                       </Link>
                     </TD>
-                    <TD>{i.kind === "pre_trip" ? "Pre-trip" : "Post-trip"}</TD>
+                    <TD>{i.kind === "pre_trip" ? "Pre-Trip" : "Post-Trip"}</TD>
                     <TD className={`text-right tabular ${failed ? "font-medium text-danger" : ""}`}>{failed}</TD>
                     <TD className="text-right tabular">{i.defect_count}</TD>
-                    <TD>{i.submitted_at ? <Badge tone="success">Submitted</Badge> : <Badge tone="warning">Draft</Badge>}</TD>
+                    <TD>{i.submitted_at ? <Badge tone="success">Submitted</Badge> : <Badge tone="warning">Not submitted</Badge>}</TD>
                   </TR>
                 );
               })}

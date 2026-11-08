@@ -47,7 +47,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
     .maybeSingle();
   if (!vehicle) notFound();
 
-  const [historyRes, defectsRes, inspectionsRes, fuelRes, shiftsRes, auditRes, people] = await Promise.all([
+  const [historyRes, defectsRes, inspectionsRes, fuelRes, shiftsRes, people] = await Promise.all([
     supabase
       .from("vehicle_status_history")
       .select("*")
@@ -83,29 +83,8 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       .eq("organization_id", org.id)
       .order("clock_in_at", { ascending: false })
       .limit(20),
-    // Reasons for status changes are kept in the audit log (admins can read it).
-    supabase
-      .from("audit_events")
-      .select("action, data, created_at")
-      .eq("organization_id", org.id)
-      .eq("entity", "vehicles")
-      .eq("entity_id", id)
-      .in("action", ["vehicle.status", "vehicle.retire"])
-      .order("created_at", { ascending: false })
-      .limit(100),
     loadPeople(auth),
   ]);
-
-  const auditEvents = (auditRes.data ?? []).map((a) => ({
-    at: new Date(a.created_at).getTime(),
-    to: (a.data as { to?: string } | null)?.to ?? "retired",
-    reason: (a.data as { reason?: string } | null)?.reason ?? null,
-  }));
-  const reasonFor = (h: { reason: string | null; to_status: string; created_at: string }) => {
-    if (h.reason) return h.reason;
-    const t = new Date(h.created_at).getTime();
-    return auditEvents.find((a) => a.to === h.to_status && Math.abs(a.at - t) < 30_000)?.reason ?? null;
-  };
 
   const defects = defectsRes.data ?? [];
   const openDefects = defects.filter((d) => d.status !== "resolved");
@@ -199,7 +178,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                         <VehicleStatusPill status={h.to_status as VehicleStatus} />
                       </TD>
                       <TD>{h.changed_by ? people.name(h.changed_by) : "System"}</TD>
-                      <TD className="max-w-md text-muted">{reasonFor(h) ?? "-"}</TD>
+                      <TD className="max-w-md text-muted">{h.reason ?? "-"}</TD>
                     </TR>
                   ))}
                 </TBody>

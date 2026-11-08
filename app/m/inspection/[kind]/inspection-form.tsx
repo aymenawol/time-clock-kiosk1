@@ -26,12 +26,15 @@ export function InspectionForm({
   kind,
   vehicleNumber,
   lastOdometer,
+  preOdometer,
   items,
   initial,
 }: {
   kind: "pre_trip" | "post_trip";
   vehicleNumber: string;
   lastOdometer: number | null;
+  /** Odometer saved at pre-trip: the beginning mileage on the post-trip form. */
+  preOdometer: number | null;
   items: ChecklistItem[];
   initial: {
     answers: Record<string, Answer>;
@@ -123,7 +126,7 @@ export function InspectionForm({
       return;
     }
     if (odometer.trim() === "") {
-      toast.error("Enter the odometer reading.");
+      toast.error(kind === "pre_trip" ? "Enter the beginning mileage." : "Enter the ending mileage.");
       document.getElementById("odometer")?.focus();
       return;
     }
@@ -131,9 +134,69 @@ export function InspectionForm({
   }
 
   const busy = saving || submitting;
+  const odoNum = odometer.trim() === "" ? null : Number(odometer);
+  const milesDriven =
+    kind === "post_trip" && preOdometer !== null && odoNum !== null && odoNum >= preOdometer ? odoNum - preOdometer : null;
+  const odoInput = (
+    <Input
+      id="odometer"
+      type="text"
+      inputMode="numeric"
+      className="h-12 font-mono text-lg"
+      value={odometer}
+      onChange={(e) => {
+        setDirty(true);
+        setOdometer(e.target.value.replace(/[^\d]/g, "").slice(0, 7));
+      }}
+    />
+  );
 
   return (
     <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader title="Mileage" />
+        <CardBody className="grid grid-cols-2 gap-3">
+          {kind === "pre_trip" ? (
+            <>
+              <Field
+                label="Beginning mileage"
+                htmlFor="odometer"
+                hint={lastOdometer !== null ? `Last recorded ${lastOdometer.toLocaleString("en-US")}` : undefined}
+                error={saveErrors.odometer?.[0]}
+              >
+                {odoInput}
+              </Field>
+              <Field label="Ending mileage (post-trip)" htmlFor="odometer-end" hint="Entered on post-trip">
+                <Input id="odometer-end" disabled placeholder="Post-trip" className="h-12 font-mono text-lg" />
+              </Field>
+            </>
+          ) : (
+            <>
+              <Field
+                label="Beginning mileage (from pre-trip)"
+                htmlFor="odometer-begin"
+                hint={preOdometer === null ? "No pre-trip reading saved" : undefined}
+              >
+                <Input
+                  id="odometer-begin"
+                  readOnly
+                  value={preOdometer !== null ? String(preOdometer) : ""}
+                  className="h-12 font-mono text-lg"
+                />
+              </Field>
+              <Field label="Ending mileage" htmlFor="odometer" error={saveErrors.odometer?.[0]}>
+                {odoInput}
+              </Field>
+              {milesDriven !== null ? (
+                <p className="col-span-2 text-sm text-muted">
+                  Miles driven: <span className="font-semibold text-fg tabular">{milesDriven.toLocaleString("en-US")}</span>
+                </p>
+              ) : null}
+            </>
+          )}
+        </CardBody>
+      </Card>
+
       {groups.map(([category, group]) => {
         const done = group.filter((it) => answers[it.id]?.ok != null).length;
         return (
@@ -229,27 +292,21 @@ export function InspectionForm({
       })}
 
       <Card>
-        <CardHeader title="Odometer and notes" />
-        <CardBody className="flex flex-col gap-4">
-          <Field
-            label="Odometer"
-            htmlFor="odometer"
-            hint={lastOdometer !== null ? `Last recorded ${lastOdometer.toLocaleString("en-US")}` : undefined}
-            error={saveErrors.odometer?.[0]}
-          >
-            <Input
-              id="odometer"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              className="h-12 font-mono text-lg"
-              value={odometer}
-              onChange={(e) => {
-                setDirty(true);
-                setOdometer(e.target.value.replace(/[^\d]/g, "").slice(0, 7));
-              }}
-            />
-          </Field>
+        <CardHeader title="Damage" description="Draw on the vehicle where you see new damage. Leave blank if none." />
+        <CardBody>
+          <DamageDiagram
+            value={damage}
+            onChange={(d) => {
+              setDirty(true);
+              setDamage(d);
+            }}
+          />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Notes" />
+        <CardBody>
           <Field label="Notes" htmlFor="notes" hint="Optional">
             <Textarea
               id="notes"
@@ -261,19 +318,6 @@ export function InspectionForm({
               }}
             />
           </Field>
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader title="Damage" description="Draw on the vehicle where you see new damage. Leave blank if none." />
-        <CardBody>
-          <DamageDiagram
-            value={damage}
-            onChange={(d) => {
-              setDirty(true);
-              setDamage(d);
-            }}
-          />
         </CardBody>
       </Card>
 

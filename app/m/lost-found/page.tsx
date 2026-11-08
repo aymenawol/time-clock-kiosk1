@@ -10,11 +10,11 @@ export const metadata: Metadata = { title: "Report lost item" };
 export const dynamic = "force-dynamic";
 
 const STATUS: Record<string, { label: string; tone: "neutral" | "primary" | "success" | "warning" }> = {
-  found: { label: "Reported", tone: "primary" },
+  found: { label: "Found", tone: "primary" },
   collected: { label: "Collected", tone: "primary" },
-  at_dispatch: { label: "At dispatch", tone: "warning" },
+  at_dispatch: { label: "Returned to dispatch", tone: "warning" },
   claimed: { label: "Claimed", tone: "success" },
-  disposed: { label: "Closed", tone: "neutral" },
+  disposed: { label: "Disposed", tone: "neutral" },
 };
 
 export default async function LostFoundPage() {
@@ -34,7 +34,7 @@ export default async function LostFoundPage() {
 
   return (
     <>
-      <BackHeader href="/m/requests" backLabel="Requests" title="Report lost item" description="Found something left behind? Log it here." />
+      <BackHeader href="/m/requests" backLabel="Requests" title="Lost & Found" description="Report an item found on your bus" />
       <LostFoundForm organizationId={auth.org.id} locations={locRes.data ?? []} vehicles={vehRes.data ?? []} />
 
       <section aria-label="Items I reported" className="mt-10">

@@ -12,7 +12,7 @@ import { useAction } from "@/components/ui/use-action";
 export const LOST_STATUS: Record<string, { label: string; tone: Tone }> = {
   found: { label: "Found", tone: "info" },
   collected: { label: "Collected", tone: "primary" },
-  at_dispatch: { label: "At dispatch", tone: "warning" },
+  at_dispatch: { label: "Returned to dispatch", tone: "warning" },
   claimed: { label: "Claimed", tone: "success" },
   disposed: { label: "Disposed", tone: "neutral" },
 };

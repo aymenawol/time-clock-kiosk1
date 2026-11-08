@@ -47,7 +47,7 @@ export default async function SafetyPage() {
   if (meetingsRes.error || attendanceRes.error) {
     return (
       <>
-        <BackHeader href="/m/requests" backLabel="Requests" title="Safety meetings" />
+        <BackHeader href="/m/requests" backLabel="Requests" title="Safety Meetings" />
         <LoadError what="safety meetings" />
       </>
     );
@@ -60,7 +60,7 @@ export default async function SafetyPage() {
 
   return (
     <>
-      <BackHeader href="/m/requests" backLabel="Requests" title="Safety meetings" description="Sign in from 30 minutes before the start until the meeting ends." />
+      <BackHeader href="/m/requests" backLabel="Requests" title="Safety Meetings" description="Sign in from 30 minutes before the start until the meeting ends." />
       <div className="flex flex-col gap-8">
         <section aria-label="Upcoming meetings" className="flex flex-col gap-3">
           <SectionTitle>Upcoming</SectionTitle>

@@ -57,7 +57,7 @@ export default async function FormsPage({ searchParams }: { searchParams: Promis
       <Card>
         <form method="get" className="flex flex-wrap items-end gap-3 border-b border-border p-4">
           <Select name="type" defaultValue={type ?? ""} className="w-52" aria-label="Request type">
-            <option value="">All types</option>
+            <option value="">All Types</option>
             {FORM_TYPES.map((t) => (
               <option key={t} value={t}>
                 {FORM_META[t].label}
@@ -65,7 +65,7 @@ export default async function FormsPage({ searchParams }: { searchParams: Promis
             ))}
           </Select>
           <Select name="status" defaultValue={status} className="w-52" aria-label="Status">
-            <option value="">All statuses</option>
+            <option value="">All Statuses</option>
             {Object.entries(FORM_STATUS).map(([k, s]) => (
               <option key={k} value={k}>
                 {s.label}
