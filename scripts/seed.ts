@@ -237,14 +237,16 @@ async function main() {
   await db.from("tablets").insert(Array.from({ length: 6 }, (_, i) => ({ organization_id: orgId, number: `T-0${i + 1}` })));
 
   // v0 radio codes (lib/constants/radio-codes.ts + driver actions on main): 4 driver buttons, 2 board-only codes.
-  await db.from("radio_codes").insert([
-    { organization_id: orgId, code: "10-8", label: "In Service", sets_vehicle_status: "in_service", notify_roles: ["dispatcher"], sort: 1 },
-    { organization_id: orgId, code: "10-39", label: "On Break", sets_vehicle_status: "in_service", notify_roles: ["dispatcher", "supervisor"], sort: 2 },
-    { organization_id: orgId, code: "10-37", label: "Fueling/Wash", sets_vehicle_status: "needs_fuel", notify_roles: ["dispatcher", "admin", "supervisor"], sort: 3 },
-    { organization_id: orgId, code: "10-7", label: "Out of Service", sets_vehicle_status: "shop", notify_roles: ["dispatcher", "admin"], sort: 4 },
+  // Every row lists every column: a bulk insert with differing keys sends nulls for the missing ones.
+  const radio = await db.from("radio_codes").insert([
+    { organization_id: orgId, code: "10-8", label: "In Service", sets_vehicle_status: "in_service", notify_roles: ["dispatcher"], is_alert: false, driver_selectable: true, sort: 1 },
+    { organization_id: orgId, code: "10-39", label: "On Break", sets_vehicle_status: "in_service", notify_roles: ["dispatcher", "supervisor"], is_alert: false, driver_selectable: true, sort: 2 },
+    { organization_id: orgId, code: "10-37", label: "Fueling/Wash", sets_vehicle_status: "needs_fuel", notify_roles: ["dispatcher", "admin", "supervisor"], is_alert: false, driver_selectable: true, sort: 3 },
+    { organization_id: orgId, code: "10-7", label: "Out of Service", sets_vehicle_status: "shop", notify_roles: ["dispatcher", "admin"], is_alert: false, driver_selectable: true, sort: 4 },
     { organization_id: orgId, code: "10-51", label: "Assist Needed", sets_vehicle_status: null, notify_roles: ["dispatcher"], is_alert: true, driver_selectable: false, sort: 5 },
     { organization_id: orgId, code: "10-33", label: "HAZARD", sets_vehicle_status: "safety_hold", notify_roles: ["dispatcher", "supervisor"], is_alert: true, driver_selectable: false, sort: 6 },
   ]);
+  if (radio.error) throw radio.error;
 
   await db.from("checklist_items").insert(
     CHECKLIST.map(([category, label, critical], i) => ({ organization_id: orgId, category, label, critical, sort: i })),
@@ -395,10 +397,11 @@ async function main() {
   }
 
   // ---- Fleet records ---------------------------------------------------------
-  await db.from("defects").insert([
+  const defects = await db.from("defects").insert([
     { organization_id: orgId, vehicle_id: veh["108"], reported_by: ids["2004"], category: "Brakes", item: "Service brake", description: "Brakes feel soft at low speed.", severity: "critical", status: "in_progress", assigned_to: ids["4001"] },
-    { organization_id: orgId, vehicle_id: veh["104"], reported_by: ids["2001"], category: "Interior", item: "Handrails", description: "Rear handrail loose.", severity: "minor" },
+    { organization_id: orgId, vehicle_id: veh["104"], reported_by: ids["2001"], category: "Interior", item: "Handrails", description: "Rear handrail loose.", severity: "minor", status: "open", assigned_to: null },
   ]);
+  if (defects.error) throw defects.error;
   await db.from("fuel_logs").insert([
     { organization_id: orgId, vehicle_id: veh["102"], employee_id: ids["3001"], service: "fuel", energy_before: 30, energy_after: 100, quantity: 41.5 },
     { organization_id: orgId, vehicle_id: veh["104"], employee_id: ids["3001"], service: "charge", energy_before: 22, energy_after: 90, quantity: 160 },

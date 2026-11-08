@@ -24,7 +24,7 @@ test.describe.serial("PIN kiosk", () => {
       await page.getByRole("button", { name: "Next" }).click();
       await keypad(page, "1111");
       await page.getByRole("button", { name: "Enter" }).click();
-      await expect(page.getByRole("alert")).toContainText("incorrect");
+      await expect(page.getByText("Employee number or PIN is incorrect.")).toBeVisible();
     });
 
     test("a driver clocks in, takes a rest break and returns", async ({ page }) => {

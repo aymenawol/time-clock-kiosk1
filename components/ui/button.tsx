@@ -37,18 +37,29 @@ export interface ButtonProps
 }
 
 export function Button({ className, variant, size, asChild, loading, disabled, children, ...props }: ButtonProps) {
-  const Comp = asChild ? Slot.Root : "button";
+  if (asChild) {
+    // Slot needs exactly one element child, so no spinner sibling here.
+    return (
+      <Slot.Root
+        className={cn(buttonVariants({ variant, size }), className)}
+        aria-busy={loading || undefined}
+        {...props}
+      >
+        {children}
+      </Slot.Root>
+    );
+  }
   return (
-    <Comp
+    <button
       className={cn(buttonVariants({ variant, size }), className)}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...props}
     >
-      {loading && !asChild ? (
+      {loading ? (
         <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
       ) : null}
       {children}
-    </Comp>
+    </button>
   );
 }

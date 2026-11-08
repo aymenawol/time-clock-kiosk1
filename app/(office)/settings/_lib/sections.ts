@@ -49,6 +49,9 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: "Break rules",
     description: "Read by the break planner, reminders and compliance checks.",
     fields: [
+      { key: "restPolicy", label: "Breaks per shift", type: "select", options: [{ value: "fixed_two", label: "2 paid breaks (company schedule)" }, { value: "nevada_table", label: "Nevada table (1 per 4 h worked, NAC 608.145)" }], hint: "The company schedule plans two breaks on every shift. The Nevada table adds a third break on 11-hour shifts." },
+      { key: "firstBreakAfterMinutes", label: "Break 1 after start (min)", type: "number", min: 30, max: 600, step: 5 },
+      { key: "secondBreakBeforeEndMinutes", label: "Break 2 before end (min)", type: "number", min: 30, max: 600, step: 5 },
       { key: "restMinutes", label: "Break duration (min)", type: "number", min: 10, max: 60, step: 1, hint: "Paid rest break. Nevada requires 10 minutes per 4 hours worked." },
       { key: "windowMinutes", label: "Flex window (min)", type: "number", min: 15, max: 180, step: 1, hint: "How long each planned break stays open." },
       { key: "defaultShiftMinutes", label: "Default shift length (min)", type: "number", min: 60, max: 960, step: 15, hint: "Used to plan breaks when a shift has no scheduled end." },
@@ -68,7 +71,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       { key: "maxShiftHours", label: "Maximum shift length (h)", type: "number", min: 4, max: 24, step: 0.5 },
       { key: "maxOnDutyHours", label: "Maximum on-duty hours", type: "number", min: 4, max: 24, step: 0.5, hint: "FMCSA passenger carriers: no driving after 15 hours on duty." },
       { key: "minRestHours", label: "Minimum rest between shifts (h)", type: "number", min: 4, max: 24, step: 0.5, hint: "FMCSA passenger carriers: 8 consecutive hours off duty." },
-      { key: "warnConsecutiveDays", label: "Warn after consecutive days", type: "number", min: 2, max: 14, step: 1 },
+      { key: "maxDaysPerWeek", label: "Alert after days worked per week", type: "number", min: 1, max: 7, step: 1, hint: "An alert is raised when someone works more days than this in one workweek." },
       { key: "maxWeeklyHours", label: "Maximum weekly hours", type: "number", min: 20, max: 100, step: 1, hint: "FMCSA: 60 hours in 7 days. Also used to flag overtime bidders." },
       { key: "weeklyOvertimeWarnHours", label: "Weekly OT warning (h)", type: "number", min: 1, max: 60, step: 0.5 },
     ],
