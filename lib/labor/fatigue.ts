@@ -7,7 +7,8 @@ export interface FatigueRules {
   maxShiftHours: number;
   maxOnDutyHours: number;
   minRestHours: number;
-  warnConsecutiveDays: number;
+  /** v0 rule: alert when the employee works more than this many days in one workweek. */
+  maxDaysPerWeek: number;
   maxWeeklyHours: number;
   weeklyOvertimeWarnHours: number;
 }
@@ -110,23 +111,22 @@ export function evaluateFatigue(input: FatigueInput): FatigueFinding[] {
     });
   }
 
-  // 4. Consecutive days worked, ending on the latest shift's local date.
-  const days = new Set(shifts.map((s) => s.workDate ?? localDate(s.clockIn, timeZone)));
+  // 4. Days worked in the current workweek (v0: more than 5 days in a week).
   const lastDay = latest.workDate ?? localDate(latest.clockIn, timeZone);
-  const previousDate = (d: string) => {
-    const [y, m, dd] = d.split("-").map(Number);
-    return new Date(Date.UTC(y, m - 1, dd) - DAY).toISOString().slice(0, 10);
-  };
-  let streak = 0;
-  for (let cursor = lastDay; days.has(cursor) && streak < 60; cursor = previousDate(cursor)) streak++;
-  if (streak >= rules.warnConsecutiveDays) {
+  const weekOfLatest = workweekKey(latest.clockIn, timeZone, input.weekStartsOn);
+  const daysThisWeek = new Set(
+    shifts
+      .filter((s) => workweekKey(s.clockIn, timeZone, input.weekStartsOn) === weekOfLatest)
+      .map((s) => s.workDate ?? localDate(s.clockIn, timeZone)),
+  ).size;
+  if (daysThisWeek > rules.maxDaysPerWeek) {
     findings.push({
       kind: "consecutive_days",
       severity: "warning",
-      message: `${streak} days in a row without a day off.`,
-      dedupeKey: `consecutive:${employeeId}:${lastDay}`,
+      message: `${daysThisWeek} days worked this week (more than ${rules.maxDaysPerWeek}).`,
+      dedupeKey: `consecutive:${employeeId}:${weekOfLatest}:${daysThisWeek}`,
       shiftId: latest.id,
-      detail: { days: streak },
+      detail: { days: daysThisWeek },
     });
   }
 

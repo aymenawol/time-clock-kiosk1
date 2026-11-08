@@ -67,6 +67,7 @@ export const CAPABILITIES = {
   overtime: OPS,
   payroll: ["admin"],
   counts: STAFF,
+  countsEdit: OPS,
   lostFound: STAFF,
   reports: LEADS,
   notificationsLog: ["admin"],

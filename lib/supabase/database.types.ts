@@ -3667,6 +3667,14 @@ export type Database = {
         Returns: undefined
       }
       set_radio_status: { Args: { p_code: string }; Returns: Json }
+      set_vehicle_status: {
+        Args: {
+          p_reason: string
+          p_status: Database["public"]["Enums"]["vehicle_status"]
+          p_vehicle_id: string
+        }
+        Returns: undefined
+      }
       start_break: {
         Args: { p_kind: Database["public"]["Enums"]["break_kind"] }
         Returns: {

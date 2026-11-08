@@ -1,19 +1,20 @@
 import { Badge, type Tone } from "@/components/ui/badge";
 import type { BreakStatus, VehicleStatus } from "@/lib/supabase/types";
 
+// Labels match the v0 bus-status vocabulary (lib/constants/bus-status.ts on main).
 export const VEHICLE_STATUS: Record<VehicleStatus, { label: string; tone: Tone }> = {
   ready: { label: "Ready", tone: "success" },
-  in_service: { label: "In service", tone: "primary" },
-  charging: { label: "Charging", tone: "info" },
-  needs_fuel: { label: "Needs fuel", tone: "info" },
-  needs_wash: { label: "Needs wash", tone: "info" },
-  needs_fuel_wash: { label: "Fuel + wash", tone: "info" },
-  pmi: { label: "PMI", tone: "warning" },
-  repair: { label: "Repair", tone: "warning" },
-  shop: { label: "Shop (DVIR)", tone: "danger" },
-  safety_hold: { label: "Safety hold", tone: "danger" },
-  training: { label: "Training", tone: "accent" },
-  retired: { label: "Retired", tone: "neutral" },
+  in_service: { label: "In Service", tone: "info" },
+  charging: { label: "Charging", tone: "warning" },
+  needs_fuel: { label: "Fuel", tone: "warning" },
+  needs_wash: { label: "Wash", tone: "warning" },
+  needs_fuel_wash: { label: "Fuel + Wash", tone: "warning" },
+  pmi: { label: "Maintenance (PMI)", tone: "danger" },
+  repair: { label: "Repair", tone: "danger" },
+  shop: { label: "Shopped (DVIR)", tone: "danger" },
+  safety_hold: { label: "Safety Hold", tone: "accent" },
+  training: { label: "Training", tone: "info" },
+  retired: { label: "Salvage", tone: "neutral" },
 };
 
 export const VEHICLE_STATUS_ORDER = Object.keys(VEHICLE_STATUS) as VehicleStatus[];

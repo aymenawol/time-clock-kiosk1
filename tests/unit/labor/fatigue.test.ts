@@ -8,7 +8,7 @@ const rules: FatigueRules = {
   maxShiftHours: 12,
   maxOnDutyHours: 15,
   minRestHours: 8,
-  warnConsecutiveDays: 6,
+  maxDaysPerWeek: 5,
   maxWeeklyHours: 60,
   weeklyOvertimeWarnHours: 10,
 };
@@ -56,10 +56,10 @@ describe("evaluateFatigue", () => {
     expect(kinds(f)).toContain("on_duty_limit:critical");
   });
 
-  it("warns on the sixth consecutive day but not the fifth", () => {
+  it("warns when more than 5 days are worked in one workweek (v0 rule)", async () => {
     const days = (count: number) =>
       Array.from({ length: count }, (_, i) => {
-        const d = String(9 + i).padStart(2, "0");
+        const d = String(9 + i).padStart(2, "0"); // Mon 9 Nov onward (workweek starts Sunday in this test)
         return shift(`2026-11-${d}T06:00:00-08:00`, `2026-11-${d}T12:00:00-08:00`, `2026-11-${d}`);
       });
     expect(kinds(run(days(5), "2026-11-13T12:00:00-08:00"))).not.toContain("consecutive_days:warning");

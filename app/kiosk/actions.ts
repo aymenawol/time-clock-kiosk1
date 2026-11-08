@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { planBreaks } from "@/lib/labor/breaks";
+import { breakPolicyFrom, planBreaks } from "@/lib/labor/breaks";
 import { runFatigueCheck } from "@/lib/labor/fatigue-runner";
 import { localDate } from "@/lib/labor/time";
 import { fmtTime } from "@/lib/format";
@@ -175,11 +175,7 @@ export async function punch(input: { token: string; action: KioskEmployeeState["
     switch (parsed.data.action) {
       case "clock_in": {
         const now = new Date();
-        const plan = planBreaks(now, settings.breaks.defaultShiftMinutes, {
-          restMinutes: settings.breaks.restMinutes,
-          mealMinutes: settings.breaks.mealMinutes,
-          windowMinutes: settings.breaks.windowMinutes,
-        });
+        const plan = planBreaks(now, settings.breaks.defaultShiftMinutes, breakPolicyFrom(settings.breaks));
         const { data: shift, error } = await admin.rpc("kiosk_clock_in", {
           p_device_id: device.deviceId,
           p_employee_id: employeeId,

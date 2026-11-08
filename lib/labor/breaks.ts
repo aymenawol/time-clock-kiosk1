@@ -27,6 +27,57 @@ export interface BreakPolicy {
   restMinutes: number;
   mealMinutes: number;
   windowMinutes: number;
+  /** Defaults to "nevada_table". "fixed_two" reproduces the v0 schedule. */
+  restPolicy?: "fixed_two" | "nevada_table";
+  firstBreakAfterMinutes?: number;
+  secondBreakBeforeEndMinutes?: number;
+}
+
+/**
+ * The v0 schedule: two paid rest breaks. Break 1 opens `firstBreakAfterMinutes`
+ * after clock-in, break 2 opens `secondBreakBeforeEndMinutes` before the
+ * planned end; each window lasts `windowMinutes`. A 30-minute unpaid meal is
+ * added at mid-shift for shifts of 8 hours or more on duty (NRS 608.019),
+ * which v0 tracked as the "lunch" / "lunch waiver" flags.
+ */
+function planFixedTwo(clockIn: Date, plannedMinutes: number, policy: BreakPolicy): PlannedBreak[] {
+  const start = clockIn.getTime();
+  const end = start + plannedMinutes * MINUTE;
+  const flex = policy.windowMinutes * MINUTE;
+  const clamp = (t: number, length: number) => Math.min(Math.max(t, start), end - length * MINUTE);
+  const out: PlannedBreak[] = [];
+  const b1 = clamp(start + (policy.firstBreakAfterMinutes ?? 135) * MINUTE, policy.restMinutes);
+  out.push({
+    kind: "rest",
+    paid: true,
+    sequence: 1,
+    plannedMinutes: policy.restMinutes,
+    windowStart: new Date(b1),
+    windowEnd: new Date(clamp(b1 + flex, policy.restMinutes)),
+  });
+  const b2 = clamp(end - (policy.secondBreakBeforeEndMinutes ?? 120) * MINUTE, policy.restMinutes);
+  if (b2 > b1) {
+    out.push({
+      kind: "rest",
+      paid: true,
+      sequence: 2,
+      plannedMinutes: policy.restMinutes,
+      windowStart: new Date(b2),
+      windowEnd: new Date(clamp(b2 + flex, policy.restMinutes)),
+    });
+  }
+  if (mealRequired(plannedMinutes)) {
+    const mid = clamp((start + end) / 2 - flex / 2, policy.mealMinutes);
+    out.push({
+      kind: "meal",
+      paid: false,
+      sequence: 1,
+      plannedMinutes: policy.mealMinutes,
+      windowStart: new Date(mid),
+      windowEnd: new Date(clamp(mid + flex, policy.mealMinutes)),
+    });
+  }
+  return out.sort((a, b) => a.windowStart.getTime() - b.windowStart.getTime());
 }
 
 export interface PlannedBreak {
@@ -45,6 +96,7 @@ export interface PlannedBreak {
  * `windowMinutes` centred on its target time, kept inside the shift.
  */
 export function planBreaks(clockIn: Date, plannedMinutes: number, policy: BreakPolicy): PlannedBreak[] {
+  if (policy.restPolicy === "fixed_two") return planFixedTwo(clockIn, plannedMinutes, policy);
   const meal = mealRequired(plannedMinutes);
   const workedMinutes = plannedMinutes - (meal ? policy.mealMinutes : 0);
   const rests = requiredRestBreaks(workedMinutes);
@@ -95,4 +147,23 @@ export function planBreaks(clockIn: Date, plannedMinutes: number, policy: BreakP
     });
   }
   return planned.sort((a, b) => a.windowStart.getTime() - b.windowStart.getTime());
+}
+
+/** Break policy from organization settings (lib/settings.ts `breaks`). */
+export function breakPolicyFrom(b: {
+  restMinutes: number;
+  mealMinutes: number;
+  windowMinutes: number;
+  restPolicy: "fixed_two" | "nevada_table";
+  firstBreakAfterMinutes: number;
+  secondBreakBeforeEndMinutes: number;
+}): BreakPolicy {
+  return {
+    restMinutes: b.restMinutes,
+    mealMinutes: b.mealMinutes,
+    windowMinutes: b.windowMinutes,
+    restPolicy: b.restPolicy,
+    firstBreakAfterMinutes: b.firstBreakAfterMinutes,
+    secondBreakBeforeEndMinutes: b.secondBreakBeforeEndMinutes,
+  };
 }

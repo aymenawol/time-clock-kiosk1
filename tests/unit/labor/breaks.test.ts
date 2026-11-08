@@ -68,3 +68,22 @@ describe("planBreaks", () => {
     }
   });
 });
+
+describe("planBreaks: v0 fixed_two schedule", () => {
+  const v0 = { ...policy, restMinutes: 15, restPolicy: "fixed_two" as const, firstBreakAfterMinutes: 135, secondBreakBeforeEndMinutes: 120 };
+  const min = (d: Date) => (d.getTime() - clockIn.getTime()) / 60_000;
+
+  it("opens break 1 at +135 min and break 2 at end - 120 min, 45-minute windows", () => {
+    const rests = planBreaks(clockIn, h(8), v0).filter((b) => b.kind === "rest");
+    expect(rests.map((b) => [min(b.windowStart), min(b.windowEnd)])).toEqual([
+      [135, 180],
+      [360, 405],
+    ]);
+    expect(rests.every((b) => b.plannedMinutes === 15 && b.paid)).toBe(true);
+  });
+
+  it("adds the unpaid meal on 8-hour shifts only", () => {
+    expect(planBreaks(clockIn, h(8), v0).some((b) => b.kind === "meal")).toBe(true);
+    expect(planBreaks(clockIn, h(6), v0).some((b) => b.kind === "meal")).toBe(false);
+  });
+});

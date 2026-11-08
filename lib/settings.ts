@@ -6,8 +6,8 @@ import { z } from "zod";
  * Keep the key names in sync with the SQL.
  */
 export const orgSettingsSchema = z.object({
-  /** 0 = Sunday. Nevada weekly overtime is counted per fixed workweek. */
-  workweekStartsOn: z.number().int().min(0).max(6).default(0),
+  /** 0 = Sunday, 1 = Monday (v0 used ISO weeks). Weekly overtime is counted per fixed workweek. */
+  workweekStartsOn: z.number().int().min(0).max(6).default(1),
   clock24h: z.boolean().default(false),
   labor: z
     .object({
@@ -22,9 +22,18 @@ export const orgSettingsSchema = z.object({
     .prefault({}),
   breaks: z
     .object({
+      /**
+       * "fixed_two" is the v0 operation: two paid rest breaks, the first opening
+       * `firstBreakAfterMinutes` after clock-in and the second opening
+       * `secondBreakBeforeEndMinutes` before the planned end. "nevada_table"
+       * spreads one rest per NAC 608.145 tier (adds a third on 11 h+ shifts).
+       */
+      restPolicy: z.enum(["fixed_two", "nevada_table"]).default("fixed_two"),
+      firstBreakAfterMinutes: z.number().int().min(30).max(600).default(135),
+      secondBreakBeforeEndMinutes: z.number().int().min(30).max(600).default(120),
       restMinutes: z.number().int().min(10).max(60).default(15),
       mealMinutes: z.number().int().min(30).max(120).default(30),
-      /** Length of each planned break window. */
+      /** Length of each planned break window ("flex" in v0). */
       windowMinutes: z.number().int().min(15).max(180).default(45),
       /** Planned shift length when no schedule is set. */
       defaultShiftMinutes: z.number().int().min(60).max(960).default(480),
@@ -41,7 +50,8 @@ export const orgSettingsSchema = z.object({
       maxOnDutyHours: z.number().min(4).max(24).default(15),
       /** FMCSA passenger carriers: 8 consecutive hours off duty. */
       minRestHours: z.number().min(4).max(24).default(8),
-      warnConsecutiveDays: z.number().int().min(2).max(14).default(6),
+      /** v0 rule: alert when someone works more than this many days in one workweek. */
+      maxDaysPerWeek: z.number().int().min(1).max(7).default(5),
       /** FMCSA 60 hours in 7 days. */
       maxWeeklyHours: z.number().min(20).max(100).default(60),
       weeklyOvertimeWarnHours: z.number().min(1).max(60).default(10),

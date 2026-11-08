@@ -158,3 +158,81 @@ payroll) and `payroll` (which can't reach the payroll page).
 
 `docs/design.md` covers the information architecture and design system.
 `README.md` covers setup.
+
+## 5. Forms and sheets preserved from v0
+
+The owner built the original forms from the real paper ones. Each rebuilt
+screen below keeps the v0 fields, sections, field order, labels, columns and
+print view. Styling, responsiveness, accessibility and validation are new. v0
+never used jspdf, despite the dependency: its only exports were CSV files and
+`window.print()` views, and those are kept.
+
+| Form or sheet | v0 original (on `main`) | Rebuilt at |
+|---|---|---|
+| Pre/post-trip inspection checklist (11 categories, item order, damage diagram, mileage) | `app/driver/inspection/[type]/inspection-client.tsx`, `lib/supabase.ts` (`INSPECTION_CHECKLIST`), `components/damage-board.tsx` | `/m/inspection/[kind]`, `/fleet/inspections/[id]` |
+| Counting sheet (departure time, RAC, T1, T3, Term 1, Term 3 West, Term 3 East, row totals, 10 blank rows) | `app/driver/counting-sheet/counting-sheet-client.tsx`, `app/admin/counting-sheets/*` | `/m/counts`, `/counts` |
+| Sign-in sheet (and print view) | `app/dispatcher/sign-in/sign-in-client.tsx`, `app/admin/sign-in-sheets/sign-in-sheets-client.tsx` | `/sign-in-sheet` |
+| End-of-shift report (fuel labels, EV battery, ready / charge required / shop / hazard) | `app/driver/end-of-shift/end-of-shift-client.tsx` | `/m/end-shift` |
+| Fuel and wash queue | `app/fueler/*` | `/m/fuel`, `/fleet/fuel` |
+| Wheelchair 10-51 request and dispatcher alerts | `app/driver/10-51/wheelchair-form.tsx`, `app/dispatcher/wheelchair-alerts.tsx` | `/m/assist`, `/assists` |
+| Employee forms (time off, bid/vacation change, incident report, FMLA conversion, resignation) | `app/driver/forms/**`, `app/admin/forms/**` | `/m/forms/**`, `/forms/**` |
+| Lost and found intake and status sheet | `app/driver/lost-found/lost-found-form.tsx`, `app/admin/lost-found/lost-found-client.tsx` | `/m/lost-found`, `/lost-found` |
+| Safety meetings and the public monthly schedule poster | `app/admin/safety-meetings/*`, `components/safety-meeting-schedule.tsx`, `app/safety/[token]/page.tsx` | `/safety`, `/s/[token]`, `/m/safety` |
+| Emergency broadcast form and acknowledgement list | `app/admin/emergency/emergency-client.tsx` | `/emergency` |
+| Payroll period sheet and CSV (v0 headers kept, rate and $ columns appended) | `app/admin/payroll/**`, `lib/payroll-calc.ts` (`buildPayrollCSV`) | `/payroll/[id]` |
+| Overtime sheet (posted shifts, bids, awards, off-day requests, banner) | `app/admin/overtime/*`, `app/dispatcher/overtime/*`, `app/driver/overtime/*` | `/overtime`, `/m/overtime` |
+| Shift-bid cycle (slots with bid number, times, report time, day boxes, route type, max drivers; rank 3) | `app/admin/bids/**`, `app/driver/bids/*` | `/bids/**`, `/m/bids` |
+| Employee directory and employee form | `app/admin/employees/**` | `/people/**` |
+| Reports tables (hours, overtime, forms, safety, bids) | `app/admin/reports/*` | `/reports` |
+| Settings: break and overtime rules (v0 labels and order) | `app/admin/settings/*`, `lib/schemas/settings.ts` | `/settings` |
+
+## 6. v0 business rules carried over (source of truth)
+
+These come from the v0 code and migrations. The rebuild keeps them; only the
+bugs and security holes are fixed. All values are per-organization settings
+(`lib/settings.ts`), and the demo organization uses these defaults.
+
+| Rule | v0 behaviour | v0 source | Rebuild |
+|---|---|---|---|
+| Breaks | Two paid 15-minute rest breaks. Break 1 window opens 135 min after start, break 2 opens 120 min before the planned end. Each window lasts 45 min. Planned shift is 480 min when unscheduled | migration `20260601000001` `generate_breaks` | `breaks.restPolicy = "fixed_two"` (default), `lib/labor/breaks.ts` |
+| Break reminder / overrun | Reminder at 17 min (2 min grace), overrun at 20 min (5 min grace). A missed break is one still pending after its window closes. The dispatcher re-opens it with a new 45-minute window | `supabase/functions/break-monitor`, `app/dispatcher/actions.ts` | `private.run_break_monitor`, `reopen_break` |
+| Break alert recipients | Missed: dispatcher, coordinator, supervisor. Overrun: dispatcher, management, supervisor | break-monitor | same; management maps to admin |
+| Lunch | `has_lunch` / `lunch_waiver` flags on the sign-in | sign-in sheet | `shifts.meal_waived`; 30-minute unpaid meal planned for 8 h shifts |
+| Overtime thresholds | 8 h daily, 40 h weekly, 1.5x | `app_settings.overtime_rules` | `settings.labor`; daily OT gated by the Nevada 1.5x-minimum-wage rule (owner decision in CLAUDE.md) |
+| Week | ISO week, Monday start | `lib/payroll-calc.ts` `isoWeekKey` | `workweekStartsOn = 1` |
+| Hours rounding | Hours rounded to 2 decimals | end-of-shift `total_hours` | minutes internally, shown as hours to 2 decimals |
+| Pay period | Biweekly, closed by payroll, corrections audited | `app/admin/payroll/actions.ts` | `pay_periods` + lock/unlock; locked periods are immutable (v0 allowed edits after close: bug) |
+| Fatigue | Single shift ≥ 10 h; more than 5 days in a week; weekly OT ≥ 10 h. Notifies dispatcher, supervisor, management | `lib/payroll-calc.ts`, migration `20260601000006` | same thresholds (`fatigue.*`), checked at every punch instead of only at payroll recalculation. Added FMCSA checks: 15 h on duty, 8 h rest, 60 h / 7 days |
+| Wheelchair 10-51 escalation | 5 minutes without a dispatcher response escalates. Notifies the driver ("call dispatch directly") and admin/management | `supabase/functions/wheelchair-escalation` | `private.run_assist_escalation`, `assist.escalationMinutes = 5` |
+| Radio codes | 10-8 In Service → in service (notify dispatcher). 10-39 On Break → in service (dispatcher, supervisor). 10-37 Fueling/Wash → fuel (dispatcher, admin, supervisor). 10-7 Out of Service → shopped DVIR (dispatcher, management). Board-only: 10-51 Assist Needed, 10-33 HAZARD | `lib/constants/radio-codes.ts`, `app/driver/actions.ts` | `radio_codes` rows (seeded identically) |
+| Bus statuses | Ready, In Service, Charging, Fuel, Wash, Fuel + Wash, Maintenance (PMI), Shopped (DVIR), Repair, Safety Hold, Salvage, Training | `lib/constants/bus-status.ts` | same labels (`components/domain/status.tsx`) |
+| End of shift | Ready → ready; charge required → charging; shop → shopped DVIR; hazard → safety hold (alerts dispatcher, management, admin). Diesel labels Full 100 / Over 3/4 80 / Over 1/2 60 / Under 1/4 20. EV "charge required" under 50% | `app/driver/actions.ts` | `submit_end_of_shift` |
+| Fueler | fuel → ready; wash → ready; fuel + wash → wash after fueling, → fuel after washing | `app/fueler/actions.ts` | `/m/fuel` |
+| Inspection defects | Any failed item → defect note, bus to Shopped (DVIR), notify technician / dispatcher / management | `flagBusOutOfServiceAction` | defects per failed item; vehicle to shop when a critical item fails |
+| Fleet readiness | EV charge queue under 50%, diesel fuel queue under 25% | `fleet-client.tsx` | `readiness.*` settings |
+| Shift bids | Cycle draft → published → locked → awarded. Rank up to 3 slots. Award by seniority number, then hire date | `app/admin/bids/actions.ts` | open/closed/awarded; non-submitters are no longer silently placed (bug) |
+| Overtime awards | By seniority, then hire date, top N by slots | `app/admin/overtime/actions.ts` | `award_ot_offer` (locks the offer, no double award) |
+| Login ID | Employee ID 3–8 digits on a keypad | `app/login/actions.ts` | kiosk employee number 3–8 digits + PIN 4–8 digits |
+| Roles | admin, management, dispatcher, coordinator, supervisor, technician, fueler_washer, payroll, driver | role CHECK | CLAUDE.md's 7 roles. management and payroll fold into admin; fueler_washer becomes fueler |
+
+### Nevada (NRS 608) items to raise with the owner
+
+The owner asked to have these flagged, not silently changed:
+
+1. **Rest breaks on long shifts.** v0 always plans two rest breaks. NAC 608.145
+   requires a third at 11 hours worked and a fourth at 15. The rebuild keeps
+   the v0 schedule by default. `breaks.restPolicy = "nevada_table"` switches to
+   the statutory tiers, and the compliance screen shows the required count for
+   every shift.
+2. **Unpaid lunch was never deducted.** v0 recorded `has_lunch` but paid the
+   whole span. The rebuild records the meal as an unpaid break when taken and
+   excludes it from hours. A waived meal (`meal_waived`) stays paid. NRS 608.019
+   requires a 30-minute meal for 8 continuous hours unless the employee
+   voluntarily waives it.
+3. **Weekly overtime per pay period.** v0 counted 40 hours across a whole
+   biweekly period, which underpays a 50/30 split. The rebuild counts per
+   workweek. This is a bug fix and required by law.
+4. **Daily overtime for everyone.** v0 paid daily overtime regardless of rate.
+   NRS 608.018 applies it only below 1.5x minimum wage. The owner chose the
+   Nevada rule in CLAUDE.md, so the rebuild applies it, and an employee can be
+   marked daily-OT exempt (4x10 agreement, CBA, Motor Carrier Act).

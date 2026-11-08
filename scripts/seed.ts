@@ -8,7 +8,7 @@
  * Kiosk PINs are listed next to each employee below.
  */
 import { createClient } from "@supabase/supabase-js";
-import { planBreaks } from "../lib/labor/breaks";
+import { breakPolicyFrom, planBreaks } from "../lib/labor/breaks";
 import { localDate, startOfLocalDate } from "../lib/labor/time";
 import { orgSettingsSchema } from "../lib/settings";
 import type { Database } from "../lib/supabase/database.types";
@@ -51,34 +51,46 @@ export const EMPLOYEES: SeedEmployee[] = [
 export const emailFor = (e: Pick<SeedEmployee, "first" | "role">) =>
   `${e.role === "driver" ? e.first.toLowerCase() : e.role}@${EMAIL_DOMAIN}`;
 
+// v0 INSPECTION_CHECKLIST (lib/supabase.ts on main), same categories and order.
 const CHECKLIST: [string, string, boolean][] = [
-  ["Exterior", "Body panels and paint", false],
-  ["Exterior", "Windows and windshield", false],
-  ["Exterior", "Doors open and close", true],
-  ["Exterior", "Wipers and washer fluid", false],
-  ["Tires", "Tread depth", true],
-  ["Tires", "Inflation", true],
-  ["Tires", "Lug nuts", true],
+  ["Exterior", "Body damage", false],
+  ["Exterior", "Mirrors intact", false],
+  ["Exterior", "Windows unobstructed", false],
+  ["Exterior", "Doors operate properly", true],
+  ["Tires", "Adequate tread depth", true],
+  ["Tires", "No visible damage", false],
+  ["Tires", "Properly inflated", true],
+  ["Tires", "No wheel leaks", false],
   ["Lights", "Headlights", true],
-  ["Lights", "Tail and brake lights", true],
-  ["Lights", "Turn signals and hazards", true],
+  ["Lights", "Taillights", false],
+  ["Lights", "Brake lights", true],
+  ["Lights", "Turn signals", true],
+  ["Lights", "Hazard lights", false],
   ["Lights", "Interior lights", false],
-  ["Brakes", "Service brake", true],
-  ["Brakes", "Air pressure / brake warning", true],
-  ["Brakes", "Parking brake", true],
-  ["Steering", "Steering play", true],
-  ["Steering", "Horn", false],
-  ["Gauges", "Fuel or battery level", false],
-  ["Gauges", "Warning lights", false],
-  ["Interior", "Seats and belts", false],
-  ["Interior", "Handrails", false],
-  ["Interior", "Floor and cleanliness", false],
-  ["Passenger ramp", "Ramp or lift operates", true],
-  ["Passenger ramp", "Securement straps", true],
-  ["Safety equipment", "Fire extinguisher", true],
-  ["Safety equipment", "First aid kit", false],
-  ["Safety equipment", "Reflective triangles", false],
-  ["Mirrors", "Side and interior mirrors", false],
+  ["Brake Systems", "Brake pedal firm", true],
+  ["Brake Systems", "Air brake gauge normal", true],
+  ["Brake Systems", "No unusual brake sounds", true],
+  ["Steering", "Steering wheel free play normal", true],
+  ["Steering", "No pulling or wandering", true],
+  ["Gauges", "Speedometer working", false],
+  ["Gauges", "Fuel/charge gauge working", false],
+  ["Gauges", "Temperature normal", false],
+  ["Gauges", "Oil pressure normal", false],
+  ["Interior", "Seats secure and undamaged", false],
+  ["Interior", "Seat belts functional", false],
+  ["Interior", "Handrails secure", false],
+  ["Interior", "Floor clean and unobstructed", false],
+  ["Passenger Ramp", "Ramp deploys/retracts properly", true],
+  ["Passenger Ramp", "Ramp surface non-slip", false],
+  ["Passenger Ramp", "No damage to ramp mechanism", false],
+  ["Parking Brake", "Parking brake holds vehicle", true],
+  ["Parking Brake", "Parking brake releases fully", true],
+  ["Safety Equipment", "Fire extinguisher present and charged", true],
+  ["Safety Equipment", "First aid kit present", false],
+  ["Safety Equipment", "Emergency triangles present", false],
+  ["Safety Equipment", "Emergency exits unobstructed", true],
+  ["Mirrors", "All mirrors properly adjusted", false],
+  ["Mirrors", "No cracks or obstructions", false],
 ];
 
 function required<T>(value: T | null | undefined, what: string): T {
@@ -170,11 +182,15 @@ async function main() {
       await db
         .from("locations")
         .insert([
-          { organization_id: orgId, name: "Terminal 1", code: "T1", kind: "terminal", lat: 36.0840, lng: -115.1537, is_count_column: true, sort: 1 },
-          { organization_id: orgId, name: "Terminal 3", code: "T3", kind: "terminal", lat: 36.0797, lng: -115.1465, is_count_column: true, sort: 2 },
-          { organization_id: orgId, name: "Rental Car Center", code: "RAC", kind: "rental_car", lat: 36.0590, lng: -115.1580, is_count_column: true, sort: 3 },
-          { organization_id: orgId, name: "Employee Lot", code: "LOT", kind: "stop", lat: 36.0700, lng: -115.1700, is_count_column: false, sort: 4 },
-          { organization_id: orgId, name: "Bus Depot", code: "DEPOT", kind: "depot", lat: 36.0650, lng: -115.1750, is_count_column: false, sort: 5 },
+          // v0 counting-sheet columns, in v0 order: RAC, T1, T3, Term 1, Term 3 West, Term 3 East.
+          { organization_id: orgId, name: "RAC", code: "RAC", kind: "rental_car", lat: 36.0590, lng: -115.1580, is_count_column: true, sort: 1 },
+          { organization_id: orgId, name: "T1", code: "T1", kind: "terminal", lat: 36.0840, lng: -115.1537, is_count_column: true, sort: 2 },
+          { organization_id: orgId, name: "T3", code: "T3", kind: "terminal", lat: 36.0797, lng: -115.1465, is_count_column: true, sort: 3 },
+          { organization_id: orgId, name: "Term 1", code: "TERM1", kind: "terminal", lat: 36.0835, lng: -115.1525, is_count_column: true, sort: 4 },
+          { organization_id: orgId, name: "Term 3 West", code: "T3W", kind: "terminal", lat: 36.0797, lng: -115.1480, is_count_column: true, sort: 5 },
+          { organization_id: orgId, name: "Term 3 East", code: "T3E", kind: "terminal", lat: 36.0797, lng: -115.1450, is_count_column: true, sort: 6 },
+          { organization_id: orgId, name: "Employee Lot", code: "LOT", kind: "stop", lat: 36.0700, lng: -115.1700, is_count_column: false, sort: 7 },
+          { organization_id: orgId, name: "Bus Depot", code: "DEPOT", kind: "depot", lat: 36.0650, lng: -115.1750, is_count_column: false, sort: 8 },
         ])
         .select("id, code")
     ).data,
@@ -220,26 +236,38 @@ async function main() {
 
   await db.from("tablets").insert(Array.from({ length: 6 }, (_, i) => ({ organization_id: orgId, number: `T-0${i + 1}` })));
 
+  // v0 radio codes (lib/constants/radio-codes.ts + driver actions on main): 4 driver buttons, 2 board-only codes.
   await db.from("radio_codes").insert([
-    { organization_id: orgId, code: "10-8", label: "In service", sets_vehicle_status: "in_service", notify_roles: ["dispatcher"], sort: 1 },
-    { organization_id: orgId, code: "10-39", label: "On break", sets_vehicle_status: null, notify_roles: ["dispatcher"], sort: 2 },
-    { organization_id: orgId, code: "10-37", label: "Needs fuel", sets_vehicle_status: "needs_fuel", notify_roles: ["dispatcher", "fueler"], sort: 3 },
-    { organization_id: orgId, code: "10-7", label: "Out of service", sets_vehicle_status: "shop", notify_roles: ["dispatcher", "supervisor", "technician"], sort: 4 },
-    { organization_id: orgId, code: "10-51", label: "Assist needed", sets_vehicle_status: null, notify_roles: ["dispatcher"], is_alert: true, sort: 5 },
-    { organization_id: orgId, code: "10-33", label: "Hazard", sets_vehicle_status: "safety_hold", notify_roles: ["dispatcher", "supervisor"], is_alert: true, sort: 6 },
+    { organization_id: orgId, code: "10-8", label: "In Service", sets_vehicle_status: "in_service", notify_roles: ["dispatcher"], sort: 1 },
+    { organization_id: orgId, code: "10-39", label: "On Break", sets_vehicle_status: "in_service", notify_roles: ["dispatcher", "supervisor"], sort: 2 },
+    { organization_id: orgId, code: "10-37", label: "Fueling/Wash", sets_vehicle_status: "needs_fuel", notify_roles: ["dispatcher", "admin", "supervisor"], sort: 3 },
+    { organization_id: orgId, code: "10-7", label: "Out of Service", sets_vehicle_status: "shop", notify_roles: ["dispatcher", "admin"], sort: 4 },
+    { organization_id: orgId, code: "10-51", label: "Assist Needed", sets_vehicle_status: null, notify_roles: ["dispatcher"], is_alert: true, driver_selectable: false, sort: 5 },
+    { organization_id: orgId, code: "10-33", label: "HAZARD", sets_vehicle_status: "safety_hold", notify_roles: ["dispatcher", "supervisor"], is_alert: true, driver_selectable: false, sort: 6 },
   ]);
 
   await db.from("checklist_items").insert(
     CHECKLIST.map(([category, label, critical], i) => ({ organization_id: orgId, category, label, critical, sort: i })),
   );
 
+  // v0 airline list (seeded in the v0 migrations).
   await db.from("airlines").insert([
-    { organization_id: orgId, name: "Southwest Airlines", iata_code: "WN", location_id: loc.T1, assist_contact: "Wheelchair desk, T1 baggage claim" },
-    { organization_id: orgId, name: "Delta Air Lines", iata_code: "DL", location_id: loc.T3 },
-    { organization_id: orgId, name: "American Airlines", iata_code: "AA", location_id: loc.T1 },
-    { organization_id: orgId, name: "United Airlines", iata_code: "UA", location_id: loc.T3 },
-    { organization_id: orgId, name: "Alaska Airlines", iata_code: "AS", location_id: loc.T1 },
-    { organization_id: orgId, name: "Spirit Airlines", iata_code: "NK", location_id: loc.T1 },
+    { organization_id: orgId, name: "Southwest Airlines", iata_code: "WN", location_id: loc.T1, phone: "1-800-435-9792", notes: "Main carrier at T1" },
+    { organization_id: orgId, name: "Delta Air Lines", iata_code: "DL", location_id: loc.T1, phone: "1-800-221-1212", notes: null },
+    { organization_id: orgId, name: "American Airlines", iata_code: "AA", location_id: loc.T1, phone: "1-800-433-7300", notes: null },
+    { organization_id: orgId, name: "United Airlines", iata_code: "UA", location_id: loc.T3, phone: "1-800-864-8331", notes: null },
+    { organization_id: orgId, name: "Spirit Airlines", iata_code: "NK", location_id: loc.T1, phone: "1-800-772-7117", notes: null },
+    { organization_id: orgId, name: "Frontier Airlines", iata_code: "F9", location_id: loc.T1, phone: "1-801-401-9000", notes: null },
+    { organization_id: orgId, name: "Alaska Airlines", iata_code: "AS", location_id: loc.T1, phone: "1-800-252-7522", notes: null },
+    { organization_id: orgId, name: "JetBlue Airways", iata_code: "B6", location_id: loc.T3, phone: "1-800-538-2583", notes: null },
+    { organization_id: orgId, name: "Hawaiian Airlines", iata_code: "HA", location_id: loc.T3, phone: "1-800-367-5320", notes: null },
+    { organization_id: orgId, name: "Korean Air", iata_code: "KE", location_id: loc.T3, phone: "1-800-438-5000", notes: "International" },
+    { organization_id: orgId, name: "British Airways", iata_code: "BA", location_id: loc.T3, phone: "1-800-247-9297", notes: "International" },
+    { organization_id: orgId, name: "Air Canada", iata_code: "AC", location_id: loc.T3, phone: "1-888-247-2262", notes: "International" },
+    { organization_id: orgId, name: "WestJet", iata_code: "WS", location_id: loc.T3, phone: "1-888-937-8538", notes: "International" },
+    { organization_id: orgId, name: "Allegiant Air", iata_code: "G4", location_id: loc.T1, phone: "1-702-505-8888", notes: null },
+    { organization_id: orgId, name: "Avelo Airlines", iata_code: "XP", location_id: loc.T1, phone: "1-346-616-9500", notes: null },
+    { organization_id: orgId, name: "Sun Country Airlines", iata_code: "SY", location_id: loc.T1, phone: "1-651-905-2737", notes: null },
   ]);
 
   await db.from("chat_rooms").insert([
@@ -259,7 +287,7 @@ async function main() {
   // ---- Shift history (last 7 days) ------------------------------------------
   const now = new Date();
   const plan = (start: Date, minutes: number) =>
-    planBreaks(start, minutes, { restMinutes: settings.breaks.restMinutes, mealMinutes: settings.breaks.mealMinutes, windowMinutes: settings.breaks.windowMinutes });
+    planBreaks(start, minutes, breakPolicyFrom(settings.breaks));
   const history: { emp: string; vehicle?: string; route?: string; daysAgo: number; startHour: number; minutes: number }[] = [];
   const drivers = ["2001", "2002", "2003", "2004", "2005"];
   for (let d = 7; d >= 1; d--) {
