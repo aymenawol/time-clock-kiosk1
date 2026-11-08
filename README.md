@@ -162,12 +162,30 @@ in the generated file.
 
 ## Email
 
-In-app notifications always work. Email needs a verified sending domain in
-Resend: set `RESEND_FROM` (for example `RoleCall <alerts@yourdomain.com>`) and
-run `npm run setup:remote`. Supabase Auth SMTP can then be pointed at Resend
-with the same domain. **No verified domain is configured yet.** Until one is,
-email-worthy notifications are recorded as `skipped`, never as `sent`. Admins
-reset passwords from the employee profile instead of by email.
+In-app notifications always work.
+
+**Auth email** (password reset, invites) currently goes through **Gmail SMTP**
+(`smtp.gmail.com`, sender "Rolecall"), set in the Supabase dashboard under
+Authentication → SMTP. `npm run setup:remote` never touches SMTP. Admins can
+also reset passwords from the employee profile.
+
+**Notification email** (alerts and escalations) needs a verified sending domain
+in Resend, and `*.vercel.app` can't be verified. **No domain is configured
+yet**, so email-worthy notifications are recorded as `skipped`, never as
+`sent`.
+
+Once a domain has been bought:
+
+1. Add it in Resend and copy its DNS records to the registrar. The app can stay
+   on `rolecallmanager.vercel.app`.
+2. Set `RESEND_FROM` (for example `RoleCall <alerts@yourdomain.com>`) in
+   `.env.local`, then run `npm run setup:remote`.
+3. In Supabase, go to Authentication → SMTP and swap Gmail for Resend:
+   - host `smtp.resend.com`
+   - port `465`
+   - user `resend`
+   - password: the Resend API key
+   - sender: an address on the new domain
 
 ## Deploying
 
