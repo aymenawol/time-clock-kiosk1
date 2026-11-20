@@ -52,9 +52,9 @@ export function PaperSection<T extends PaperItem>({
                   ) : null}
                   <div className="flex items-center gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className={cn("leading-tight text-fg", it.mini ? "font-bold" : "font-normal", dense ? "text-[12px]" : "text-[15px]")}>
+                      <p className={cn("leading-tight text-fg [overflow-wrap:anywhere]", it.mini ? "font-bold" : "font-normal", dense ? "text-[12px]" : "text-[15px]")}>
                         {it.mini ? "*" : ""}
-                        {it.label}
+                        <BreakableLabel text={it.label} />
                       </p>
                       {it.hint ? <p className="text-[11px] leading-tight text-muted">{it.hint}</p> : null}
                     </div>
@@ -69,6 +69,25 @@ export function PaperSection<T extends PaperItem>({
         ))}
       </div>
     </section>
+  );
+}
+
+/** Lets long slash-joined labels ("Horn/dashlights/hi/lo/indicator") wrap after each slash. */
+function BreakableLabel({ text }: { text: string }) {
+  const parts = text.split("/");
+  return (
+    <>
+      {parts.map((p, i) => (
+        <span key={i}>
+          {p}
+          {i < parts.length - 1 ? (
+            <>
+              /<wbr />
+            </>
+          ) : null}
+        </span>
+      ))}
+    </>
   );
 }
 
