@@ -19,6 +19,7 @@ import { useAction } from "@/components/ui/use-action";
 import { ROLE_LABEL, ROLES } from "@/lib/auth/permissions";
 import { LEAVE_KINDS, LEAVE_LABEL } from "@/lib/forms";
 import type { Employee } from "@/lib/supabase/types";
+import { DEPARTMENTS } from "@/lib/people";
 import { formValues } from "./tz";
 
 const firstError = (e: Record<string, string[]>, k: string) => e[k]?.[0];
@@ -45,6 +46,19 @@ export function ProfileForm({ employee }: { employee: Employee }) {
       </Field>
       <Field label="Job title" htmlFor="pf-title" error={err("job_title")}>
         <Input id="pf-title" name="job_title" defaultValue={employee.job_title ?? ""} maxLength={80} />
+      </Field>
+      <Field label="Department" htmlFor="pf-dept" error={err("department")}>
+        <Select id="pf-dept" name="department" defaultValue={employee.department ?? ""}>
+          <option value="">Select…</option>
+          {DEPARTMENTS.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="Shift" htmlFor="pf-shift" error={err("shift")}>
+        <Input id="pf-shift" name="shift" placeholder="AM / PM" maxLength={30} defaultValue={employee.shift ?? ""} />
       </Field>
       <Field label="Email" htmlFor="pf-email" error={err("email")}>
         <Input id="pf-email" name="email" type="email" defaultValue={employee.email ?? ""} />

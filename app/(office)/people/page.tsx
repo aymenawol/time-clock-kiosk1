@@ -24,7 +24,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
 
   const { data } = await auth.supabase
     .from("employees")
-    .select("id, employee_number, first_name, last_name, email, role, status, hire_date, seniority_number, user_id")
+    .select("id, employee_number, first_name, last_name, email, role, status, department, shift, hire_date, seniority_number, user_id")
     .eq("organization_id", auth.org.id)
     .limit(5000);
 
@@ -96,6 +96,8 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                 <TH>Employee</TH>
                 <TH>#</TH>
                 <TH>Role</TH>
+                <TH>Department</TH>
+                <TH>Shift</TH>
                 <TH>Seniority</TH>
                 <TH>Status</TH>
                 <TH>Hired</TH>
@@ -120,6 +122,8 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                     </TD>
                     <TD className="tabular">{e.employee_number}</TD>
                     <TD>{ROLE_LABEL[e.role]}</TD>
+                    <TD>{e.department ?? <span className="text-muted">-</span>}</TD>
+                    <TD>{e.shift ?? <span className="text-muted">-</span>}</TD>
                     <TD className="tabular">{e.seniority_number ?? "-"}</TD>
                     <TD>
                       <Badge tone={st.tone} dot>

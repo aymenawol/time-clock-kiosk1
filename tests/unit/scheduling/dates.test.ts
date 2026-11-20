@@ -81,7 +81,7 @@ describe("pay periods", () => {
     regular_cents: 132000,
     overtime_cents: 2228,
     gross_cents: 134228,
-    detail: { shifts: 10, openShifts: 0, dailyOvertimeApplies: true },
+    detail: { shifts: 10, openShifts: 0, dailyOvertimeApplies: true, leaveCents: 0, fmlaMinutes: 0 },
   };
 
   it("strips names before locking", () => {

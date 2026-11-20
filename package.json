@@ -15,7 +15,8 @@
     "db:types": "supabase gen types --lang typescript --linked --schema public > lib/supabase/database.types.ts",
     "db:push": "supabase db push --linked",
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
-    "setup:remote": "tsx --env-file=.env.local scripts/setup-remote.ts"
+    "setup:remote": "tsx --env-file=.env.local scripts/setup-remote.ts",
+    "platform:invite": "tsx --env-file=.env.local scripts/platform-invite.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

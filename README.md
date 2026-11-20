@@ -88,6 +88,7 @@ npm run dev                  # http://localhost:3000
 | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` | scripts only | CLI and Management API |
 | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | scripts only | `npm run setup:remote` |
 | `RESEND_API_KEY`, `RESEND_FROM` | edge function secret | Email. `RESEND_FROM` must use a **verified sending domain** |
+| `PLATFORM_ADMIN_EMAILS` | server only | Comma-separated emails of the software operators who may open `/platform` to add customer companies. Empty means nobody |
 
 ## Scripts
 
@@ -101,6 +102,7 @@ npm run dev                  # http://localhost:3000
 | `npm run seed` | Recreate the demo organization |
 | `npm run db:push` | Apply new migrations to the linked project |
 | `npm run db:types` | Regenerate `lib/supabase/database.types.ts` |
+| `npm run platform:invite -- you@example.com` | Send an operator a sign-in invite (the email must also be in `PLATFORM_ADMIN_EMAILS`) |
 | `npm run setup:remote` | Idempotent hosted setup: Vault secrets for cron, edge function secrets, Auth settings (public sign-up off), Vercel env vars |
 
 Migrations are **CLI only**: run `npx supabase migration new <name>`, then fill
@@ -197,6 +199,17 @@ branches as previews.
 3. `npx supabase functions deploy notification-dispatch health --use-api`
 4. Push. Vercel builds and deploys.
 
-To onboard a new customer organization, an operator inserts the organization
-and its first admin employee with the service role, or uses the seed script
-as a template. The admin then adds everyone else from People.
+To add a new customer company, a software operator signs in and opens
+`/platform`:
+
+1. Fill in the company name, slug, time zone and first admin.
+2. RoleCall creates the company with the default settings, the v0 radio
+   codes, the inspection checklist and the role chat rooms.
+3. It emails the admin an invite to set their password.
+
+The admin then adds staff under People, and adds locations (including the
+counting-sheet columns), routes and airlines under Settings.
+
+Operator access is the `PLATFORM_ADMIN_EMAILS` list, checked on every request.
+To give someone operator access, add their email to that list (in
+`.env.local` and on Vercel), then run `npm run platform:invite -- their@email`.

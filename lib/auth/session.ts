@@ -5,6 +5,7 @@ import { cache } from "react";
 import { readSettings, type OrgSettings } from "@/lib/settings";
 import { createClient, type ServerClient } from "@/lib/supabase/server";
 import type { Employee, Organization } from "@/lib/supabase/types";
+import { getPlatformOperator } from "./platform";
 import { can, homeFor, type Capability } from "./permissions";
 
 export const ORG_COOKIE = "rc_org";
@@ -66,7 +67,10 @@ export const getAuth = cache(async (): Promise<AuthContext | null | "no-membersh
 export async function requireAuth(capability?: Capability): Promise<AuthContext> {
   const auth = await getAuth();
   if (!auth) redirect("/login");
-  if (auth === "no-membership") redirect("/auth/no-access");
+  if (auth === "no-membership") {
+    // A platform operator without an employees row has no org home: send them to /platform.
+    redirect((await getPlatformOperator()) ? "/platform" : "/auth/no-access");
+  }
   if (capability && !can(auth.employee.role, capability)) redirect(`${homeFor(auth.employee.role)}?denied=1`);
   return auth;
 }

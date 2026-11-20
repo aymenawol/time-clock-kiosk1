@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { homeFor } from "@/lib/auth/permissions";
+import { isPlatformEmail } from "@/lib/auth/platform";
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -46,10 +47,13 @@ export async function signIn(_prev: LoginState, form: FormData): Promise<LoginSt
     .order("created_at")
     .limit(1)
     .maybeSingle();
-  if (!membership) {
+  // A platform operator may have no employees row; they land on /platform.
+  const operator = isPlatformEmail(data.user.email);
+  if (!membership && !operator) {
     await supabase.auth.signOut();
     return { error: "Your account is not active in any organization. Contact your admin." };
   }
   if (data.user.user_metadata?.must_change_password) redirect("/auth/set-password");
-  redirect(safeNext(parsed.data.next) ?? homeFor(membership.role));
+  const home = membership ? homeFor(membership.role) : "/platform";
+  redirect(safeNext(parsed.data.next) ?? home);
 }

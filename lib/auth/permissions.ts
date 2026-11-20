@@ -39,6 +39,7 @@ export const CAPABILITIES = {
   map: OPS,
   signInSheet: STAFF,
   signInSheetAssign: OPS,
+  mealWaiverEdit: OPS,
   assists: OPS,
   compliance: STAFF,
   complianceVerdict: ["admin", "supervisor", "coordinator"],

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox, Field, Input, Label, Select, Textarea } from "@/components/ui/input";
 import { useAction } from "@/components/ui/use-action";
 import { ROLE_LABEL, ROLES } from "@/lib/auth/permissions";
+import { DEPARTMENTS } from "@/lib/people";
 import { formValues } from "./tz";
 
 export function AddEmployee({ minimumWage }: { minimumWage: string }) {
@@ -61,6 +62,19 @@ export function AddEmployee({ minimumWage }: { minimumWage: string }) {
           <Field label="Job title" htmlFor="ae-title" error={err("job_title")}>
             <Input id="ae-title" name="job_title" maxLength={80} />
           </Field>
+        <Field label="Department" htmlFor="ae-dept" error={err("department")}>
+          <Select id="ae-dept" name="department">
+            <option value="">Select…</option>
+            {DEPARTMENTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Shift" htmlFor="ae-shift" error={err("shift")}>
+          <Input id="ae-shift" name="shift" placeholder="AM / PM" maxLength={30} />
+        </Field>
           <Field label="Email" htmlFor="ae-email" error={err("email")}>
             <Input id="ae-email" name="email" type="email" autoComplete="off" />
           </Field>

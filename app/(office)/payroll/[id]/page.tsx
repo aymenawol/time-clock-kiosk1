@@ -29,6 +29,7 @@ interface Summary {
   regular_minutes: number;
   ot_minutes: number;
   leave_minutes: number;
+  fmla_minutes: number;
   pay_rate_cents: number;
   gross_cents: number;
 }
@@ -66,6 +67,7 @@ export default async function PayPeriodPage({ params }: { params: Promise<{ id: 
           regular_minutes: l.regular_minutes,
           ot_minutes: l.daily_ot_minutes + l.weekly_ot_minutes,
           leave_minutes: l.leave_minutes,
+          fmla_minutes: Number((l.detail as { fmlaMinutes?: number } | null)?.fmlaMinutes ?? 0),
           pay_rate_cents: l.pay_rate_cents,
           gross_cents: Number(l.gross_cents),
         };
@@ -79,6 +81,7 @@ export default async function PayPeriodPage({ params }: { params: Promise<{ id: 
       regular_minutes: l.regular_minutes,
       ot_minutes: l.daily_ot_minutes + l.weekly_ot_minutes,
       leave_minutes: l.leave_minutes,
+      fmla_minutes: l.detail.fmlaMinutes,
       pay_rate_cents: l.pay_rate_cents,
       gross_cents: l.gross_cents,
     }));
@@ -96,6 +99,7 @@ export default async function PayPeriodPage({ params }: { params: Promise<{ id: 
         regular_minutes: 0,
         ot_minutes: 0,
         leave_minutes: 0,
+        fmla_minutes: 0,
         pay_rate_cents: days[0].pay_rate_cents,
         gross_cents: 0,
       });
@@ -215,6 +219,11 @@ export default async function PayPeriodPage({ params }: { params: Promise<{ id: 
                           PTO <span className="font-medium text-fg">{h(s.leave_minutes)}</span>
                         </span>
                       ) : null}
+                      {s.fmla_minutes > 0 ? (
+                        <span>
+                          FMLA <span className="font-medium text-fg">{h(s.fmla_minutes)}</span>
+                        </span>
+                      ) : null}
                       <span>
                         Total <span className="font-semibold text-fg">{h(s.regular_minutes + s.ot_minutes + s.leave_minutes)}</span>
                       </span>
@@ -234,6 +243,7 @@ export default async function PayPeriodPage({ params }: { params: Promise<{ id: 
                       <TH className="text-right">Regular</TH>
                       <TH className="text-right">OT</TH>
                       <TH className="text-right">PTO</TH>
+                      <TH className="text-right">FMLA</TH>
                       <TH className="text-right">Total</TH>
                       <TH className="text-right">Missed breaks</TH>
                     </tr>
@@ -252,6 +262,7 @@ export default async function PayPeriodPage({ params }: { params: Promise<{ id: 
                         <TD className="text-right tabular text-primary">{h(d.regular_minutes)}</TD>
                         <TD className="text-right tabular text-warning">{dash(d.daily_ot_minutes + d.weekly_ot_minutes)}</TD>
                         <TD className="text-right tabular">{dash(d.leave_minutes)}</TD>
+                        <TD className="text-right tabular">{dash(d.fmla_minutes)}</TD>
                         <TD className="text-right tabular font-semibold">{h(d.total_minutes)}</TD>
                         <TD className="text-right tabular">
                           {d.missed_breaks > 0 ? <span className="text-danger">{d.missed_breaks}</span> : "—"}

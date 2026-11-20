@@ -15,6 +15,7 @@ import { can } from "@/lib/auth/permissions";
 import { requireAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 import { fmtLocalDate, fmtTime, fullName, todayIn } from "@/lib/format";
+import { LunchWaiverToggle } from "./_components/lunch-waiver-toggle";
 import { PrintButton } from "./_components/print-button";
 import { loadSignInSheet } from "./data";
 
@@ -33,6 +34,7 @@ export default async function SignInSheetPage({ searchParams }: { searchParams: 
   const today = todayIn(tz);
   const date = parseYmd(sp.date, today);
   const canAssign = can(auth.employee.role, "signInSheetAssign");
+  const canWaive = can(auth.employee.role, "mealWaiverEdit");
 
   const [shifts, options] = await Promise.all([loadSignInSheet(auth, date), canAssign ? loadAssignOptions(auth) : null]);
   const t = (v: string | null) => (v ? fmtTime(v, tz, c24) : "-");
@@ -78,6 +80,7 @@ export default async function SignInSheetPage({ searchParams }: { searchParams: 
                 <TH>Tablet</TH>
                 <TH>Status</TH>
                 <TH>Radio</TH>
+                <TH>Lunch waived</TH>
                 <TH>Signature</TH>
                 {canAssign ? (
                   <TH className="print:hidden">
@@ -115,13 +118,19 @@ export default async function SignInSheetPage({ searchParams }: { searchParams: 
                     <TD>{s.tablet?.number ?? dash}</TD>
                     <TD className="whitespace-nowrap">
                       <Badge tone={st.tone}>{st.label}</Badge>
-                      {s.meal_waived ? (
-                        <Badge tone="warning" className="ml-1" title="Meal break waiver on file">
-                          LW
-                        </Badge>
-                      ) : null}
                     </TD>
                     <TD>{s.radio_status ? <span className="font-mono text-xs">{s.radio_status}</span> : dash}</TD>
+                    <TD>
+                      {canWaive ? (
+                        <LunchWaiverToggle shiftId={s.id} waived={s.meal_waived} name={name} />
+                      ) : s.meal_waived ? (
+                        <Badge tone="warning" title="Meal break waiver on file">
+                          Yes
+                        </Badge>
+                      ) : (
+                        dash
+                      )}
+                    </TD>
                     <TD className="whitespace-nowrap text-xs text-muted">
                       {s.device ? `PIN at kiosk ${s.device.name}` : s.kiosk_in_device_id ? "PIN at kiosk" : "Entered by admin"}
                     </TD>

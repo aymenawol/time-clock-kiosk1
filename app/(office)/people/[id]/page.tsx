@@ -114,6 +114,8 @@ export default async function EmployeePage({ params }: { params: Promise<{ id: s
                 <ProfileForm employee={employee} />
               ) : (
                 <dl className="grid gap-4 sm:grid-cols-2">
+                  <Detail label="Department">{employee.department}</Detail>
+                  <Detail label="Shift">{employee.shift}</Detail>
                   <Detail label="Email">{employee.email}</Detail>
                   <Detail label="Phone">{employee.phone}</Detail>
                   <Detail label="Hire date">{fmtLocalDate(employee.hire_date, "MMM d, yyyy")}</Detail>

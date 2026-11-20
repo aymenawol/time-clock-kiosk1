@@ -10,6 +10,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { breakPolicyFrom, planBreaks } from "../lib/labor/breaks";
 import { localDate, startOfLocalDate } from "../lib/labor/time";
+import { seedOrgReferenceData } from "../lib/org-defaults";
 import { orgSettingsSchema } from "../lib/settings";
 import type { Database } from "../lib/supabase/database.types";
 
@@ -31,67 +32,27 @@ interface SeedEmployee {
   seniority: number;
   hired: string;
   exempt?: boolean;
+  department: string;
+  shift: string;
 }
 
 /** One test login per role, plus extra drivers. */
 export const EMPLOYEES: SeedEmployee[] = [
-  { number: "1001", first: "Avery", last: "Admin", role: "admin", pin: "4826", login: true, rate: 32, seniority: 1, hired: "2015-03-02" },
-  { number: "1002", first: "Sam", last: "Supervisor", role: "supervisor", pin: "5937", login: true, rate: 27, seniority: 2, hired: "2016-06-13" },
-  { number: "1003", first: "Dana", last: "Dispatcher", role: "dispatcher", pin: "6148", login: true, rate: 22, seniority: 3, hired: "2018-01-08" },
-  { number: "1004", first: "Casey", last: "Coordinator", role: "coordinator", pin: "7259", login: true, rate: 20, seniority: 4, hired: "2019-09-23" },
-  { number: "2001", first: "Drew", last: "Driver", role: "driver", pin: "3816", login: true, rate: 16.5, seniority: 5, hired: "2020-02-17" },
-  { number: "2002", first: "Riley", last: "Park", role: "driver", pin: "2947", login: true, rate: 17, seniority: 6, hired: "2020-11-30" },
-  { number: "2003", first: "Jordan", last: "Reyes", role: "driver", pin: "8153", login: false, rate: 19, seniority: 7, hired: "2021-05-03" },
-  { number: "2004", first: "Morgan", last: "Lee", role: "driver", pin: "9264", login: false, rate: 16, seniority: 8, hired: "2022-08-15" },
-  { number: "2005", first: "Taylor", last: "Nguyen", role: "driver", pin: "1375", login: false, rate: 15.5, seniority: 9, hired: "2023-04-10", exempt: true },
-  { number: "3001", first: "Frankie", last: "Fueler", role: "fueler", pin: "4682", login: true, rate: 16, seniority: 10, hired: "2021-07-19" },
-  { number: "4001", first: "Toni", last: "Technician", role: "technician", pin: "5793", login: true, rate: 26, seniority: 11, hired: "2017-10-02" },
+  { number: "1001", first: "Avery", last: "Admin", role: "admin", pin: "4826", login: true, rate: 32, seniority: 1, hired: "2015-03-02", department: "Administration", shift: "AM" },
+  { number: "1002", first: "Sam", last: "Supervisor", role: "supervisor", pin: "5937", login: true, rate: 27, seniority: 2, hired: "2016-06-13", department: "Operations", shift: "AM" },
+  { number: "1003", first: "Dana", last: "Dispatcher", role: "dispatcher", pin: "6148", login: true, rate: 22, seniority: 3, hired: "2018-01-08", department: "Dispatch", shift: "AM" },
+  { number: "1004", first: "Casey", last: "Coordinator", role: "coordinator", pin: "7259", login: true, rate: 20, seniority: 4, hired: "2019-09-23", department: "Operations", shift: "PM" },
+  { number: "2001", first: "Drew", last: "Driver", role: "driver", pin: "3816", login: true, rate: 16.5, seniority: 5, hired: "2020-02-17", department: "Operations", shift: "AM" },
+  { number: "2002", first: "Riley", last: "Park", role: "driver", pin: "2947", login: true, rate: 17, seniority: 6, hired: "2020-11-30", department: "Operations", shift: "PM" },
+  { number: "2003", first: "Jordan", last: "Reyes", role: "driver", pin: "8153", login: false, rate: 19, seniority: 7, hired: "2021-05-03", department: "Operations", shift: "AM" },
+  { number: "2004", first: "Morgan", last: "Lee", role: "driver", pin: "9264", login: false, rate: 16, seniority: 8, hired: "2022-08-15", department: "Operations", shift: "PM" },
+  { number: "2005", first: "Taylor", last: "Nguyen", role: "driver", pin: "1375", login: false, rate: 15.5, seniority: 9, hired: "2023-04-10", exempt: true, department: "Operations", shift: "PM" },
+  { number: "3001", first: "Frankie", last: "Fueler", role: "fueler", pin: "4682", login: true, rate: 16, seniority: 10, hired: "2021-07-19", department: "Fleet", shift: "AM" },
+  { number: "4001", first: "Toni", last: "Technician", role: "technician", pin: "5793", login: true, rate: 26, seniority: 11, hired: "2017-10-02", department: "Maintenance", shift: "PM" },
 ];
 
 export const emailFor = (e: Pick<SeedEmployee, "first" | "role">) =>
   `${e.role === "driver" ? e.first.toLowerCase() : e.role}@${EMAIL_DOMAIN}`;
-
-// v0 INSPECTION_CHECKLIST (lib/supabase.ts on main), same categories and order.
-const CHECKLIST: [string, string, boolean][] = [
-  ["Exterior", "Body damage", false],
-  ["Exterior", "Mirrors intact", false],
-  ["Exterior", "Windows unobstructed", false],
-  ["Exterior", "Doors operate properly", true],
-  ["Tires", "Adequate tread depth", true],
-  ["Tires", "No visible damage", false],
-  ["Tires", "Properly inflated", true],
-  ["Tires", "No wheel leaks", false],
-  ["Lights", "Headlights", true],
-  ["Lights", "Taillights", false],
-  ["Lights", "Brake lights", true],
-  ["Lights", "Turn signals", true],
-  ["Lights", "Hazard lights", false],
-  ["Lights", "Interior lights", false],
-  ["Brake Systems", "Brake pedal firm", true],
-  ["Brake Systems", "Air brake gauge normal", true],
-  ["Brake Systems", "No unusual brake sounds", true],
-  ["Steering", "Steering wheel free play normal", true],
-  ["Steering", "No pulling or wandering", true],
-  ["Gauges", "Speedometer working", false],
-  ["Gauges", "Fuel/charge gauge working", false],
-  ["Gauges", "Temperature normal", false],
-  ["Gauges", "Oil pressure normal", false],
-  ["Interior", "Seats secure and undamaged", false],
-  ["Interior", "Seat belts functional", false],
-  ["Interior", "Handrails secure", false],
-  ["Interior", "Floor clean and unobstructed", false],
-  ["Passenger Ramp", "Ramp deploys/retracts properly", true],
-  ["Passenger Ramp", "Ramp surface non-slip", false],
-  ["Passenger Ramp", "No damage to ramp mechanism", false],
-  ["Parking Brake", "Parking brake holds vehicle", true],
-  ["Parking Brake", "Parking brake releases fully", true],
-  ["Safety Equipment", "Fire extinguisher present and charged", true],
-  ["Safety Equipment", "First aid kit present", false],
-  ["Safety Equipment", "Emergency triangles present", false],
-  ["Safety Equipment", "Emergency exits unobstructed", true],
-  ["Mirrors", "All mirrors properly adjusted", false],
-  ["Mirrors", "No cracks or obstructions", false],
-];
 
 function required<T>(value: T | null | undefined, what: string): T {
   if (value === null || value === undefined) throw new Error(`Seed failed: ${what}`);
@@ -160,6 +121,8 @@ async function main() {
             hire_date: e.hired,
             seniority_number: e.seniority,
             job_title: e.role[0].toUpperCase() + e.role.slice(1),
+            department: e.department,
+            shift: e.shift,
           })
           .select("id")
           .single()
@@ -236,21 +199,8 @@ async function main() {
 
   await db.from("tablets").insert(Array.from({ length: 6 }, (_, i) => ({ organization_id: orgId, number: `T-0${i + 1}` })));
 
-  // v0 radio codes (lib/constants/radio-codes.ts + driver actions on main): 4 driver buttons, 2 board-only codes.
-  // Every row lists every column: a bulk insert with differing keys sends nulls for the missing ones.
-  const radio = await db.from("radio_codes").insert([
-    { organization_id: orgId, code: "10-8", label: "In Service", sets_vehicle_status: "in_service", notify_roles: ["dispatcher"], is_alert: false, driver_selectable: true, sort: 1 },
-    { organization_id: orgId, code: "10-39", label: "On Break", sets_vehicle_status: "in_service", notify_roles: ["dispatcher", "supervisor"], is_alert: false, driver_selectable: true, sort: 2 },
-    { organization_id: orgId, code: "10-37", label: "Fueling/Wash", sets_vehicle_status: "needs_fuel", notify_roles: ["dispatcher", "admin", "supervisor"], is_alert: false, driver_selectable: true, sort: 3 },
-    { organization_id: orgId, code: "10-7", label: "Out of Service", sets_vehicle_status: "shop", notify_roles: ["dispatcher", "admin"], is_alert: false, driver_selectable: true, sort: 4 },
-    { organization_id: orgId, code: "10-51", label: "Assist Needed", sets_vehicle_status: null, notify_roles: ["dispatcher"], is_alert: true, driver_selectable: false, sort: 5 },
-    { organization_id: orgId, code: "10-33", label: "HAZARD", sets_vehicle_status: "safety_hold", notify_roles: ["dispatcher", "supervisor"], is_alert: true, driver_selectable: false, sort: 6 },
-  ]);
-  if (radio.error) throw radio.error;
-
-  await db.from("checklist_items").insert(
-    CHECKLIST.map(([category, label, critical], i) => ({ organization_id: orgId, category, label, critical, sort: i })),
-  );
+  // Product defaults every organization gets: v0 radio codes, v0 inspection checklist, chat rooms.
+  await seedOrgReferenceData(db, orgId);
 
   // v0 airline list (seeded in the v0 migrations).
   await db.from("airlines").insert([
@@ -270,13 +220,6 @@ async function main() {
     { organization_id: orgId, name: "Allegiant Air", iata_code: "G4", location_id: loc.T1, phone: "1-702-505-8888", notes: null },
     { organization_id: orgId, name: "Avelo Airlines", iata_code: "XP", location_id: loc.T1, phone: "1-346-616-9500", notes: null },
     { organization_id: orgId, name: "Sun Country Airlines", iata_code: "SY", location_id: loc.T1, phone: "1-651-905-2737", notes: null },
-  ]);
-
-  await db.from("chat_rooms").insert([
-    { organization_id: orgId, name: "Dispatch desk", kind: "role", roles: ["admin", "supervisor", "dispatcher", "coordinator"] },
-    { organization_id: orgId, name: "All drivers", kind: "role", roles: ["driver", "dispatcher", "supervisor", "admin"] },
-    { organization_id: orgId, name: "Fuel and shop", kind: "role", roles: ["fueler", "technician", "dispatcher", "supervisor"] },
-    { organization_id: orgId, name: "Supervisors", kind: "role", roles: ["admin", "supervisor"] },
   ]);
 
   await db.from("announcements").insert({
@@ -459,13 +402,19 @@ async function main() {
     { organization_id: orgId, title: "Fueling safety refresher", starts_at: new Date(now.getTime() + 4 * day).toISOString(), location: "Fuel island", audience: ["fueler", "technician"], created_by: ids["1002"] },
     { organization_id: orgId, title: "Monthly all-hands safety", starts_at: new Date(now.getTime() + 7 * day).toISOString(), location: "Depot break room", audience: [], created_by: ids["1002"] },
   ]);
-  await db.from("leave_ledger").insert(
-    ["2001", "2002", "2003", "2004", "2005", "3001", "4001"].flatMap((n) => [
-      { organization_id: orgId, employee_id: ids[n], kind: "pto", hours: 40, reason: "Opening balance", created_by: ids["1001"] },
-      { organization_id: orgId, employee_id: ids[n], kind: "vacation", hours: 80, reason: "Opening balance", created_by: ids["1001"] },
-      { organization_id: orgId, employee_id: ids[n], kind: "sick", hours: 24, reason: "Opening balance", created_by: ids["1001"] },
-    ]),
-  );
+  // Approved PTO taken 3 days ago (org time zone), so payroll shows PTO hours.
+  const ptoDate = localDate(new Date(now.getTime() - 3 * day), TZ);
+  const ledgerError = (
+    await db.from("leave_ledger").insert([
+      ...["2001", "2002", "2003", "2004", "2005", "3001", "4001"].flatMap((n) => [
+      { organization_id: orgId, employee_id: ids[n], kind: "pto", hours: 40, reason: "Opening balance", created_by: ids["1001"], taken_from: null, taken_to: null },
+      { organization_id: orgId, employee_id: ids[n], kind: "vacation", hours: 80, reason: "Opening balance", created_by: ids["1001"], taken_from: null, taken_to: null },
+      { organization_id: orgId, employee_id: ids[n], kind: "sick", hours: 24, reason: "Opening balance", created_by: ids["1001"], taken_from: null, taken_to: null },
+      ]),
+      { organization_id: orgId, employee_id: ids["2001"], kind: "pto", hours: -8, reason: "Approved request", created_by: ids["1001"], taken_from: ptoDate, taken_to: ptoDate },
+    ])
+  ).error;
+  if (ledgerError) throw ledgerError;
   await db.from("form_submissions").insert({
     organization_id: orgId,
     employee_id: ids["2002"],

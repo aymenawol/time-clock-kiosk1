@@ -2,7 +2,7 @@ import { loadCountSheets, parseRows, rowTotal } from "@/components/records/count
 import { isYmd } from "@/components/records/params";
 import { loadPeople } from "@/components/records/people";
 import { requireAuth } from "@/lib/auth/session";
-import { todayIn } from "@/lib/format";
+import { fmtTime, todayIn } from "@/lib/format";
 import { toCsv } from "@/lib/labor/payroll";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const ids = columns.map((c) => c.id);
 
   const out: (string | number | null)[][] = [
-    ["Date", "Driver", "Vehicle", "Route", "Status", "Departure", ...columns.map((c) => c.name), "Total"],
+    ["Date", "Driver", "Vehicle", "Route", "Status", "Start time", "End time", "Departure", ...columns.map((c) => c.name), "Total"],
   ];
   for (const s of sheets) {
     for (const r of parseRows(s.rows)) {
@@ -26,6 +26,8 @@ export async function GET(request: Request) {
         s.vehicle_id ? (vehicleNumber.get(s.vehicle_id) ?? "") : "",
         s.route_id ? (routeName.get(s.route_id) ?? "") : "",
         s.status,
+        fmtTime(s.created_at, auth.org.timezone, auth.settings.clock24h),
+        s.submitted_at ? fmtTime(s.submitted_at, auth.org.timezone, auth.settings.clock24h) : "",
         r.departure_time,
         ...ids.map((id) => r.counts[id] ?? 0),
         rowTotal(r, ids),

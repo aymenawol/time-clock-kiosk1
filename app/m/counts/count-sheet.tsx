@@ -34,6 +34,8 @@ export function CountSheet({
   initialRows,
   submitted,
   submittedAt,
+  startTime,
+  endTime,
   driverName,
   vehicleNumber,
   dateLabel,
@@ -42,6 +44,8 @@ export function CountSheet({
   initialRows: CountRow[];
   submitted: boolean;
   submittedAt: string | null;
+  startTime: string;
+  endTime: string;
   driverName: string;
   vehicleNumber: string | null;
   dateLabel: string;
@@ -116,6 +120,16 @@ export function CountSheet({
           <div className="px-3 py-3">
             <dt className="text-xs text-muted">Date</dt>
             <dd className="text-fg">{dateLabel}</dd>
+          </div>
+        </dl>
+        <dl className="grid grid-cols-2 divide-x divide-border border-t border-border text-sm">
+          <div className="px-3 py-3">
+            <dt className="text-xs text-muted">Start time</dt>
+            <dd className="tabular text-fg">{startTime}</dd>
+          </div>
+          <div className="px-3 py-3">
+            <dt className="text-xs text-muted">End time</dt>
+            <dd className="tabular text-fg">{endTime}</dd>
           </div>
         </dl>
       </Card>

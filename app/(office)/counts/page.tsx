@@ -15,7 +15,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { LiveRefresh } from "@/components/realtime/use-live-refresh";
 import { can } from "@/lib/auth/permissions";
 import { requireAuth } from "@/lib/auth/session";
-import { fmtDateTime, fmtLocalDate, todayIn } from "@/lib/format";
+import { fmtDateTime, fmtLocalDate, fmtTime, todayIn } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Counting Sheets" };
 
@@ -90,7 +90,8 @@ export default async function CountsPage({ searchParams }: { searchParams: Searc
                       )}
                       {" · "}
                       {s.route_id ? (routeName.get(s.route_id) ?? "-") : "No route"}
-                      {s.submitted_at ? ` · Submitted ${fmtDateTime(s.submitted_at, auth.org.timezone, auth.settings.clock24h)}` : ""}
+                      {" · "}Start time {fmtTime(s.created_at, auth.org.timezone, auth.settings.clock24h)}
+                      {" · "}End time {s.submitted_at ? fmtTime(s.submitted_at, auth.org.timezone, auth.settings.clock24h) : "-"}
                     </>
                   }
                   actions={

@@ -4,6 +4,7 @@ import { nowMs } from "@/components/requests/data";
 import { BackHeader, LoadError } from "@/components/requests/back-header";
 import { fmtClock } from "@/components/requests/data";
 import { OffDayResponse, OfferBidButton } from "@/components/requests/overtime-controls";
+import { LiveRefresh } from "@/components/realtime/use-live-refresh";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { EmptyState, SectionTitle } from "@/components/ui/misc";
@@ -62,6 +63,7 @@ export default async function OvertimePage() {
 
   return (
     <>
+      <LiveRefresh organizationId={auth.org.id} tables={["ot_offers", "ot_bids", "ot_awards"]} />
       <BackHeader href="/m/requests" backLabel="Requests" title="Overtime" description="Extra shifts you can bid for." />
       <div className="flex flex-col gap-8">
         {pending.length > 0 ? (

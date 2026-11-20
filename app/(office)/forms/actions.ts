@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { action, ActionError, audit, check, zId } from "@/lib/actions";
 import { leaveDeduction } from "@/lib/forms";
+import { leaveDates } from "@/lib/labor/leave";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const reviewForm = action(
@@ -33,12 +34,14 @@ export const reviewForm = action(
 
     const deduction = v.decision === "approved" ? leaveDeduction(form.form_type, form.payload) : null;
     const hours = deduction ? (typeof v.leaveHours === "number" ? v.leaveHours : deduction.hours) : undefined;
+    const dates = deduction ? leaveDates(form.form_type, (form.payload ?? {}) as Record<string, unknown>) : null;
     check(
       await ctx.supabase.rpc("review_form", {
         p_form_id: v.id,
         p_decision: v.decision,
         p_comment: v.comment ?? "",
         ...(deduction && hours ? { p_leave_kind: deduction.kind, p_leave_hours: hours } : {}),
+        ...(deduction && hours && dates ? { p_taken_from: dates.from, p_taken_to: dates.to } : {}),
       }),
     );
 

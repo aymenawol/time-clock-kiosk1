@@ -6,13 +6,13 @@ export async function GET() {
   const auth = await requireAuth("people");
   const { data } = await auth.supabase
     .from("employees")
-    .select("employee_number, first_name, last_name, email, phone, role, status, job_title, hire_date, seniority_number, user_id")
+    .select("employee_number, first_name, last_name, email, phone, role, status, job_title, department, shift, hire_date, seniority_number, user_id")
     .eq("organization_id", auth.org.id)
     .order("seniority_number", { nullsFirst: false })
     .order("hire_date")
     .limit(5000);
   const rows: (string | number | null)[][] = [
-    ["Employee #", "First name", "Last name", "Email", "Phone", "Role", "Status", "Job title", "Hire date", "Seniority", "Has login"],
+    ["Employee #", "First name", "Last name", "Email", "Phone", "Role", "Status", "Job title", "Department", "Shift", "Hire date", "Seniority", "Has login"],
     ...(data ?? []).map((e) => [
       e.employee_number,
       e.first_name,
@@ -22,6 +22,8 @@ export async function GET() {
       ROLE_LABEL[e.role],
       e.status,
       e.job_title,
+      e.department,
+      e.shift,
       e.hire_date,
       e.seniority_number,
       e.user_id ? "yes" : "no",

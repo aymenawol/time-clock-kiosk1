@@ -4,7 +4,7 @@ import { FieldHeader, Notice } from "@/components/field/field-header";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/misc";
 import { requireAuth } from "@/lib/auth/session";
-import { fmtDateTime, fmtLocalDate } from "@/lib/format";
+import { fmtDateTime, fmtLocalDate, fmtTime } from "@/lib/format";
 import { CountSheet, type CountColumn, type CountRow } from "./count-sheet";
 
 export const metadata = { title: "Counting sheet" };
@@ -37,13 +37,13 @@ export default async function CountsPage() {
     shift
       ? auth.supabase
           .from("count_sheets")
-          .select("id, rows, status, submitted_at, work_date, updated_at")
+          .select("id, rows, status, submitted_at, created_at, work_date, updated_at")
           .eq("organization_id", auth.org.id)
           .eq("shift_id", shift.id)
           .maybeSingle()
       : auth.supabase
           .from("count_sheets")
-          .select("id, rows, status, submitted_at, work_date, updated_at")
+          .select("id, rows, status, submitted_at, created_at, work_date, updated_at")
           .eq("organization_id", auth.org.id)
           .eq("employee_id", auth.employee.id)
           .order("created_at", { ascending: false })
@@ -109,6 +109,8 @@ export default async function CountsPage() {
         initialRows={parseRows(sheet?.rows)}
         submitted={sheet?.status === "submitted"}
         submittedAt={sheet?.submitted_at ? fmtDateTime(sheet.submitted_at, auth.org.timezone, auth.settings.clock24h) : null}
+        startTime={sheet ? fmtTime(sheet.created_at, auth.org.timezone, auth.settings.clock24h) : "-"}
+        endTime={sheet?.submitted_at ? fmtTime(sheet.submitted_at, auth.org.timezone, auth.settings.clock24h) : "-"}
         driverName={`${auth.employee.first_name} ${auth.employee.last_name}`}
         vehicleNumber={shift?.vehicle?.number ?? null}
         dateLabel={fmtLocalDate(shift?.work_date ?? sheet?.work_date ?? null)}

@@ -1,5 +1,6 @@
 import "server-only";
 import type { AuthContext } from "@/lib/auth/session";
+import { leaveByDay, type LeaveEntry } from "@/lib/labor/leave";
 import { buildPayLines, type PayLine, type PayrollEmployee, type PayrollOptions } from "@/lib/labor/payroll";
 import { toShiftRecords } from "@/lib/labor/records";
 import { startOfLocalDate, startOfWorkweek, type WeekStart } from "@/lib/labor/time";
@@ -33,7 +34,7 @@ export async function loadPeriodData(auth: AuthContext, period: PeriodDates): Pr
   const from = startOfWorkweek(startOfLocalDate(period.starts_on, tz), tz, ws);
   const to = startOfLocalDate(addDaysYmd(period.ends_on, 1), tz);
 
-  const [shiftsRes, empsRes, compRes] = await Promise.all([
+  const [shiftsRes, empsRes, compRes, leaveRes] = await Promise.all([
     auth.supabase
       .from("shifts")
       .select(SHIFT_SELECT)
@@ -50,6 +51,14 @@ export async function loadPeriodData(auth: AuthContext, period: PeriodDates): Pr
       .from("employee_compensation")
       .select("employee_id, pay_rate_cents, daily_ot_exempt")
       .eq("organization_id", auth.org.id),
+    auth.supabase
+      .from("leave_ledger")
+      .select("employee_id, kind, hours, taken_from, taken_to")
+      .eq("organization_id", auth.org.id)
+      .lt("hours", 0)
+      .lte("taken_from", period.ends_on)
+      .gte("taken_to", period.starts_on)
+      .limit(5000),
   ]);
 
   const rawShifts = shiftsRes.data ?? [];
@@ -92,8 +101,17 @@ export async function loadPeriodData(auth: AuthContext, period: PeriodDates): Pr
     overtimeMultiplier: labor.overtimeMultiplier,
   };
 
-  const lines = buildPayLines(employees, completed, options);
-  const days = buildDayRows(employees, completed, open, missed, options);
+  const leaveEntries: LeaveEntry[] = (leaveRes.data ?? []).map((l) => ({
+    employeeId: l.employee_id,
+    kind: l.kind as LeaveEntry["kind"],
+    hours: Number(l.hours),
+    takenFrom: l.taken_from,
+    takenTo: l.taken_to,
+  }));
+  const leave = leaveByDay(leaveEntries, period.starts_on, period.ends_on);
+
+  const lines = buildPayLines(employees, completed, options, leave);
+  const days = buildDayRows(employees, completed, open, missed, options, leave);
 
   const openShifts = open
     .filter((s) => s.workDate && s.workDate >= period.starts_on && s.workDate <= period.ends_on)

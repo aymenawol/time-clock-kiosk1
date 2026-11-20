@@ -2,6 +2,7 @@ import { CalendarClock } from "lucide-react";
 import Link from "next/link";
 import { ActionButton } from "@/components/admin/action-buttons";
 import { OFF_DAY_RESPONSE, OT_OFFER_STATUS, StatusPill } from "@/components/admin/status";
+import { LiveRefresh } from "@/components/realtime/use-live-refresh";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { EmptyState, PageHeader } from "@/components/ui/misc";
@@ -72,6 +73,7 @@ export default async function OvertimePage({ searchParams }: { searchParams: Pro
 
   return (
     <>
+      <LiveRefresh organizationId={auth.org.id} tables={["ot_offers", "ot_bids", "ot_awards"]} />
       <PageHeader title="Overtime" description="Post overtime, rank bids by seniority and award shifts." actions={<OfferForm defaultDate={today} />} />
       <div className="flex flex-col gap-6">
         <Card>

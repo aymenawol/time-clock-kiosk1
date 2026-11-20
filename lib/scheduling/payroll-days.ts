@@ -1,6 +1,7 @@
 import { computeOvertime, dailyOvertimeApplies } from "@/lib/labor/overtime";
 import type { PayrollEmployee, PayrollOptions } from "@/lib/labor/payroll";
 import { centsToDollars, minutesToHours } from "@/lib/labor/payroll";
+import type { LeaveByDay } from "@/lib/labor/leave";
 import type { ShiftRecord } from "@/lib/labor/types";
 
 /** One employee, one local work date: the v0 payroll sheet row. */
@@ -12,8 +13,10 @@ export interface DayPayRow {
   regular_minutes: number;
   daily_ot_minutes: number;
   weekly_ot_minutes: number;
-  /** Paid and statutory leave. Not tracked per day yet, so always 0. */
+  /** Paid leave (PTO, vacation, sick), paid at the regular rate. */
   leave_minutes: number;
+  /** Unpaid FMLA leave. */
+  fmla_minutes: number;
   total_minutes: number;
   missed_breaks: number;
   /** A shift on this day has no clock-out yet. */
@@ -21,6 +24,7 @@ export interface DayPayRow {
   pay_rate_cents: number;
   regular_cents: number;
   overtime_cents: number;
+  leave_cents: number;
   gross_cents: number;
 }
 
@@ -35,6 +39,7 @@ export function buildDayRows(
   openShifts: ShiftRecord[],
   missedBreaksByShift: Map<string, number>,
   opts: PayrollOptions,
+  leave: LeaveByDay = new Map(),
 ): DayPayRow[] {
   const rows: DayPayRow[] = [];
   const openByEmployee = new Map<string, ShiftRecord[]>();
@@ -48,7 +53,8 @@ export function buildDayRows(
     const closed = (completedByEmployee.get(emp.id) ?? []).filter((s) => s.clockOut);
     const inPeriod = closed.filter((s) => s.workDate && s.workDate >= opts.startsOn && s.workDate <= opts.endsOn);
     const open = openByEmployee.get(emp.id) ?? [];
-    if (inPeriod.length === 0 && open.length === 0) continue;
+    const empLeave = leave.get(emp.id);
+    if (inPeriod.length === 0 && open.length === 0 && !empLeave?.size) continue;
 
     const result = computeOvertime(closed, {
       timeZone: opts.timeZone,
@@ -77,12 +83,14 @@ export function buildDayRows(
           daily_ot_minutes: 0,
           weekly_ot_minutes: 0,
           leave_minutes: 0,
+          fmla_minutes: 0,
           total_minutes: 0,
           missed_breaks: 0,
           incomplete: false,
           pay_rate_cents: emp.payRateCents,
           regular_cents: 0,
           overtime_cents: 0,
+          leave_cents: 0,
           gross_cents: 0,
         };
         days.set(workDate, d);
@@ -106,6 +114,12 @@ export function buildDayRows(
       d.missed_breaks += missedBreaksByShift.get(s.id) ?? 0;
     }
 
+    for (const [date, l] of empLeave ?? []) {
+      const d = day(date);
+      d.leave_minutes += l.paidMinutes;
+      d.fmla_minutes += l.fmlaMinutes;
+    }
+
     for (const d of days.values()) {
       d.regular_minutes = Math.round(d.regular_minutes);
       d.daily_ot_minutes = Math.round(d.daily_ot_minutes);
@@ -114,7 +128,8 @@ export function buildDayRows(
       d.total_minutes = d.regular_minutes + ot + d.leave_minutes;
       d.regular_cents = Math.round((d.regular_minutes / 60) * emp.payRateCents);
       d.overtime_cents = Math.round((ot / 60) * emp.payRateCents * opts.overtimeMultiplier);
-      d.gross_cents = d.regular_cents + d.overtime_cents;
+      d.leave_cents = Math.round((d.leave_minutes / 60) * emp.payRateCents);
+      d.gross_cents = d.regular_cents + d.overtime_cents + d.leave_cents;
       rows.push(d);
     }
   }
@@ -153,7 +168,7 @@ export function payrollDayCsvRows(rows: DayPayRow[], periodStart: string, period
       minutesToHours(r.regular_minutes),
       minutesToHours(r.daily_ot_minutes + r.weekly_ot_minutes),
       minutesToHours(r.leave_minutes),
-      0,
+      minutesToHours(r.fmla_minutes),
       minutesToHours(r.total_minutes),
       r.missed_breaks,
       r.incomplete ? "true" : "false",

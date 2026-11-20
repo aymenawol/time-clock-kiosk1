@@ -1,3 +1,4 @@
+import { leaveTotals, type LeaveByDay } from "./leave";
 import { computeOvertime, dailyOvertimeApplies, roundTotals } from "./overtime";
 import type { WeekStart } from "./time";
 import type { ShiftRecord } from "./types";
@@ -37,7 +38,15 @@ export interface PayLine {
   regular_cents: number;
   overtime_cents: number;
   gross_cents: number;
-  detail: { shifts: number; openShifts: number; dailyOvertimeApplies: boolean };
+  detail: {
+    shifts: number;
+    openShifts: number;
+    dailyOvertimeApplies: boolean;
+    /** Pay for paid leave (PTO, vacation, sick), included in gross_cents. */
+    leaveCents: number;
+    /** Unpaid FMLA leave taken in the period. */
+    fmlaMinutes: number;
+  };
 }
 
 /**
@@ -50,13 +59,15 @@ export function buildPayLines(
   employees: PayrollEmployee[],
   shiftsByEmployee: Map<string, ShiftRecord[]>,
   opts: PayrollOptions,
+  leave: LeaveByDay = new Map(),
 ): PayLine[] {
   const lines: PayLine[] = [];
   for (const emp of employees) {
     const all = shiftsByEmployee.get(emp.id) ?? [];
     const closed = all.filter((s) => s.clockOut);
     const inPeriod = closed.filter((s) => s.workDate && s.workDate >= opts.startsOn && s.workDate <= opts.endsOn);
-    if (inPeriod.length === 0) continue;
+    const taken = leaveTotals(leave.get(emp.id));
+    if (inPeriod.length === 0 && taken.paidMinutes === 0 && taken.fmlaMinutes === 0) continue;
 
     const daily = dailyOvertimeApplies({
       payRateCents: emp.payRateCents,
@@ -88,6 +99,8 @@ export function buildPayLines(
     const overtimeCents = Math.round(
       ((r.dailyOvertime + r.weeklyOvertime) / 60) * emp.payRateCents * opts.overtimeMultiplier,
     );
+    // Paid leave is paid at the regular rate and never counts toward overtime.
+    const leaveCents = Math.round((taken.paidMinutes / 60) * emp.payRateCents);
     lines.push({
       employee_id: emp.id,
       employee_number: emp.employeeNumber,
@@ -97,12 +110,18 @@ export function buildPayLines(
       weekly_ot_minutes: r.weeklyOvertime,
       paid_break_minutes: r.paidBreak,
       unpaid_break_minutes: r.unpaidBreak,
-      leave_minutes: 0,
+      leave_minutes: taken.paidMinutes,
       pay_rate_cents: emp.payRateCents,
       regular_cents: regularCents,
       overtime_cents: overtimeCents,
-      gross_cents: regularCents + overtimeCents,
-      detail: { shifts: inPeriod.length, openShifts: all.length - closed.length, dailyOvertimeApplies: daily },
+      gross_cents: regularCents + overtimeCents + leaveCents,
+      detail: {
+        shifts: inPeriod.length,
+        openShifts: all.length - closed.length,
+        dailyOvertimeApplies: daily,
+        leaveCents,
+        fmlaMinutes: taken.fmlaMinutes,
+      },
     });
   }
   return lines.sort((a, b) => a.name.localeCompare(b.name));

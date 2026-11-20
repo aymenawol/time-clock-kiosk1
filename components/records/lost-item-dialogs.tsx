@@ -6,7 +6,7 @@ import { logLostItem, transitionLostItem } from "@/app/(office)/lost-found/actio
 import { Badge, type Tone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { useAction } from "@/components/ui/use-action";
 
 export const LOST_STATUS: Record<string, { label: string; tone: Tone }> = {
@@ -124,7 +124,12 @@ export function LostItemButton({ item }: { item: LostItemView }) {
               </div>
             ) : null}
           </dl>
-          {item.contents ? <p className="whitespace-pre-wrap rounded-[var(--radius-control)] bg-surface-2 p-3 text-sm">{item.contents}</p> : null}
+          {item.contents ? (
+            <div>
+              <h3 className="mb-1 text-xs uppercase tracking-wide text-muted">{item.category === "bag" ? "Bag contents" : "Contents"}</h3>
+              <p className="whitespace-pre-wrap rounded-[var(--radius-control)] bg-surface-2 p-3 text-sm">{item.contents}</p>
+            </div>
+          ) : null}
 
           {item.photos.length > 0 ? (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -237,9 +242,13 @@ export function LogLostItemButton({
   vehicles: { id: string; number: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const [isBag, setIsBag] = useState(false);
   const [run, pending, errors] = useAction(logLostItem, {
     success: (d) => `Logged as ${d.reference}`,
-    onSuccess: () => setOpen(false),
+    onSuccess: () => {
+      setOpen(false);
+      setIsBag(false);
+    },
   });
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -257,7 +266,7 @@ export function LogLostItemButton({
             const f = new FormData(e.currentTarget);
             await run({
               description: txt(f.get("description")),
-              category: txt(f.get("category")) as "bag",
+              category: isBag ? "bag" : (txt(f.get("category")) as "bag"),
               contents: txt(f.get("contents")) || null,
               found_location_id: txt(f.get("location")) || null,
               found_vehicle_id: txt(f.get("vehicle")) || null,
@@ -267,8 +276,13 @@ export function LogLostItemButton({
           <Field label="What is it?" htmlFor="li-desc" error={errors.description?.[0]}>
             <Input id="li-desc" name="description" required maxLength={500} placeholder="Black backpack with a red tag" />
           </Field>
+          <label className="flex min-h-9 cursor-pointer items-center gap-3 text-sm">
+            <Checkbox checked={isBag} onChange={(e) => setIsBag(e.target.checked)} />
+            This is a bag / backpack / luggage
+          </label>
+          {!isBag ? (
           <Field label="Category" htmlFor="li-cat">
-            <Select id="li-cat" name="category" defaultValue="bag">
+            <Select id="li-cat" name="category" defaultValue="electronics">
               <option value="bag">Bag</option>
               <option value="electronics">Electronics</option>
               <option value="document">Document</option>
@@ -277,6 +291,7 @@ export function LogLostItemButton({
               <option value="other">Other</option>
             </Select>
           </Field>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Found at" htmlFor="li-loc">
               <Select id="li-loc" name="location" defaultValue="">
@@ -299,8 +314,15 @@ export function LogLostItemButton({
               </Select>
             </Field>
           </div>
-          <Field label="Contents or details (optional)" htmlFor="li-contents">
-            <Textarea id="li-contents" name="contents" maxLength={2000} className="min-h-16" />
+          <Field label={isBag ? "Bag contents" : "Contents or details (optional)"} htmlFor="li-contents" error={errors.contents?.[0]}>
+            <Textarea
+              id="li-contents"
+              name="contents"
+              required={isBag}
+              maxLength={2000}
+              className="min-h-16"
+              placeholder={isBag ? "Describe what the bag contains (for security)" : undefined}
+            />
           </Field>
           <Button type="submit" loading={pending}>
             Log item

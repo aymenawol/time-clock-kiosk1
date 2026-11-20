@@ -1323,6 +1323,7 @@ export type Database = {
       employees: {
         Row: {
           created_at: string
+          department: string | null
           email: string | null
           employee_number: string
           first_name: string
@@ -1335,12 +1336,14 @@ export type Database = {
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           seniority_number: number | null
+          shift: string | null
           status: Database["public"]["Enums"]["employee_status"]
           updated_at: string
           user_id: string | null
         }
         Insert: {
           created_at?: string
+          department?: string | null
           email?: string | null
           employee_number: string
           first_name: string
@@ -1353,12 +1356,14 @@ export type Database = {
           phone?: string | null
           role: Database["public"]["Enums"]["app_role"]
           seniority_number?: number | null
+          shift?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           updated_at?: string
           user_id?: string | null
         }
         Update: {
           created_at?: string
+          department?: string | null
           email?: string | null
           employee_number?: string
           first_name?: string
@@ -1371,6 +1376,7 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           seniority_number?: number | null
+          shift?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           updated_at?: string
           user_id?: string | null
@@ -1913,6 +1919,8 @@ export type Database = {
           kind: string
           organization_id: string
           reason: string
+          taken_from: string | null
+          taken_to: string | null
         }
         Insert: {
           created_at?: string
@@ -1924,6 +1932,8 @@ export type Database = {
           kind: string
           organization_id: string
           reason: string
+          taken_from?: string | null
+          taken_to?: string | null
         }
         Update: {
           created_at?: string
@@ -1935,6 +1945,8 @@ export type Database = {
           kind?: string
           organization_id?: string
           reason?: string
+          taken_from?: string | null
+          taken_to?: string | null
         }
         Relationships: [
           {
@@ -3639,6 +3651,8 @@ export type Database = {
           p_form_id: string
           p_leave_hours?: number
           p_leave_kind?: string
+          p_taken_from?: string
+          p_taken_to?: string
         }
         Returns: {
           acknowledged_at: string | null
