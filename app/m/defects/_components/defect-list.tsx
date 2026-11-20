@@ -1,6 +1,7 @@
 "use client";
 
-import { Camera, CheckCircle2, ClipboardCheck, PauseCircle, Wrench } from "lucide-react";
+import { Camera, CheckCircle2, ClipboardCheck, FileText, PauseCircle, Wrench } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { VehicleStatusPill } from "@/components/domain/status";
@@ -27,6 +28,7 @@ export interface QueueDefect {
   createdAt: string;
   ago: string;
   fromInspection: boolean;
+  inspectionId: string | null;
   note: string | null;
   assignedToMe: boolean;
   assignee: string | null;
@@ -193,6 +195,14 @@ function DefectCard({
           {d.reporter ? ` by ${d.reporter}` : ""}
           {d.assignee ? ` · ${d.assignedToMe ? "assigned to you" : `assigned to ${d.assignee}`}` : ""}
         </p>
+        {d.inspectionId ? (
+          <Link
+            href={`/m/inspections/${d.inspectionId}`}
+            className="mt-2 inline-flex h-11 items-center gap-2 rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm font-semibold text-primary hover:bg-surface-2"
+          >
+            <FileText className="size-4" aria-hidden /> View inspection
+          </Link>
+        ) : null}
 
         {d.photos.length ? (
           <ul className="mt-3 flex flex-wrap gap-2" aria-label="Photos">

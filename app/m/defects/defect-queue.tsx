@@ -64,6 +64,7 @@ export async function DefectQueue({ auth }: { auth: AuthContext }) {
         createdAt: d.created_at,
         ago: fmtAgo(d.created_at),
         fromInspection: d.inspection_id !== null,
+        inspectionId: d.inspection_id,
         note: d.resolution_note,
         assignedToMe: d.assigned_to === auth.employee.id,
         assignee: d.assignee ? fullName(d.assignee) : null,

@@ -1,32 +1,37 @@
 import { FileSpreadsheet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PaperSheet } from "@/components/counts/paper-sheet";
+import { CountPrintStyles } from "@/components/counts/print-styles";
+import { loadCountSheets, parseRows } from "@/components/records/counts-query";
 import { CountSheetEditor } from "@/components/records/count-sheet-editor";
-import { loadCountSheets, parseRows, rowTotal } from "@/components/records/counts-query";
 import { CsvLink } from "@/components/records/download-button";
 import { FilterField, FilterForm } from "@/components/records/filter-form";
 import { param, type SearchParams, ymdOr } from "@/components/records/params";
 import { loadPeople } from "@/components/records/people";
+import { LiveRefresh } from "@/components/realtime/use-live-refresh";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { EmptyState, PageHeader } from "@/components/ui/misc";
-import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { LiveRefresh } from "@/components/realtime/use-live-refresh";
 import { can } from "@/lib/auth/permissions";
 import { requireAuth } from "@/lib/auth/session";
+import { entryRowCount, fmtPaperTime, formatBreakWindows, lastFirst, stampLabel } from "@/lib/counts/sheet";
 import { fmtDateTime, fmtLocalDate, fmtTime, todayIn } from "@/lib/format";
+import { PrintButton } from "./_components/print-button";
 
 export const metadata: Metadata = { title: "Counting Sheets" };
 
 export default async function CountsPage({ searchParams }: { searchParams: SearchParams }) {
   const auth = await requireAuth("counts");
   const sp = await searchParams;
-  const date = ymdOr(param(sp, "date"), todayIn(auth.org.timezone));
-  const { sheets, columns, vehicleNumber, routeName } = await loadCountSheets(auth, date);
+  const tz = auth.org.timezone;
+  const c24 = auth.settings.clock24h;
+  const date = ymdOr(param(sp, "date"), todayIn(tz));
+  const { sheets, columns, shiftById, breaksByShift, vehicleNumber, routeName } = await loadCountSheets(auth, date);
   const people = await loadPeople(auth);
-  const columnIds = columns.map((c) => c.id);
   const canEdit = can(auth.employee.role, "countsEdit");
+  const slogan = auth.settings.counts.slogan;
 
   const { data: revisions } = sheets.length
     ? await auth.supabase
@@ -42,110 +47,100 @@ export default async function CountsPage({ searchParams }: { searchParams: Searc
   const revisionsBySheet = new Map<string, NonNullable<typeof revisions>>();
   for (const r of revisions ?? []) revisionsBySheet.set(r.sheet_id, [...(revisionsBySheet.get(r.sheet_id) ?? []), r]);
 
-  const grand = sheets.reduce((n, s) => n + parseRows(s.rows).reduce((m, r) => m + rowTotal(r, columnIds), 0), 0);
-
   return (
     <>
+      <CountPrintStyles />
       <LiveRefresh organizationId={auth.org.id} tables={["shifts"]} />
-      <PageHeader
-        title="Counting Sheets"
-        description={`${fmtLocalDate(date, "EEEE, MMM d")}: ${sheets.length} sheet${sheets.length === 1 ? "" : "s"}, ${grand} passengers`}
-        actions={sheets.length ? <CsvLink href={`/counts/export?date=${date}`} /> : undefined}
-      />
-      <FilterForm clearHref="/counts">
-        <FilterField label="Date">
-          <Input type="date" name="date" defaultValue={date} />
-        </FilterField>
-      </FilterForm>
+      <div className="print:hidden">
+        <PageHeader
+          title="Counting Sheets"
+          description={`${fmtLocalDate(date, "EEEE, MMM d")}: ${sheets.length} sheet${sheets.length === 1 ? "" : "s"}`}
+          actions={
+            sheets.length ? (
+              <>
+                <CsvLink href={`/counts/export?date=${date}`} />
+                <PrintButton />
+              </>
+            ) : undefined
+          }
+        />
+        <FilterForm clearHref="/counts">
+          <FilterField label="Date">
+            <Input type="date" name="date" defaultValue={date} />
+          </FilterField>
+        </FilterForm>
+      </div>
 
       {sheets.length === 0 ? (
-        <Card>
+        <Card className="print:hidden">
           <EmptyState icon={FileSpreadsheet} title="No counting sheets" description="No driver started a sheet on this date." />
         </Card>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-8">
           {sheets.map((s) => {
-            const rows = parseRows(s.rows);
-            const colTotals = columnIds.map((id) => rows.reduce((n, r) => n + (r.counts[id] ?? 0), 0));
+            const parsed = parseRows(s.rows);
+            const rows = Array.from({ length: entryRowCount(parsed.length) }, (_, i) => parsed[i] ?? { departure_time: "", counts: {} });
             const revs = revisionsBySheet.get(s.id) ?? [];
-            const title = `${people.name(s.employee_id)}, vehicle ${s.vehicle_id ? (vehicleNumber.get(s.vehicle_id) ?? "-") : "-"}`;
+            const emp = people.byId.get(s.employee_id);
+            const sh = shiftById.get(s.shift_id);
+            const bus = s.vehicle_id ? (vehicleNumber.get(s.vehicle_id) ?? "") : "";
+            const plannedEnd = sh
+              ? (sh.scheduled_end ?? new Date(new Date(sh.clock_in_at).getTime() + auth.settings.breaks.defaultShiftMinutes * 60_000).toISOString())
+              : null;
+            const title = `${people.name(s.employee_id)}, vehicle ${bus || "-"}`;
             return (
-              <Card key={s.id}>
-                <CardHeader
-                  title={
-                    <span className="flex flex-wrap items-center gap-2">
+              <section key={s.id} className="paper-wrap mx-auto flex w-full max-w-4xl flex-col gap-2" aria-label={`Counting sheet, ${title}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
+                  <div className="min-w-0">
+                    <p className="flex flex-wrap items-center gap-2 font-semibold">
                       {people.name(s.employee_id)}
-                      <span className="text-sm font-normal text-muted">Total Riders <strong className="tabular text-base text-foreground">{colTotals.reduce((a, b) => a + b, 0)}</strong></span>
                       <Badge tone={s.status === "submitted" ? "success" : "warning"}>{s.status === "submitted" ? "Submitted" : "In progress"}</Badge>
-                    </span>
-                  }
-                  description={
-                    <>
+                    </p>
+                    <p className="text-sm text-muted">
                       {s.vehicle_id ? (
                         <Link href={`/fleet/${s.vehicle_id}`} className="hover:underline">
-                          Vehicle {vehicleNumber.get(s.vehicle_id) ?? "-"}
+                          Vehicle {bus || "-"}
                         </Link>
                       ) : (
                         "No vehicle"
                       )}
                       {" · "}
                       {s.route_id ? (routeName.get(s.route_id) ?? "-") : "No route"}
-                      {" · "}Start time {fmtTime(s.created_at, auth.org.timezone, auth.settings.clock24h)}
-                      {" · "}End time {s.submitted_at ? fmtTime(s.submitted_at, auth.org.timezone, auth.settings.clock24h) : "-"}
-                    </>
-                  }
-                  actions={
-                    canEdit && s.status === "submitted" ? (
-                      <CountSheetEditor sheetId={s.id} title={title} columns={columns} rows={rows} />
-                    ) : undefined
-                  }
+                      {" · "}Start time {fmtTime(s.created_at, tz, c24)}
+                      {" · "}End time {s.submitted_at ? fmtTime(s.submitted_at, tz, c24) : "-"}
+                    </p>
+                  </div>
+                  {canEdit && s.status === "submitted" ? (
+                    <CountSheetEditor
+                      sheetId={s.id}
+                      title={title}
+                      columns={columns.map((c) => ({ id: c.id, name: c.heading }))}
+                      rows={parsed.filter((r) => r.departure_time || Object.values(r.counts).some((n) => n > 0))}
+                    />
+                  ) : null}
+                </div>
+                <PaperSheet
+                  slogan={slogan}
+                  header={{
+                    operator: emp ? lastFirst(emp) : "",
+                    start: fmtPaperTime(sh ? (sh.scheduled_start ?? sh.clock_in_at) : null, tz, c24),
+                    end: fmtPaperTime(plannedEnd, tz, c24),
+                    date: fmtLocalDate(s.work_date, "MM/dd/yy"),
+                    bus,
+                    breakWindows: formatBreakWindows(breaksByShift.get(s.shift_id) ?? [], tz),
+                    checkIn: stampLabel(sh?.clock_in_at, tz, c24),
+                    checkOut: stampLabel(sh?.clock_out_at, tz, c24),
+                  }}
+                  columns={columns}
+                  rows={rows}
                 />
-                {rows.length === 0 ? (
-                  <EmptyState title="No departures recorded" className="py-8" />
-                ) : (
-                  <Table>
-                    <THead>
-                      <tr>
-                        <TH>Departure</TH>
-                        {columns.map((c) => (
-                          <TH key={c.id} className="text-right">
-                            {c.name}
-                          </TH>
-                        ))}
-                        <TH className="text-right">Total</TH>
-                      </tr>
-                    </THead>
-                    <TBody>
-                      {rows.map((r, i) => (
-                        <TR key={i}>
-                          <TD className="tabular font-medium">{r.departure_time || "-"}</TD>
-                          {columnIds.map((id) => (
-                            <TD key={id} className="text-right tabular">
-                              {r.counts[id] ?? 0}
-                            </TD>
-                          ))}
-                          <TD className="text-right font-semibold tabular">{rowTotal(r, columnIds)}</TD>
-                        </TR>
-                      ))}
-                      <tr className="bg-surface-2 font-semibold">
-                        <TD>Totals</TD>
-                        {colTotals.map((t, i) => (
-                          <TD key={i} className="text-right tabular">
-                            {t}
-                          </TD>
-                        ))}
-                        <TD className="text-right tabular">{colTotals.reduce((a, b) => a + b, 0)}</TD>
-                      </tr>
-                    </TBody>
-                  </Table>
-                )}
                 {revs.length ? (
-                  <p className="border-t border-border px-4 py-2 text-xs text-muted">
+                  <p className="text-xs text-muted print:hidden">
                     Edited {revs.length} time{revs.length === 1 ? "" : "s"}. Latest by {people.name(revs[0].edited_by)},{" "}
-                    {fmtDateTime(revs[0].created_at, auth.org.timezone, auth.settings.clock24h)}: {revs[0].reason}
+                    {fmtDateTime(revs[0].created_at, tz, c24)}: {revs[0].reason}
                   </p>
                 ) : null}
-              </Card>
+              </section>
             );
           })}
         </div>

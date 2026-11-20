@@ -26,3 +26,18 @@ export async function signIn(page: Page, role: keyof typeof LOGINS) {
 export async function keypad(page: Page, digits: string) {
   for (const d of digits) await page.getByRole("group", { name: "Keypad" }).getByRole("button", { name: d, exact: true }).click();
 }
+
+/** Draw a short scribble on a signature pad with mouse moves. */
+export async function signOnPad(page: Page, name: RegExp | string = /signature pad/i) {
+  const pad = page.getByRole("img", { name }).first();
+  await pad.scrollIntoViewIfNeeded();
+  const box = await pad.boundingBox();
+  if (!box) throw new Error("Signature pad is not visible");
+  const at = (fx: number, fy: number) => [box.x + box.width * fx, box.y + box.height * fy] as const;
+  await page.mouse.move(...at(0.15, 0.6));
+  await page.mouse.down();
+  await page.mouse.move(...at(0.3, 0.3), { steps: 6 });
+  await page.mouse.move(...at(0.45, 0.65), { steps: 6 });
+  await page.mouse.move(...at(0.7, 0.35), { steps: 6 });
+  await page.mouse.up();
+}

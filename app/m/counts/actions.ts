@@ -40,13 +40,16 @@ async function persist(ctx: AuthContext, input: Input): Promise<string> {
   );
   const valid = new Set((columns ?? []).map((c) => c.id));
 
-  // Keep only rows with something in them, and only known columns.
-  const rows = input.rows
-    .map((r) => ({
-      departure_time: r.departure_time,
-      counts: Object.fromEntries(Object.entries(r.counts).filter(([id, n]) => valid.has(id) && n > 0)),
-    }))
-    .filter((r) => r.departure_time || Object.keys(r.counts).length);
+  // Keep known columns only. Blank rows between filled ones stay, so every
+  // entry keeps its place on the paper (and under its subtotal); only the
+  // trailing blanks are dropped.
+  const cleaned = input.rows.map((r) => ({
+    departure_time: r.departure_time,
+    counts: Object.fromEntries(Object.entries(r.counts).filter(([id, n]) => valid.has(id) && n > 0)),
+  }));
+  let last = cleaned.length - 1;
+  while (last >= 0 && !cleaned[last].departure_time && !Object.keys(cleaned[last].counts).length) last--;
+  const rows = cleaned.slice(0, last + 1);
 
   const existing = check(
     await ctx.supabase

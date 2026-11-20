@@ -16,6 +16,7 @@ export type SettingField =
       scale?: number;
     }
   | { key: string; label: string; type: "boolean"; hint?: string }
+  | { key: string; label: string; type: "text"; hint?: string; maxLength?: number; placeholder?: string }
   | { key: string; label: string; type: "select"; options: { value: string; label: string }[]; hint?: string };
 
 export interface SettingsSection {
@@ -60,6 +61,16 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       { key: "mealMinutes", label: "Meal break duration (min)", type: "number", min: 30, max: 120, step: 5, hint: "Unpaid meal for shifts of 8 hours or more (NRS 608.019)." },
       { key: "reopenWindowMinutes", label: "Dispatcher re-open window (min)", type: "number", min: 5, max: 180, step: 5, hint: "How long a missed break can be re-enabled by dispatch." },
     ],
+  },
+  {
+    slug: "counts",
+    navLabel: "Counting sheet",
+    title: "Passenger counting sheet",
+    description: "What drivers see at the top of the paper-style counting sheet, on screen and in print.",
+    fields: [
+      { key: "slogan", label: "Slogan", type: "text", maxLength: 80, placeholder: "Leave empty for no slogan", hint: "Printed above the header box, at most 80 characters." },
+    ],
+    note: "Column headings come from Locations: turn on a location as a count column, then set its group heading and column heading.",
   },
   {
     slug: "fatigue",

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signIn } from "./helpers";
+import { signIn, signOnPad } from "./helpers";
 
 export const PASSENGER = "Pat Passenger";
 export const TIME_OFF_COMMENT = "E2E family trip";
@@ -27,15 +27,53 @@ test.describe.serial("Driver on a phone", () => {
   test("submits the pre-trip inspection", async ({ page }) => {
     await signIn(page, "driver");
     await page.goto("/m/inspection/pre_trip");
-    const passRest = page.getByRole("button", { name: "Pass the rest" });
-    while (await passRest.count()) await passRest.first().click();
-    await expect(page.getByText(/^38 of 38 checked$|of 38 checked/).last()).toBeVisible();
-    await page.getByLabel("Beginning mileage").fill("40123");
+    // The paper form: header, bus diagram, three sections with Pre-Trip and Post-Trip boxes.
+    await expect(page.getByRole("heading", { name: "VEHICLE INSPECTION" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "VEHICLE EXTERIOR CHECKS" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "BRAKE SYSTEM CHECKS" })).toBeVisible();
+    await expect(page.getByText("Left Side", { exact: true })).toBeVisible();
+    await expect(page.getByText("Front End", { exact: true })).toBeVisible();
+
+    // One box cycles blank, OK, X, NA.
+    const handrails = page.getByRole("button", { name: /^Handrails, pre-trip/ });
+    await handrails.click();
+    await expect(handrails).toHaveText("OK");
+    await handrails.click();
+    await expect(handrails).toHaveText("X");
+    await handrails.click();
+    await expect(handrails).toHaveText("NA");
+
+    const markRest = page.getByRole("button", { name: "Mark the rest OK" });
+    while (await markRest.count()) await markRest.first().click();
+    await expect(page.getByText(/of 40 checked/).last()).toBeVisible();
+
+    const review = page.getByLabel(/I have reviewed the previous operator/);
+    if (await review.count()) await review.check();
+    await page.getByLabel("Beginning Miles").fill("40123");
+
+    // Submitting without a signature is refused.
+    await page.getByRole("button", { name: "Submit", exact: true }).click();
+    await expect(page.getByText("Sign the inspection before you submit it.").first()).toBeVisible();
+    await signOnPad(page, /Operator signature pad/);
     await page.getByRole("button", { name: "Submit", exact: true }).click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog.getByText("All 38 items passed.")).toBeVisible();
+    await expect(dialog.getByText("All 40 items passed.")).toBeVisible();
     await dialog.getByRole("button", { name: "Submit inspection" }).click();
     await expect(page.getByText("Inspection submitted. All items passed.")).toBeVisible();
+  });
+
+  test("post-trip shows the pre-trip marks and only starred items to recheck", async ({ page }) => {
+    await signIn(page, "driver");
+    await page.goto("/m/inspection/post_trip");
+    await expect(page.getByLabel("Beginning Miles")).toHaveValue("40123");
+    // Pre-Trip column is read-only; only starred items have a live post-trip box.
+    await expect(page.getByRole("button", { name: /pre-trip:/ })).toHaveCount(0);
+    const live = page.getByRole("button", { name: /post-trip:/ });
+    expect(await live.count()).toBeGreaterThan(0);
+    expect(await live.count()).toBeLessThan(40);
+    // End miles can't be lower than beginning miles.
+    await page.getByLabel("End Miles").fill("40000");
+    await expect(page.getByText(/can't be lower than beginning miles/)).toBeVisible();
   });
 
   test("submits an assist request", async ({ page }) => {

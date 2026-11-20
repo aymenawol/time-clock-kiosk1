@@ -9,46 +9,65 @@ import type { Database } from "./supabase/database.types";
  * empty, and without chat rooms nobody can chat.
  */
 
-// v0 INSPECTION_CHECKLIST (lib/supabase.ts on main), same categories and order.
-const CHECKLIST: [string, string, boolean][] = [
-  ["Exterior", "Body damage", false],
-  ["Exterior", "Mirrors intact", false],
-  ["Exterior", "Windows unobstructed", false],
-  ["Exterior", "Doors operate properly", true],
-  ["Tires", "Adequate tread depth", true],
-  ["Tires", "No visible damage", false],
-  ["Tires", "Properly inflated", true],
-  ["Tires", "No wheel leaks", false],
-  ["Lights", "Headlights", true],
-  ["Lights", "Taillights", false],
-  ["Lights", "Brake lights", true],
-  ["Lights", "Turn signals", true],
-  ["Lights", "Hazard lights", false],
-  ["Lights", "Interior lights", false],
-  ["Brake Systems", "Brake pedal firm", true],
-  ["Brake Systems", "Air brake gauge normal", true],
-  ["Brake Systems", "No unusual brake sounds", true],
-  ["Steering", "Steering wheel free play normal", true],
-  ["Steering", "No pulling or wandering", true],
-  ["Gauges", "Speedometer working", false],
-  ["Gauges", "Fuel/charge gauge working", false],
-  ["Gauges", "Temperature normal", false],
-  ["Gauges", "Oil pressure normal", false],
-  ["Interior", "Seats secure and undamaged", false],
-  ["Interior", "Seat belts functional", false],
-  ["Interior", "Handrails secure", false],
-  ["Interior", "Floor clean and unobstructed", false],
-  ["Passenger Ramp", "Ramp deploys/retracts properly", true],
-  ["Passenger Ramp", "Ramp surface non-slip", false],
-  ["Passenger Ramp", "No damage to ramp mechanism", false],
-  ["Parking Brake", "Parking brake holds vehicle", true],
-  ["Parking Brake", "Parking brake releases fully", true],
-  ["Safety Equipment", "Fire extinguisher present and charged", true],
-  ["Safety Equipment", "First aid kit present", false],
-  ["Safety Equipment", "Emergency triangles present", false],
-  ["Safety Equipment", "Emergency exits unobstructed", true],
-  ["Mirrors", "All mirrors properly adjusted", false],
-  ["Mirrors", "No cracks or obstructions", false],
+/**
+ * The paper "VEHICLE INSPECTION" form (RAC DVIR 40FT Gillig), in paper order.
+ * paper_column: left (1) or right (2) column of its section. mini: starred,
+ * also checked on the post-trip. pre_trip_only: shaded post-trip box. critical:
+ * an X takes the vehicle out of service (not on the paper; owner-approved
+ * assumption: lights, signals, doors, emergency exits, tires, glass, horn,
+ * steering, parking brake and every brake check).
+ */
+export const CHECKLIST: {
+  category: string;
+  label: string;
+  critical: boolean;
+  paper_column: 1 | 2;
+  mini: boolean;
+  psi: boolean;
+  subgroup: string | null;
+  pre_trip_only: boolean;
+  hint: string | null;
+}[] = [
+  { category: "Vehicle Exterior Checks", label: "All lights & lenses", critical: true, paper_column: 1, mini: true, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Exterior Checks", label: "Turn signals & 4-way flashers", critical: true, paper_column: 1, mini: true, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Exterior Checks", label: "Windshield wipers & washers", critical: false, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Exterior Checks", label: "Door operation, seals intact/tight", critical: true, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Exterior Checks", label: "Emergency door/windows", critical: true, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Exterior Checks", label: "Tires, wheels & lugnuts", critical: true, paper_column: 2, mini: true, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Exterior Checks", label: "Glass & mirrors", critical: true, paper_column: 2, mini: true, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Exterior Checks", label: "Body damage/lettering/decals", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Exterior Checks", label: "Under vehicle leaks", critical: false, paper_column: 2, mini: true, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Exterior Checks", label: "Passenger ramp operation", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Speedometer/instruments", critical: false, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Heaters, defroster & ventilation", critical: false, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Air conditioner", critical: false, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "All gauges", critical: false, paper_column: 1, mini: true, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Horn/dashlights/hi/lo/indicator", critical: true, paper_column: 1, mini: true, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Operator seat operation & belt", critical: false, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Passenger seat securement", critical: false, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Handrails", critical: false, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "2-way radio operation", critical: false, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Steering operation", critical: true, paper_column: 1, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Front Monitor", critical: false, paper_column: 1, mini: true, psi: false, subgroup: null, pre_trip_only: false, hint: "(Screens, Cables, Housing)" },
+  { category: "Vehicle Interior Checks", label: "Fire Ext./Triangles/First aid kit", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Accident Packet", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Vehicle Insurance & Reg.", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Wheelchair securement straps", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Exhaust noise", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Parking brake", critical: true, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Interior clean", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Interior lights", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Destination sign", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Backup alarm", critical: false, paper_column: 2, mini: false, psi: false, subgroup: null, pre_trip_only: false, hint: null },
+  { category: "Vehicle Interior Checks", label: "Rear Monitor", critical: false, paper_column: 2, mini: true, psi: false, subgroup: null, pre_trip_only: false, hint: "(Screens, Cables, Housing)" },
+  { category: "Brake System Checks", label: "Cut In pressure", critical: true, paper_column: 1, mini: false, psi: true, subgroup: "AIR", pre_trip_only: true, hint: null },
+  { category: "Brake System Checks", label: "Cut out pressure", critical: true, paper_column: 1, mini: false, psi: true, subgroup: "AIR", pre_trip_only: true, hint: null },
+  { category: "Brake System Checks", label: "Static press, loss P/B on", critical: true, paper_column: 1, mini: false, psi: true, subgroup: "AIR", pre_trip_only: true, hint: null },
+  { category: "Brake System Checks", label: "Static press, loss P/B off", critical: true, paper_column: 1, mini: false, psi: true, subgroup: "AIR", pre_trip_only: true, hint: null },
+  { category: "Brake System Checks", label: "Applied pressure loss", critical: true, paper_column: 2, mini: false, psi: true, subgroup: null, pre_trip_only: true, hint: null },
+  { category: "Brake System Checks", label: "Low pressure warning", critical: true, paper_column: 2, mini: true, psi: true, subgroup: null, pre_trip_only: true, hint: null },
+  { category: "Brake System Checks", label: "Auto pop out (park brake)", critical: true, paper_column: 2, mini: false, psi: true, subgroup: null, pre_trip_only: true, hint: null },
+  { category: "Brake System Checks", label: "Park brake hold", critical: true, paper_column: 2, mini: false, psi: true, subgroup: null, pre_trip_only: true, hint: null },
 ];
 
 type Role = Database["public"]["Enums"]["app_role"];
@@ -85,7 +104,7 @@ export async function seedOrgReferenceData(db: SupabaseClient<Database>, organiz
   if (radio.error) throw radio.error;
   const items = await db
     .from("checklist_items")
-    .insert(CHECKLIST.map(([category, label, critical], i) => ({ organization_id: organizationId, category, label, critical, sort: i })));
+    .insert(CHECKLIST.map((c, i) => ({ organization_id: organizationId, ...c, sort: i + 1 })));
   if (items.error) throw items.error;
   const rooms = await db.from("chat_rooms").insert(CHAT_ROOMS.map((r) => ({ organization_id: organizationId, ...r })));
   if (rooms.error) throw rooms.error;

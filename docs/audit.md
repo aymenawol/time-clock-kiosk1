@@ -161,6 +161,18 @@ payroll) and `payroll` (which can't reach the payroll page).
 
 ## 5. Forms and sheets preserved from v0
 
+> **Update 2026-11-19:** the owner supplied photos of the real paper vehicle
+> inspection (DVIR) and counting sheet. Those papers now override v0 for these
+> two forms:
+> - **Inspection:** 40 items in 3 sections, OK / X / NA marks, Pre-Trip and
+>   Post-Trip columns (the post-trip re-checks the starred items), PSI on the
+>   brake checks, operator signature, previous-report review, next-driver
+>   review and technician sign-off.
+> - **Counting sheet:** 5 count columns under "RAC" and "TERM 3" group
+>   headings, blocks of 3 rows with subtotals, totals with no grand total, and
+>   a header with the shift times, break windows set by dispatch, and check-in
+>   and check-out stamps.
+
 The owner built the original forms from the real paper ones. Each rebuilt
 screen below keeps the v0 fields, sections, field order, labels, columns and
 print view. Styling, responsiveness, accessibility and validation are new. v0

@@ -63,6 +63,15 @@ export function SectionForm({ section, fields, initial }: { section: string; fie
                     </option>
                   ))}
                 </Select>
+              ) : f.type === "text" ? (
+                <Input
+                  id={id}
+                  type="text"
+                  maxLength={f.maxLength}
+                  placeholder={f.placeholder}
+                  value={String(values[f.key] ?? "")}
+                  onChange={(e) => setValues((p) => ({ ...p, [f.key]: e.target.value }))}
+                />
               ) : (
                 <Input
                   id={id}

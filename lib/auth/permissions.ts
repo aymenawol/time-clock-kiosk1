@@ -40,6 +40,7 @@ export const CAPABILITIES = {
   signInSheet: STAFF,
   signInSheetAssign: OPS,
   mealWaiverEdit: OPS,
+  breakSlotEdit: OPS,
   assists: OPS,
   compliance: STAFF,
   complianceVerdict: ["admin", "supervisor", "coordinator"],

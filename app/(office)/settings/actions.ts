@@ -68,6 +68,10 @@ export const saveSection = action(
       } else if (f.type === "boolean") {
         if (typeof v !== "boolean") throw new ActionError(`${f.label}: choose on or off.`);
         clean[f.key] = v;
+      } else if (f.type === "text") {
+        if (typeof v !== "string") throw new ActionError(`${f.label}: enter text.`);
+        if (f.maxLength && v.trim().length > f.maxLength) throw new ActionError(`${f.label}: at most ${f.maxLength} characters.`);
+        clean[f.key] = v.trim();
       } else {
         if (typeof v !== "string" || !f.options.some((o) => o.value === v)) throw new ActionError(`${f.label}: pick one of the options.`);
         clean[f.key] = v;
@@ -175,6 +179,8 @@ const locationSchema = z.object({
   lng: optNumber(-180, 180),
   radius_m: z.number().int().min(10, "At least 10 m.").max(5000, "At most 5000 m."),
   is_count_column: z.boolean(),
+  count_group: optText(30),
+  count_label: optText(30),
   sort: z.number().int().min(0).max(9999),
   active: z.boolean(),
 });
@@ -285,6 +291,13 @@ const checklistSchema = z.object({
   critical: z.boolean(),
   sort: z.number().int().min(0).max(9999),
   active: z.boolean(),
+  // Paper form layout: column ("1" or "2" from the select), starred, PSI, shaded post-trip box.
+  paper_column: z.coerce.number().int().min(1).max(2),
+  mini: z.boolean(),
+  psi: z.boolean(),
+  pre_trip_only: z.boolean(),
+  subgroup: optText(40),
+  hint: optText(80),
 });
 
 export const saveChecklistItem = action({ schema: checklistSchema, capability: "settings" }, async ({ id, ...v }, ctx) => {

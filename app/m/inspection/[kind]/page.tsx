@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { DamageDiagram, type DamageStroke } from "@/components/domain/damage-diagram";
+import { findPreviousReport, ITEM_COLUMNS } from "@/components/domain/inspection-data";
+import { parseSignature } from "@/lib/signature";
 import { getActiveShift } from "@/components/field/data";
 import { FieldHeader, Notice } from "@/components/field/field-header";
 import { Badge } from "@/components/ui/badge";
@@ -10,24 +12,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/misc";
 import { requireAuth } from "@/lib/auth/session";
-import { fmtDateTime } from "@/lib/format";
-import { InspectionForm } from "./inspection-form";
+import { fmtDate, fmtDateTime, fmtTime } from "@/lib/format";
+import { fmtWorked, itemsForKind, parseResults, timeWorkedMinutes, type PaperItem } from "@/lib/inspection";
+import { InspectionForm, type Answer, type PreMark, type PreviousSummary } from "./inspection-form";
 
 const KINDS = {
   pre_trip: { title: "Pre-trip inspection", short: "pre-trip" },
   post_trip: { title: "Post-trip inspection", short: "post-trip" },
 } as const;
 
-const resultSchema = z.array(
-  z.object({
-    item_id: z.string(),
-    category: z.string().catch("General"),
-    label: z.string().catch("Item"),
-    critical: z.boolean().catch(false),
-    ok: z.boolean().nullable().catch(null),
-    note: z.string().nullable().catch(null),
-  }),
-);
 const damageSchema = z.array(
   z.object({
     view: z.enum(["front", "rear", "left", "right"]),
@@ -35,10 +28,6 @@ const damageSchema = z.array(
   }),
 );
 
-function parseResults(raw: unknown) {
-  const r = resultSchema.safeParse(raw);
-  return r.success ? r.data : [];
-}
 function parseDamage(raw: unknown): DamageStroke[] {
   const r = damageSchema.safeParse(raw);
   return r.success ? r.data : [];
@@ -57,6 +46,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
 
   const auth = await requireAuth("driving");
   const tz = auth.org.timezone;
+  const clock24h = auth.settings.clock24h;
   const shift = await getActiveShift(auth);
 
   if (!shift) {
@@ -91,21 +81,23 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
   const [inspRes, itemsRes, preRes] = await Promise.all([
     auth.supabase
       .from("inspections")
-      .select("id, vehicle_id, odometer, results, damage, notes, submitted_at, defect_count, updated_at, vehicle:vehicles(number)")
+      .select(
+        "id, vehicle_id, odometer, results, damage, notes, submitted_at, defect_count, updated_at, operator_signature, reviewed_inspection_id, vehicle:vehicles(number)",
+      )
       .eq("organization_id", auth.org.id)
       .eq("shift_id", shift.id)
       .eq("kind", kind)
       .maybeSingle(),
     auth.supabase
       .from("checklist_items")
-      .select("id, category, label, critical")
+      .select(ITEM_COLUMNS)
       .eq("organization_id", auth.org.id)
       .eq("active", true)
       .order("sort"),
     kind === "post_trip"
       ? auth.supabase
           .from("inspections")
-          .select("odometer")
+          .select("odometer, results")
           .eq("organization_id", auth.org.id)
           .eq("shift_id", shift.id)
           .eq("kind", "pre_trip")
@@ -129,8 +121,8 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
 
   // Submitted: read-only summary.
   if (inspection?.submitted_at) {
-    const failed = results.filter((r) => r.ok === false);
-    const passed = results.filter((r) => r.ok === true).length;
+    const failed = results.filter((r) => r.mark === "x");
+    const passed = results.filter((r) => r.mark === "ok" || r.mark === "na").length;
     const damage = parseDamage(inspection.damage);
     return (
       <>
@@ -139,7 +131,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
           <Notice
             tone={failed.some((f) => f.critical) ? "danger" : failed.length ? "warning" : "success"}
             icon={failed.length ? AlertTriangle : CheckCircle2}
-            title={`Submitted ${fmtDateTime(inspection.submitted_at, tz, auth.settings.clock24h)}`}
+            title={`Submitted ${fmtDateTime(inspection.submitted_at, tz, clock24h)}`}
           >
             {failed.length
               ? `${failed.length} defect${failed.length === 1 ? " was" : "s were"} reported to the technicians.${
@@ -151,15 +143,15 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
           <Card>
             <dl className="grid grid-cols-3 divide-x divide-border text-center">
               <div className="px-2 py-3">
-                <dt className="text-xs text-muted">Passed</dt>
+                <dt className="text-xs text-muted">OK or NA</dt>
                 <dd className="text-2xl font-semibold text-success tabular">{passed}</dd>
               </div>
               <div className="px-2 py-3">
-                <dt className="text-xs text-muted">Failed</dt>
+                <dt className="text-xs text-muted">Marked X</dt>
                 <dd className={`text-2xl font-semibold tabular ${failed.length ? "text-danger" : "text-fg"}`}>{failed.length}</dd>
               </div>
               <div className="px-2 py-3">
-                <dt className="text-xs text-muted">{kind === "pre_trip" ? "Beginning" : "Ending"} mileage</dt>
+                <dt className="text-xs text-muted">{kind === "pre_trip" ? "Beginning" : "End"} miles</dt>
                 <dd className="font-mono text-lg font-semibold text-fg tabular">
                   {inspection.odometer !== null ? inspection.odometer.toLocaleString("en-US") : "-"}
                 </dd>
@@ -169,7 +161,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
 
           {failed.length ? (
             <Card>
-              <CardHeader title="Failed items" />
+              <CardHeader title="Items marked X" />
               <ul className="divide-y divide-border">
                 {failed.map((f) => (
                   <li key={f.item_id} className="px-4 py-3">
@@ -187,7 +179,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
 
           {inspection.notes ? (
             <Card>
-              <CardHeader title="Notes" />
+              <CardHeader title="Operator comments" />
               <CardBody>
                 <p className="whitespace-pre-line text-sm text-fg">{inspection.notes}</p>
               </CardBody>
@@ -211,7 +203,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
     );
   }
 
-  const items = itemsRes.data ?? [];
+  const items = (itemsRes.data ?? []) as PaperItem[];
   if (!items.length) {
     return (
       <>
@@ -227,8 +219,39 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
     );
   }
 
-  const answers: Record<string, { ok: boolean | null; note: string }> = {};
-  for (const r of results) answers[r.item_id] = { ok: r.ok, note: r.note ?? "" };
+  const answers: Record<string, Answer> = {};
+  for (const r of results) answers[r.item_id] = { mark: r.mark, psi: r.psi !== null ? String(r.psi) : "", note: r.note ?? "" };
+
+  const preMarks: Record<string, PreMark> = {};
+  for (const r of parseResults(preRes?.data?.results)) preMarks[r.item_id] = { mark: r.mark, psi: r.psi };
+
+  // Pre-trip: the latest report on this vehicle by someone else. Drivers can't read
+  // other people's inspections through RLS, and this lookup is scoped to the vehicle
+  // the caller is clocked in on.
+  let previous: PreviousSummary | null = null;
+  if (kind === "pre_trip") {
+    const prev = await findPreviousReport(auth.supabase, auth.org.id, shift.vehicle.id, auth.employee.id);
+    if (prev) {
+      previous = {
+        id: prev.id,
+        operatorName: prev.operatorName,
+        when: fmtDateTime(prev.submitted_at, tz, clock24h),
+        kindLabel: prev.kind === "pre_trip" ? "pre-trip" : "post-trip",
+        xItems: prev.results.filter((r) => r.mark === "x").map((r) => ({ label: r.label, note: r.note })),
+        notes: prev.notes,
+      };
+    }
+  }
+
+  const tenEight = shift.in_service_at ? fmtTime(shift.in_service_at, tz, clock24h) : "";
+  const header = {
+    date: fmtDate(shift.clock_in_at, tz, "MM/dd/yyyy"),
+    tenEight,
+    operatorName: `${auth.employee.first_name} ${auth.employee.last_name}`,
+    beginTime: fmtTime(shift.clock_in_at, tz, clock24h),
+    endTime: shift.clock_out_at ? fmtTime(shift.clock_out_at, tz, clock24h) : "",
+    timeWorked: fmtWorked(timeWorkedMinutes(shift.clock_in_at, shift.clock_out_at)),
+  };
   const vehicleChanged = inspection && inspection.vehicle_id !== shift.vehicle.id;
 
   return (
@@ -238,7 +261,8 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
         description={
           <>
             Vehicle <span className="font-medium text-fg">{shift.vehicle.number}</span>
-            {inspection ? ` · draft saved ${fmtDateTime(inspection.updated_at, tz, auth.settings.clock24h)}` : ""}
+            {inspection ? ` · draft saved ${fmtDateTime(inspection.updated_at, tz, clock24h)}` : ""}
+            {kind === "post_trip" ? ` · ${itemsForKind(kind, items).length} items to recheck` : ""}
           </>
         }
       />
@@ -250,14 +274,19 @@ export default async function InspectionPage({ params }: { params: Promise<{ kin
       <InspectionForm
         kind={kind}
         vehicleNumber={shift.vehicle.number}
+        header={header}
         lastOdometer={shift.vehicle.odometer}
         preOdometer={preRes?.data?.odometer ?? null}
         items={items}
+        preMarks={preMarks}
+        previous={previous}
         initial={{
           answers,
           odometer: inspection?.odometer ?? null,
           notes: inspection?.notes ?? "",
           damage: parseDamage(inspection?.damage),
+          signature: parseSignature(inspection?.operator_signature),
+          reviewed: Boolean(inspection?.reviewed_inspection_id),
         }}
       />
     </>

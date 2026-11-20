@@ -12,12 +12,10 @@ import { EmptyState, PageHeader } from "@/components/ui/misc";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireAuth } from "@/lib/auth/session";
 import { fmtTime, todayIn } from "@/lib/format";
+import { countX, parseResults } from "@/lib/inspection";
 
 export const metadata: Metadata = { title: "Inspections" };
 
-interface ResultItem {
-  ok: boolean | null;
-}
 
 export default async function InspectionsPage({ searchParams }: { searchParams: SearchParams }) {
   const auth = await requireAuth("inspections");
@@ -87,14 +85,14 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
                 <TH>Driver</TH>
                 <TH>Vehicle</TH>
                 <TH>Kind</TH>
-                <TH className="text-right">Items failed</TH>
+                <TH className="text-right">Marked X</TH>
                 <TH className="text-right">Defects</TH>
                 <TH>State</TH>
               </tr>
             </THead>
             <TBody>
               {rows.map((i) => {
-                const failed = (Array.isArray(i.results) ? (i.results as unknown as ResultItem[]) : []).filter((r) => r.ok === false).length;
+                const failed = countX(parseResults(i.results));
                 return (
                   <TR key={i.id}>
                     <TD className="whitespace-nowrap">

@@ -27,6 +27,8 @@ const FIELDS: FieldDef[] = [
   { name: "lng", label: "Longitude", type: "number", min: -180, max: 180 },
   { name: "radius_m", label: "Arrival radius (m)", type: "number", required: true, min: 10, max: 5000, step: 10, hint: "How close a bus must be to count as at this location." },
   { name: "is_count_column", label: "Show as a column on the passenger counting sheet", type: "checkbox" },
+  { name: "count_group", label: "Counting-sheet group heading", type: "text", maxLength: 30, placeholder: "For example RAC", hint: "Adjacent count columns with the same group share one heading over them. Leave empty for none." },
+  { name: "count_label", label: "Counting-sheet column heading", type: "text", maxLength: 30, placeholder: "For example T-1", hint: "Shown over the column instead of the name." },
   { name: "active", label: "Active", type: "checkbox" },
 ];
 
@@ -49,7 +51,7 @@ export default async function LocationsPage() {
           <RecordEditor
             title="Add location"
             fields={FIELDS}
-            initial={{ kind: "terminal", sort: (rows.at(-1)?.sort ?? 0) + 10, radius_m: 200, active: true, is_count_column: false }}
+            initial={{ kind: "terminal", sort: (rows.at(-1)?.sort ?? 0) + 10, radius_m: 200, active: true, is_count_column: false, count_group: "", count_label: "" }}
             action={saveLocation as never}
             triggerLabel="Add location"
           />
@@ -66,6 +68,7 @@ export default async function LocationsPage() {
               <TH>Code</TH>
               <TH>Type</TH>
               <TH>Count column</TH>
+              <TH>Sheet heading</TH>
               <TH>Status</TH>
               <TH>
                 <span className="sr-only">Actions</span>
@@ -80,6 +83,16 @@ export default async function LocationsPage() {
                 <TD className="font-mono">{l.code}</TD>
                 <TD>{KINDS.find((k) => k.value === l.kind)?.label ?? l.kind}</TD>
                 <TD>{l.is_count_column ? <Badge tone="primary">Yes</Badge> : <span className="text-muted">No</span>}</TD>
+                <TD className="whitespace-nowrap text-sm">
+                  {l.is_count_column ? (
+                    <>
+                      {l.count_group ? <span className="text-muted">{l.count_group} · </span> : null}
+                      {l.count_label ?? l.name}
+                    </>
+                  ) : (
+                    <span className="text-muted">-</span>
+                  )}
+                </TD>
                 <TD>
                   <Badge tone={l.active ? "success" : "neutral"} dot>
                     {l.active ? "Active" : "Inactive"}
@@ -101,6 +114,8 @@ export default async function LocationsPage() {
                         lng: l.lng,
                         radius_m: l.radius_m,
                         is_count_column: l.is_count_column,
+                        count_group: l.count_group ?? "",
+                        count_label: l.count_label ?? "",
                         active: l.active,
                       }}
                       action={saveLocation as never}

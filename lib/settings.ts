@@ -67,6 +67,12 @@ export const orgSettingsSchema = z.object({
       theme: z.enum(["dark", "light"]).default("dark"),
     })
     .prefault({}),
+  counts: z
+    .object({
+      /** Line printed above the passenger counting sheet. Per customer, so empty by default. */
+      slogan: z.string().trim().max(80).default(""),
+    })
+    .prefault({}),
   notifications: z.object({ email: z.boolean().default(false) }).prefault({}),
   gps: z
     .object({

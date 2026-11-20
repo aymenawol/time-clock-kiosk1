@@ -857,28 +857,46 @@ export type Database = {
           active: boolean
           category: string
           critical: boolean
+          hint: string | null
           id: string
           label: string
+          mini: boolean
           organization_id: string
+          paper_column: number
+          pre_trip_only: boolean
+          psi: boolean
           sort: number
+          subgroup: string | null
         }
         Insert: {
           active?: boolean
           category: string
           critical?: boolean
+          hint?: string | null
           id?: string
           label: string
+          mini?: boolean
           organization_id: string
+          paper_column?: number
+          pre_trip_only?: boolean
+          psi?: boolean
           sort?: number
+          subgroup?: string | null
         }
         Update: {
           active?: boolean
           category?: string
           critical?: boolean
+          hint?: string | null
           id?: string
           label?: string
+          mini?: boolean
           organization_id?: string
+          paper_column?: number
+          pre_trip_only?: boolean
+          psi?: boolean
           sort?: number
+          subgroup?: string | null
         }
         Relationships: [
           {
@@ -1678,12 +1696,20 @@ export type Database = {
           employee_id: string
           id: string
           kind: string
+          next_reviewed_at: string | null
+          next_reviewed_by: string | null
           notes: string | null
           odometer: number | null
+          operator_signature: Json | null
           organization_id: string
           results: Json
+          reviewed_inspection_id: string | null
           shift_id: string
           submitted_at: string | null
+          technician_comments: string | null
+          technician_signature: Json | null
+          technician_signed_at: string | null
+          technician_signed_by: string | null
           updated_at: string
           vehicle_id: string
         }
@@ -1694,12 +1720,20 @@ export type Database = {
           employee_id: string
           id?: string
           kind: string
+          next_reviewed_at?: string | null
+          next_reviewed_by?: string | null
           notes?: string | null
           odometer?: number | null
+          operator_signature?: Json | null
           organization_id: string
           results?: Json
+          reviewed_inspection_id?: string | null
           shift_id: string
           submitted_at?: string | null
+          technician_comments?: string | null
+          technician_signature?: Json | null
+          technician_signed_at?: string | null
+          technician_signed_by?: string | null
           updated_at?: string
           vehicle_id: string
         }
@@ -1710,12 +1744,20 @@ export type Database = {
           employee_id?: string
           id?: string
           kind?: string
+          next_reviewed_at?: string | null
+          next_reviewed_by?: string | null
           notes?: string | null
           odometer?: number | null
+          operator_signature?: Json | null
           organization_id?: string
           results?: Json
+          reviewed_inspection_id?: string | null
           shift_id?: string
           submitted_at?: string | null
+          technician_comments?: string | null
+          technician_signature?: Json | null
+          technician_signed_at?: string | null
+          technician_signed_by?: string | null
           updated_at?: string
           vehicle_id?: string
         }
@@ -1728,6 +1770,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inspections_next_reviewed_by_fkey"
+            columns: ["next_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inspections_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1735,10 +1784,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inspections_reviewed_inspection_id_fkey"
+            columns: ["reviewed_inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inspections_shift_id_fkey"
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_technician_signed_by_fkey"
+            columns: ["technician_signed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
@@ -1983,6 +2046,8 @@ export type Database = {
         Row: {
           active: boolean
           code: string
+          count_group: string | null
+          count_label: string | null
           created_at: string
           id: string
           is_count_column: boolean
@@ -1997,6 +2062,8 @@ export type Database = {
         Insert: {
           active?: boolean
           code: string
+          count_group?: string | null
+          count_label?: string | null
           created_at?: string
           id?: string
           is_count_column?: boolean
@@ -2011,6 +2078,8 @@ export type Database = {
         Update: {
           active?: boolean
           code?: string
+          count_group?: string | null
+          count_label?: string | null
           created_at?: string
           id?: string
           is_count_column?: boolean
@@ -2935,6 +3004,7 @@ export type Database = {
           edited_by: string | null
           employee_id: string
           id: string
+          in_service_at: string | null
           kiosk_in_device_id: string | null
           kiosk_out_device_id: string | null
           meal_waived: boolean
@@ -2965,6 +3035,7 @@ export type Database = {
           edited_by?: string | null
           employee_id: string
           id?: string
+          in_service_at?: string | null
           kiosk_in_device_id?: string | null
           kiosk_out_device_id?: string | null
           meal_waived?: boolean
@@ -2995,6 +3066,7 @@ export type Database = {
           edited_by?: string | null
           employee_id?: string
           id?: string
+          in_service_at?: string | null
           kiosk_in_device_id?: string | null
           kiosk_out_device_id?: string | null
           meal_waived?: boolean
@@ -3460,6 +3532,7 @@ export type Database = {
           edited_by: string | null
           employee_id: string
           id: string
+          in_service_at: string | null
           kiosk_in_device_id: string | null
           kiosk_out_device_id: string | null
           meal_waived: boolean
@@ -3499,6 +3572,7 @@ export type Database = {
           edited_by: string | null
           employee_id: string
           id: string
+          in_service_at: string | null
           kiosk_in_device_id: string | null
           kiosk_out_device_id: string | null
           meal_waived: boolean
@@ -3676,6 +3750,37 @@ export type Database = {
         }
       }
       safety_sign_in: { Args: { p_meeting_id: string }; Returns: string }
+      set_break_slot: {
+        Args: { p_break_id: string; p_start: string }
+        Returns: {
+          created_at: string
+          employee_id: string
+          ended_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["break_kind"]
+          missed_alerted_at: string | null
+          organization_id: string
+          overrun_alerted_at: string | null
+          paid: boolean
+          planned_minutes: number
+          reminder_sent_at: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          sequence: number
+          shift_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["break_status"]
+          updated_at: string
+          window_end: string | null
+          window_start: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "breaks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_employee_pin: {
         Args: { p_employee_id: string; p_pin: string }
         Returns: undefined
@@ -3688,6 +3793,39 @@ export type Database = {
           p_vehicle_id: string
         }
         Returns: undefined
+      }
+      sign_inspection: {
+        Args: { p_comments: string; p_inspection_id: string; p_signature: Json }
+        Returns: {
+          created_at: string
+          damage: Json
+          defect_count: number
+          employee_id: string
+          id: string
+          kind: string
+          next_reviewed_at: string | null
+          next_reviewed_by: string | null
+          notes: string | null
+          odometer: number | null
+          operator_signature: Json | null
+          organization_id: string
+          results: Json
+          reviewed_inspection_id: string | null
+          shift_id: string
+          submitted_at: string | null
+          technician_comments: string | null
+          technician_signature: Json | null
+          technician_signed_at: string | null
+          technician_signed_by: string | null
+          updated_at: string
+          vehicle_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspections"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       start_break: {
         Args: { p_kind: Database["public"]["Enums"]["break_kind"] }

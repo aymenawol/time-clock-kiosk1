@@ -1,5 +1,6 @@
 import "server-only";
 import type { AuthContext } from "@/lib/auth/session";
+import { toSheetColumn, type SlotBreak } from "@/lib/counts/sheet";
 
 export interface CountRow {
   departure_time: string;
@@ -33,7 +34,7 @@ export async function loadCountSheets(auth: AuthContext, date: string) {
       .order("created_at"),
     supabase
       .from("locations")
-      .select("id, name, code")
+      .select("id, name, code, count_group, count_label")
       .eq("organization_id", org.id)
       .eq("is_count_column", true)
       .order("sort")
@@ -41,9 +42,31 @@ export async function loadCountSheets(auth: AuthContext, date: string) {
     supabase.from("vehicles").select("id, number").eq("organization_id", org.id),
     supabase.from("routes").select("id, name").eq("organization_id", org.id),
   ]);
+  const sheets = sheetsRes.data ?? [];
+  const shiftIds = [...new Set(sheets.map((s) => s.shift_id))];
+  const [shiftsRes, breaksRes] = shiftIds.length
+    ? await Promise.all([
+        supabase
+          .from("shifts")
+          .select("id, scheduled_start, scheduled_end, clock_in_at, clock_out_at")
+          .eq("organization_id", org.id)
+          .in("id", shiftIds),
+        supabase
+          .from("breaks")
+          .select("shift_id, kind, sequence, planned_minutes, window_start")
+          .eq("organization_id", org.id)
+          .eq("kind", "rest")
+          .in("shift_id", shiftIds)
+          .order("sequence"),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const breaksByShift = new Map<string, SlotBreak[]>();
+  for (const b of breaksRes.data ?? []) breaksByShift.set(b.shift_id, [...(breaksByShift.get(b.shift_id) ?? []), b]);
   return {
-    sheets: sheetsRes.data ?? [],
-    columns: locationsRes.data ?? [],
+    sheets,
+    columns: (locationsRes.data ?? []).map(toSheetColumn),
+    shiftById: new Map((shiftsRes.data ?? []).map((sh) => [sh.id, sh])),
+    breaksByShift,
     vehicleNumber: new Map((vehiclesRes.data ?? []).map((v) => [v.id, v.number])),
     routeName: new Map((routesRes.data ?? []).map((r) => [r.id, r.name])),
   };

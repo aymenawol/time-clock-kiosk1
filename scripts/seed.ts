@@ -78,7 +78,7 @@ async function main() {
   }
 
   // ---- Organization --------------------------------------------------------
-  const settings = orgSettingsSchema.parse({});
+  const settings = orgSettingsSchema.parse({ counts: { slogan: "Care… Share… Dare… Deliver" } });
   const org = required(
     (
       await db
@@ -146,14 +146,14 @@ async function main() {
         .from("locations")
         .insert([
           // v0 counting-sheet columns, in v0 order: RAC, T1, T3, Term 1, Term 3 West, Term 3 East.
-          { organization_id: orgId, name: "RAC", code: "RAC", kind: "rental_car", lat: 36.0590, lng: -115.1580, is_count_column: true, sort: 1 },
-          { organization_id: orgId, name: "T1", code: "T1", kind: "terminal", lat: 36.0840, lng: -115.1537, is_count_column: true, sort: 2 },
-          { organization_id: orgId, name: "T3", code: "T3", kind: "terminal", lat: 36.0797, lng: -115.1465, is_count_column: true, sort: 3 },
-          { organization_id: orgId, name: "Term 1", code: "TERM1", kind: "terminal", lat: 36.0835, lng: -115.1525, is_count_column: true, sort: 4 },
-          { organization_id: orgId, name: "Term 3 West", code: "T3W", kind: "terminal", lat: 36.0797, lng: -115.1480, is_count_column: true, sort: 5 },
-          { organization_id: orgId, name: "Term 3 East", code: "T3E", kind: "terminal", lat: 36.0797, lng: -115.1450, is_count_column: true, sort: 6 },
-          { organization_id: orgId, name: "Employee Lot", code: "LOT", kind: "stop", lat: 36.0700, lng: -115.1700, is_count_column: false, sort: 7 },
-          { organization_id: orgId, name: "Bus Depot", code: "DEPOT", kind: "depot", lat: 36.0650, lng: -115.1750, is_count_column: false, sort: 8 },
+          { organization_id: orgId, name: "RAC", code: "RAC", kind: "rental_car", lat: 36.0590, lng: -115.1580, is_count_column: false, count_group: null, count_label: null, sort: 1 },
+          { organization_id: orgId, name: "T1", code: "T1", kind: "terminal", lat: 36.0840, lng: -115.1537, is_count_column: true, count_group: "RAC", count_label: "T-1", sort: 2 },
+          { organization_id: orgId, name: "T3", code: "T3", kind: "terminal", lat: 36.0797, lng: -115.1465, is_count_column: true, count_group: "RAC", count_label: "T-3", sort: 3 },
+          { organization_id: orgId, name: "Term 1", code: "TERM1", kind: "terminal", lat: 36.0835, lng: -115.1525, is_count_column: true, count_group: null, count_label: "TERM 1", sort: 4 },
+          { organization_id: orgId, name: "Term 3 West", code: "T3W", kind: "terminal", lat: 36.0797, lng: -115.1480, is_count_column: true, count_group: "TERM 3", count_label: "West", sort: 5 },
+          { organization_id: orgId, name: "Term 3 East", code: "T3E", kind: "terminal", lat: 36.0797, lng: -115.1450, is_count_column: true, count_group: "TERM 3", count_label: "East", sort: 6 },
+          { organization_id: orgId, name: "Employee Lot", code: "LOT", kind: "stop", lat: 36.0700, lng: -115.1700, is_count_column: false, count_group: null, count_label: null, sort: 7 },
+          { organization_id: orgId, name: "Bus Depot", code: "DEPOT", kind: "depot", lat: 36.0650, lng: -115.1750, is_count_column: false, count_group: null, count_label: null, sort: 8 },
         ])
         .select("id, code")
     ).data,

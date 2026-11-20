@@ -17,7 +17,9 @@ import { cn } from "@/lib/cn";
 import { fmtLocalDate, fmtTime, fullName, todayIn } from "@/lib/format";
 import { LunchWaiverToggle } from "./_components/lunch-waiver-toggle";
 import { PrintButton } from "./_components/print-button";
-import { loadSignInSheet } from "./data";
+import { BreakSlots, type SlotView } from "./_components/break-slots";
+import { breakWindowLabel, timeInputValue } from "@/lib/counts/sheet";
+import { loadBreakSlots, loadSignInSheet } from "./data";
 
 export const metadata: Metadata = { title: "Sign-in sheet" };
 
@@ -35,8 +37,13 @@ export default async function SignInSheetPage({ searchParams }: { searchParams: 
   const date = parseYmd(sp.date, today);
   const canAssign = can(auth.employee.role, "signInSheetAssign");
   const canWaive = can(auth.employee.role, "mealWaiverEdit");
+  const canSetSlots = can(auth.employee.role, "breakSlotEdit");
 
   const [shifts, options] = await Promise.all([loadSignInSheet(auth, date), canAssign ? loadAssignOptions(auth) : null]);
+  const slotsByShift = await loadBreakSlots(
+    auth,
+    shifts.map((s) => s.id),
+  );
   const t = (v: string | null) => (v ? fmtTime(v, tz, c24) : "-");
   const dash = <span className="text-muted">-</span>;
 
@@ -80,6 +87,7 @@ export default async function SignInSheetPage({ searchParams }: { searchParams: 
                 <TH>Tablet</TH>
                 <TH>Status</TH>
                 <TH>Radio</TH>
+                <TH>BRK windows</TH>
                 <TH>Lunch waived</TH>
                 <TH>Signature</TH>
                 {canAssign ? (
@@ -120,6 +128,22 @@ export default async function SignInSheetPage({ searchParams }: { searchParams: 
                       <Badge tone={st.tone}>{st.label}</Badge>
                     </TD>
                     <TD>{s.radio_status ? <span className="font-mono text-xs">{s.radio_status}</span> : dash}</TD>
+                    <TD>
+                      <BreakSlots
+                        name={name}
+                        canEdit={canSetSlots}
+                        slots={(slotsByShift.get(s.id) ?? [])
+                          .filter((b) => b.window_start)
+                          .map<SlotView>((b) => ({
+                            id: b.id,
+                            label: breakWindowLabel(b.window_start as string, b.planned_minutes, tz),
+                            time: timeInputValue(b.window_start as string, tz),
+                            locked: b.status !== "planned" || b.started_at !== null || s.status !== "active",
+                            lockedReason:
+                              s.status !== "active" ? "The shift is over" : "This break has started and can't be moved",
+                          }))}
+                      />
+                    </TD>
                     <TD>
                       {canWaive ? (
                         <LunchWaiverToggle shiftId={s.id} waived={s.meal_waived} name={name} />

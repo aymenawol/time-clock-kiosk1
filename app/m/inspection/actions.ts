@@ -1,8 +1,10 @@
 "use server";
 
 import { z } from "zod";
+import { findPreviousReport, ITEM_COLUMNS } from "@/components/domain/inspection-data";
 import { action, ActionError, check, zId, zOptionalText } from "@/lib/actions";
 import type { AuthContext } from "@/lib/auth/session";
+import { isItemActive, milesError, type PaperItem } from "@/lib/inspection";
 import type { Json } from "@/lib/supabase/database.types";
 
 const stroke = z.object({
@@ -10,13 +12,18 @@ const stroke = z.object({
   points: z.array(z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)])).min(1).max(1500),
 });
 
+const signature = z
+  .array(z.object({ points: z.array(z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)])).min(1).max(1500) }))
+  .max(60, "That signature has too many strokes. Clear it and sign again.");
+
 const schema = z.object({
   kind: z.enum(["pre_trip", "post_trip"]),
   answers: z
     .array(
       z.object({
         itemId: zId,
-        ok: z.boolean().nullable(),
+        mark: z.enum(["ok", "x", "na"]).nullable(),
+        psi: z.number().min(0).max(300, "PSI looks too high. Check the reading.").nullable().default(null),
         note: z.string().trim().max(300, "Keep notes under 300 characters.").default(""),
       }),
     )
@@ -24,6 +31,8 @@ const schema = z.object({
   odometer: z.number().int().min(0).max(9_999_999, "That odometer reading looks too high").nullable(),
   notes: zOptionalText(2000),
   damage: z.array(stroke).max(150, "Too many marks on the damage diagram. Undo some and try again."),
+  signature,
+  reviewedInspectionId: zId.nullable().default(null),
 });
 type Input = z.infer<typeof schema>;
 
@@ -32,32 +41,37 @@ interface ResultRow {
   category: string;
   label: string;
   critical: boolean;
-  ok: boolean | null;
+  mark: "ok" | "x" | "na" | null;
+  psi: number | null;
   note: string | null;
 }
 
+/** Only the items that belong on this kind of inspection get a result. */
 async function buildResults(ctx: AuthContext, input: Input): Promise<ResultRow[]> {
   const items = check(
     await ctx.supabase
       .from("checklist_items")
-      .select("id, category, label, critical")
+      .select(ITEM_COLUMNS)
       .eq("organization_id", ctx.org.id)
       .eq("active", true)
       .order("sort"),
-  );
+  ) as PaperItem[] | null;
   const byId = new Map(input.answers.map((a) => [a.itemId, a]));
-  return (items ?? []).map((it) => {
-    const a = byId.get(it.id);
-    const ok = a?.ok ?? null;
-    return {
-      item_id: it.id,
-      category: it.category,
-      label: it.label,
-      critical: it.critical,
-      ok,
-      note: ok === false && a?.note ? a.note : null,
-    };
-  });
+  return (items ?? [])
+    .filter((it) => isItemActive(input.kind, it))
+    .map((it) => {
+      const a = byId.get(it.id);
+      const mark = a?.mark ?? null;
+      return {
+        item_id: it.id,
+        category: it.category,
+        label: it.label,
+        critical: it.critical,
+        mark,
+        psi: it.psi ? (a?.psi ?? null) : null,
+        note: mark === "x" && a?.note ? a.note : null,
+      };
+    });
 }
 
 /** Save the caller's inspection for this shift and kind, creating it on first save. */
@@ -83,11 +97,18 @@ async function persist(ctx: AuthContext, input: Input, results: ResultRow[]): Pr
         .eq("kind", "pre_trip")
         .maybeSingle(),
     );
-    if (pre?.odometer != null && input.odometer < pre.odometer) {
-      throw new ActionError(
-        `The odometer can't be lower than at pre-trip (${pre.odometer.toLocaleString("en-US")}). Check the reading.`,
-      );
+    const err = milesError(pre?.odometer, input.odometer);
+    if (err) throw new ActionError(err);
+  }
+
+  // The report the driver says they reviewed must be the latest one for this vehicle.
+  let reviewedId: string | null = null;
+  if (input.kind === "pre_trip" && input.reviewedInspectionId) {
+    const prev = await findPreviousReport(ctx.supabase, ctx.org.id, shift.vehicle_id, ctx.employee.id);
+    if (!prev || prev.id !== input.reviewedInspectionId) {
+      throw new ActionError("There is a newer report for this vehicle. Reload the page and review it.");
     }
+    reviewedId = prev.id;
   }
 
   const fields = {
@@ -96,6 +117,8 @@ async function persist(ctx: AuthContext, input: Input, results: ResultRow[]): Pr
     damage: input.damage as unknown as Json,
     odometer: input.odometer,
     notes: input.notes,
+    operator_signature: input.signature as unknown as Json,
+    ...(input.kind === "pre_trip" ? { reviewed_inspection_id: reviewedId } : {}),
   };
 
   const existing = check(
@@ -136,14 +159,34 @@ export const saveInspection = action({ schema, capability: "driving" }, async (i
 
 export const submitInspection = action({ schema, capability: "driving" }, async (input, ctx) => {
   const results = await buildResults(ctx, input);
-  const unanswered = results.filter((r) => r.ok === null).length;
+  const unanswered = results.filter((r) => r.mark === null).length;
   if (unanswered) {
-    throw new ActionError(`${unanswered} item${unanswered === 1 ? " still needs" : "s still need"} a pass or fail.`);
+    throw new ActionError(`${unanswered} item${unanswered === 1 ? " still needs" : "s still need"} OK, X or NA.`);
   }
-  if (results.some((r) => r.ok === false && !r.note)) {
-    throw new ActionError("Add a short note to every failed item so the technician knows what to fix.");
+  if (results.some((r) => r.mark === "x" && !r.note)) {
+    throw new ActionError("Add a short note to every item marked X so the technician knows what to fix.");
   }
-  if (input.odometer === null) throw new ActionError("Enter the odometer reading.");
+  if (input.odometer === null) {
+    throw new ActionError(input.kind === "pre_trip" ? "Enter the beginning miles." : "Enter the end miles.");
+  }
+  if (!input.signature.length) throw new ActionError("Sign the inspection before you submit it.");
+
+  if (input.kind === "pre_trip" && !input.reviewedInspectionId) {
+    const shift = check(
+      await ctx.supabase
+        .from("shifts")
+        .select("vehicle_id")
+        .eq("organization_id", ctx.org.id)
+        .eq("employee_id", ctx.employee.id)
+        .eq("status", "active")
+        .maybeSingle(),
+    );
+    if (shift?.vehicle_id) {
+      const prev = await findPreviousReport(ctx.supabase, ctx.org.id, shift.vehicle_id, ctx.employee.id);
+      if (prev) throw new ActionError("Review the previous operator's vehicle inspection report and tick the box.");
+    }
+  }
+
   const id = await persist(ctx, input, results);
   const res = check(await ctx.supabase.rpc("submit_inspection", { p_inspection_id: id })) as {
     defects: number;
@@ -151,3 +194,25 @@ export const submitInspection = action({ schema, capability: "driving" }, async 
   } | null;
   return { defects: res?.defects ?? 0, critical: res?.critical ?? 0 };
 });
+
+/** Technician's comments and signature on a submitted inspection. */
+export const signInspection = action(
+  {
+    schema: z.object({
+      inspectionId: zId,
+      comments: zOptionalText(2000),
+      signature: signature.min(1, "Add your signature."),
+    }),
+    capability: "defectsWork",
+  },
+  async ({ inspectionId, comments, signature: sig }, ctx) => {
+    check(
+      await ctx.supabase.rpc("sign_inspection", {
+        p_inspection_id: inspectionId,
+        p_comments: comments ?? "",
+        p_signature: sig as unknown as Json,
+      }),
+    );
+  },
+);
+
